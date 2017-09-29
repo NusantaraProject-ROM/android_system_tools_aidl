@@ -61,7 +61,7 @@ int generate_java(const string& filename, const string& originalSrc,
 
   Document* document = new Document(
       "" /* no comment */,
-      (!iface->GetPackage().empty()) ? iface->GetPackage() : "",
+      iface->GetPackage(),
       originalSrc,
       unique_ptr<Class>(cl));
 
