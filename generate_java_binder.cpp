@@ -45,10 +45,18 @@ class StubClass : public Class {
   Variable* transact_reply;
   Variable* transact_flags;
   SwitchStatement* transact_switch;
+  StatementBlock* transact_statements;
+
+  // Finish generation. This will add a default case to the switch.
+  void finish();
+
+  Expression* get_transact_descriptor(const JavaTypeNamespace* types);
 
  private:
   void make_as_interface(const InterfaceType* interfaceType,
                          JavaTypeNamespace* types);
+
+  Variable* transact_descriptor;
 
   DISALLOW_COPY_AND_ASSIGN(StubClass);
 };
@@ -56,6 +64,8 @@ class StubClass : public Class {
 StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
                      JavaTypeNamespace* types)
     : Class() {
+  transact_descriptor = nullptr;
+
   this->comment = "/** Local-side IPC implementation stub class. */";
   this->modifiers = PUBLIC | ABSTRACT | STATIC;
   this->what = Class::CLASS;
@@ -110,15 +120,34 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
   onTransact->parameters.push_back(this->transact_reply);
   onTransact->parameters.push_back(this->transact_flags);
   onTransact->statements = new StatementBlock;
+  transact_statements = onTransact->statements;
   onTransact->exceptions.push_back(types->RemoteExceptionType());
   this->elements.push_back(onTransact);
   this->transact_switch = new SwitchStatement(this->transact_code);
+}
 
-  onTransact->statements->Add(this->transact_switch);
+void StubClass::finish() {
+  Case* default_case = new Case;
+
   MethodCall* superCall = new MethodCall(
-      SUPER_VALUE, "onTransact", 4, this->transact_code, this->transact_data,
-      this->transact_reply, this->transact_flags);
-  onTransact->statements->Add(new ReturnStatement(superCall));
+        SUPER_VALUE, "onTransact", 4, this->transact_code, this->transact_data,
+        this->transact_reply, this->transact_flags);
+  default_case->statements->Add(new ReturnStatement(superCall));
+  transact_switch->cases.push_back(default_case);
+
+  transact_statements->Add(this->transact_switch);
+}
+
+Expression* StubClass::get_transact_descriptor(const JavaTypeNamespace* types) {
+  // Store the descriptor literal into a local variable, in an effort to save
+  // const-string instructions in each switch case.
+  if (transact_descriptor == nullptr) {
+    transact_descriptor = new Variable(types->StringType(), "descriptor");
+    transact_statements->Add(
+        new VariableDeclaration(transact_descriptor,
+                                new LiteralExpression("DESCRIPTOR")));
+  }
+  return transact_descriptor;
 }
 
 void StubClass::make_as_interface(const InterfaceType* interfaceType,
@@ -286,13 +315,14 @@ static void generate_stub_code(const AidlMethod& method,
                                Variable* transact_data,
                                Variable* transact_reply,
                                JavaTypeNamespace* types,
-                               StatementBlock* statements) {
+                               StatementBlock* statements,
+                               StubClass* stubClass) {
   MethodCall* realCall = new MethodCall(THIS_VALUE, method.GetName());
 
   // interface token validation is the very first thing we do
   statements->Add(new MethodCall(transact_data,
                                  "enforceInterface", 1,
-                                 new LiteralExpression("DESCRIPTOR")));
+                                 stubClass->get_transact_descriptor(types)));
 
   // args
   VariableFactory stubArgs("_arg");
@@ -392,7 +422,8 @@ static void generate_stub_case(const AidlMethod& method,
                      stubClass->transact_data,
                      stubClass->transact_reply,
                      types,
-                     c->statements);
+                     c->statements,
+                     stubClass);
 
   stubClass->transact_switch->cases.push_back(c);
 }
@@ -551,7 +582,7 @@ static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy,
   // the interface descriptor transaction handler
   Case* c = new Case("INTERFACE_TRANSACTION");
   c->statements->Add(new MethodCall(stub->transact_reply, "writeString", 1,
-                                    new LiteralExpression("DESCRIPTOR")));
+                                    stub->get_transact_descriptor(types)));
   c->statements->Add(new ReturnStatement(TRUE_VALUE));
   stub->transact_switch->cases.push_back(c);
 
@@ -604,6 +635,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   for (const auto& item : iface->GetMethods()) {
     generate_methods(*item, interface, stub, proxy, item->GetId(), types);
   }
+  stub->finish();
 
   return interface;
 }
