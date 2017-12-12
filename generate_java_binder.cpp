@@ -46,6 +46,9 @@ class StubClass : public Class {
   Variable* transact_flags;
   SwitchStatement* transact_switch;
 
+  // Finish generation. This will add a default case to the switch.
+  void finish();
+
  private:
   void make_as_interface(const InterfaceType* interfaceType,
                          JavaTypeNamespace* types);
@@ -115,10 +118,16 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
   this->transact_switch = new SwitchStatement(this->transact_code);
 
   onTransact->statements->Add(this->transact_switch);
+}
+
+void StubClass::finish() {
+  Case* default_case = new Case;
+
   MethodCall* superCall = new MethodCall(
-      SUPER_VALUE, "onTransact", 4, this->transact_code, this->transact_data,
-      this->transact_reply, this->transact_flags);
-  onTransact->statements->Add(new ReturnStatement(superCall));
+        SUPER_VALUE, "onTransact", 4, this->transact_code, this->transact_data,
+        this->transact_reply, this->transact_flags);
+  default_case->statements->Add(new ReturnStatement(superCall));
+  transact_switch->cases.push_back(default_case);
 }
 
 void StubClass::make_as_interface(const InterfaceType* interfaceType,
@@ -604,6 +613,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   for (const auto& item : iface->GetMethods()) {
     generate_methods(*item, interface, stub, proxy, item->GetId(), types);
   }
+  stub->finish();
 
   return interface;
 }
