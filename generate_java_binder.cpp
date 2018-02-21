@@ -342,7 +342,8 @@ static std::unique_ptr<Method> generate_interface_method(
   return decl;
 }
 
-static void generate_stub_code(const AidlMethod& method,
+static void generate_stub_code(const AidlInterface& iface,
+                               const AidlMethod& method,
                                const std::string& transactCodeName,
                                bool oneway,
                                Variable* transact_data,
@@ -350,6 +351,8 @@ static void generate_stub_code(const AidlMethod& method,
                                JavaTypeNamespace* types,
                                StatementBlock* statements,
                                StubClass* stubClass) {
+  TryStatement* tryStatement = nullptr;
+  FinallyStatement* finallyStatement = nullptr;
   MethodCall* realCall = new MethodCall(THIS_VALUE, method.GetName());
 
   // interface token validation is the very first thing we do
@@ -391,9 +394,31 @@ static void generate_stub_code(const AidlMethod& method,
     }
   }
 
+  if (iface.ShouldGenerateTraces()) {
+    // try and finally, but only when generating trace code
+    tryStatement = new TryStatement();
+    finallyStatement = new FinallyStatement();
+
+    tryStatement->statements->Add(new MethodCall(
+        new LiteralExpression("android.os.Trace"), "traceBegin", 2,
+        new LiteralExpression("android.os.Trace.TRACE_TAG_AIDL"),
+        new StringLiteralExpression(iface.GetName() + "::"
+            + method.GetName() + "::server")));
+
+    finallyStatement->statements->Add(new MethodCall(
+        new LiteralExpression("android.os.Trace"), "traceEnd", 1,
+        new LiteralExpression("android.os.Trace.TRACE_TAG_AIDL")));
+  }
+
   // the real call
   if (method.GetType().GetName() == "void") {
-    statements->Add(realCall);
+    if (iface.ShouldGenerateTraces()) {
+      statements->Add(tryStatement);
+      tryStatement->statements->Add(realCall);
+      statements->Add(finallyStatement);
+    } else {
+      statements->Add(realCall);
+    }
 
     if (!oneway) {
       // report that there were no exceptions
@@ -406,7 +431,14 @@ static void generate_stub_code(const AidlMethod& method,
         new Variable(method.GetType().GetLanguageType<Type>(),
                      "_result",
                      method.GetType().IsArray() ? 1 : 0);
-    statements->Add(new VariableDeclaration(_result, realCall));
+    if (iface.ShouldGenerateTraces()) {
+      statements->Add(new VariableDeclaration(_result));
+      statements->Add(tryStatement);
+      tryStatement->statements->Add(new Assignment(_result, realCall));
+      statements->Add(finallyStatement);
+    } else {
+      statements->Add(new VariableDeclaration(_result, realCall));
+    }
 
     if (!oneway) {
       // report that there were no exceptions
@@ -443,14 +475,16 @@ static void generate_stub_code(const AidlMethod& method,
 }
 
 
-static void generate_stub_case(const AidlMethod& method,
+static void generate_stub_case(const AidlInterface& iface,
+                               const AidlMethod& method,
                                const std::string& transactCodeName,
                                bool oneway,
                                StubClass* stubClass,
                                JavaTypeNamespace* types) {
   Case* c = new Case(transactCodeName);
 
-  generate_stub_code(method,
+  generate_stub_code(iface,
+                     method,
                      transactCodeName,
                      oneway,
                      stubClass->transact_data,
@@ -462,7 +496,8 @@ static void generate_stub_case(const AidlMethod& method,
   stubClass->transact_switch->cases.push_back(c);
 }
 
-static void generate_stub_case_outline(const AidlMethod& method,
+static void generate_stub_case_outline(const AidlInterface& iface,
+                                       const AidlMethod& method,
                                        const std::string& transactCodeName,
                                        bool oneway,
                                        StubClass* stubClass,
@@ -482,7 +517,8 @@ static void generate_stub_case_outline(const AidlMethod& method,
     onTransact_case->exceptions.push_back(types->RemoteExceptionType());
     stubClass->elements.push_back(onTransact_case);
 
-    generate_stub_code(method,
+    generate_stub_code(iface,
+                       method,
                        transactCodeName,
                        oneway,
                        transact_data,
@@ -508,6 +544,7 @@ static void generate_stub_case_outline(const AidlMethod& method,
 }
 
 static std::unique_ptr<Method> generate_proxy_method(
+    const AidlInterface& iface,
     const AidlMethod& method,
     const std::string& transactCodeName,
     bool oneway,
@@ -551,6 +588,14 @@ static std::unique_ptr<Method> generate_proxy_method(
   proxy->statements->Add(tryStatement);
   FinallyStatement* finallyStatement = new FinallyStatement();
   proxy->statements->Add(finallyStatement);
+
+  if (iface.ShouldGenerateTraces()) {
+    tryStatement->statements->Add(new MethodCall(
+          new LiteralExpression("android.os.Trace"), "traceBegin", 2,
+          new LiteralExpression("android.os.Trace.TRACE_TAG_AIDL"),
+          new StringLiteralExpression(iface.GetName() + "::" +
+                                      method.GetName() + "::client")));
+  }
 
   // the interface identifier token: the DESCRIPTOR constant, marshalled as a
   // string
@@ -615,6 +660,12 @@ static std::unique_ptr<Method> generate_proxy_method(
   }
   finallyStatement->statements->Add(new MethodCall(_data, "recycle"));
 
+  if (iface.ShouldGenerateTraces()) {
+    finallyStatement->statements->Add(new MethodCall(
+        new LiteralExpression("android.os.Trace"), "traceEnd", 1,
+        new LiteralExpression("android.os.Trace.TRACE_TAG_AIDL")));
+  }
+
   if (_result != NULL) {
     proxy->statements->Add(new ReturnStatement(_result));
   }
@@ -622,7 +673,8 @@ static std::unique_ptr<Method> generate_proxy_method(
   return proxy;
 }
 
-static void generate_methods(const AidlMethod& method,
+static void generate_methods(const AidlInterface& iface,
+                             const AidlMethod& method,
                              Class* interface,
                              StubClass* stubClass,
                              ProxyClass* proxyClass,
@@ -648,17 +700,19 @@ static void generate_methods(const AidlMethod& method,
   bool outline_stub = stubClass->transact_outline &&
       stubClass->outline_methods.count(&method) != 0;
   if (outline_stub) {
-    generate_stub_case_outline(method,
+    generate_stub_case_outline(iface,
+                               method,
                                transactCodeName,
                                oneway,
                                stubClass,
                                types);
   } else {
-    generate_stub_case(method, transactCodeName, oneway, stubClass, types);
+    generate_stub_case(iface, method, transactCodeName, oneway, stubClass, types);
   }
 
   // == the proxy method ===================================================
-  Method* proxy = generate_proxy_method(method,
+  Method* proxy = generate_proxy_method(iface,
+                                        method,
                                         transactCodeName,
                                         oneway,
                                         proxyClass,
@@ -768,7 +822,8 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   // all the declared methods of the interface
 
   for (const auto& item : iface->GetMethods()) {
-    generate_methods(*item,
+    generate_methods(*iface,
+                     *item,
                      interface,
                      stub,
                      proxy,
