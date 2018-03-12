@@ -20,10 +20,6 @@ LOCAL_PATH := $(call my-dir)
 # Everything below here is used for integration testing of generated AIDL code.
 #
 
-# aidl on its own doesn't need the framework, but testing native/java
-# compatibility introduces java dependencies.
-ifndef BRILLO
-
 include $(CLEAR_VARS)
 LOCAL_PACKAGE_NAME := aidl_test_services
 LOCAL_PRIVATE_PLATFORM_APIS := true
@@ -45,5 +41,3 @@ LOCAL_AIDL_INCLUDES := \
     system/tools/aidl/tests/ \
     frameworks/native/aidl/binder
 include $(BUILD_PACKAGE)
-
-endif  # not defined BRILLO
