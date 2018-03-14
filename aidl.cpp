@@ -742,7 +742,7 @@ int compile_aidl_to_java(const JavaOptions& options,
   }
 
   return generate_java(output_file_name, options.input_file_name_.c_str(),
-                       interface.get(), types.get(), io_delegate);
+                       interface.get(), types.get(), io_delegate, options);
 }
 
 bool preprocess_aidl(const JavaOptions& options,
