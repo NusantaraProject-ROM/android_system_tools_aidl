@@ -120,16 +120,17 @@ return this;
 }
 @Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException
 {
+java.lang.String descriptor = DESCRIPTOR;
 switch (code)
 {
 case INTERFACE_TRANSACTION:
 {
-reply.writeString(DESCRIPTOR);
+reply.writeString(descriptor);
 return true;
 }
 case TRANSACTION_isEnabled:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 boolean _result = this.isEnabled();
 reply.writeNoException();
 reply.writeInt(((_result)?(1):(0)));
@@ -137,7 +138,7 @@ return true;
 }
 case TRANSACTION_getState:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 int _result = this.getState();
 reply.writeNoException();
 reply.writeInt(_result);
@@ -145,7 +146,7 @@ return true;
 }
 case TRANSACTION_getAddress:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 java.lang.String _result = this.getAddress();
 reply.writeNoException();
 reply.writeString(_result);
@@ -153,7 +154,7 @@ return true;
 }
 case TRANSACTION_getParcelables:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 android.foo.ExampleParcelable[] _result = this.getParcelables();
 reply.writeNoException();
 reply.writeTypedArray(_result, android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
@@ -161,7 +162,7 @@ return true;
 }
 case TRANSACTION_setScanMode:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 int _arg0;
 _arg0 = data.readInt();
 int _arg1;
@@ -173,7 +174,7 @@ return true;
 }
 case TRANSACTION_registerBinder:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 android.bar.IAuxInterface _arg0;
 _arg0 = android.bar.IAuxInterface.Stub.asInterface(data.readStrongBinder());
 this.registerBinder(_arg0);
@@ -182,7 +183,7 @@ return true;
 }
 case TRANSACTION_getRecursiveBinder:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 android.test.IExampleInterface _result = this.getRecursiveBinder();
 reply.writeNoException();
 reply.writeStrongBinder((((_result!=null))?(_result.asBinder()):(null)));
@@ -190,7 +191,7 @@ return true;
 }
 case TRANSACTION_takesAnInterface:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 android.test.IAuxInterface2 _arg0;
 _arg0 = android.test.IAuxInterface2.Stub.asInterface(data.readStrongBinder());
 int _result = this.takesAnInterface(_arg0);
@@ -200,7 +201,7 @@ return true;
 }
 case TRANSACTION_takesAParcelable:
 {
-data.enforceInterface(DESCRIPTOR);
+data.enforceInterface(descriptor);
 android.test.CompoundParcelable.Subclass1 _arg0;
 if ((0!=data.readInt())) {
 _arg0 = android.test.CompoundParcelable.Subclass1.CREATOR.createFromParcel(data);
@@ -227,8 +228,11 @@ reply.writeInt(0);
 }
 return true;
 }
-}
+default:
+{
 return super.onTransact(code, data, reply, flags);
+}
+}
 }
 private static class Proxy implements android.test.IExampleInterface
 {
