@@ -47,6 +47,9 @@ class StubClass : public Class {
   SwitchStatement* transact_switch;
   StatementBlock* transact_statements;
 
+  // Where onTransact cases should be generated as separate methods.
+  bool transact_outline;
+
   // Finish generation. This will add a default case to the switch.
   void finish();
 
@@ -65,6 +68,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
                      JavaTypeNamespace* types)
     : Class() {
   transact_descriptor = nullptr;
+  transact_outline = false;
 
   this->comment = "/** Local-side IPC implementation stub class. */";
   this->modifiers = PUBLIC | ABSTRACT | STATIC;
@@ -139,8 +143,13 @@ void StubClass::finish() {
 }
 
 Expression* StubClass::get_transact_descriptor(const JavaTypeNamespace* types) {
-  // Store the descriptor literal into a local variable, in an effort to save
-  // const-string instructions in each switch case.
+  // When outlining, each method needs its own literal.
+  if (transact_outline) {
+    return new LiteralExpression("DESCRIPTOR");
+  }
+
+  // When not outlining, store the descriptor literal into a local variable, in an
+  // effort to save const-string instructions in each switch case.
   if (transact_descriptor == nullptr) {
     transact_descriptor = new Variable(types->StringType(), "descriptor");
     transact_statements->Add(
@@ -428,6 +437,51 @@ static void generate_stub_case(const AidlMethod& method,
   stubClass->transact_switch->cases.push_back(c);
 }
 
+static void generate_stub_case_outline(const AidlMethod& method,
+                                       const std::string& transactCodeName,
+                                       bool oneway,
+                                       StubClass* stubClass,
+                                       JavaTypeNamespace* types) {
+  std::string outline_name = "onTransact$" + method.GetName() + "$";
+  // Generate an "outlined" method with the actual code.
+  {
+    Variable* transact_data = new Variable(types->ParcelType(), "data");
+    Variable* transact_reply = new Variable(types->ParcelType(), "reply");
+    Method* onTransact_case = new Method;
+    onTransact_case->modifiers = PRIVATE;
+    onTransact_case->returnType = types->BoolType();
+    onTransact_case->name = outline_name;
+    onTransact_case->parameters.push_back(transact_data);
+    onTransact_case->parameters.push_back(transact_reply);
+    onTransact_case->statements = new StatementBlock;
+    onTransact_case->exceptions.push_back(types->RemoteExceptionType());
+    stubClass->elements.push_back(onTransact_case);
+
+    generate_stub_code(method,
+                       transactCodeName,
+                       oneway,
+                       transact_data,
+                       transact_reply,
+                       types,
+                       onTransact_case->statements,
+                       stubClass);
+  }
+
+  // Generate the case dispatch.
+  {
+    Case* c = new Case(transactCodeName);
+
+    MethodCall* helper_call = new MethodCall(THIS_VALUE,
+                                             outline_name,
+                                             2,
+                                             stubClass->transact_data,
+                                             stubClass->transact_reply);
+    c->statements->Add(new ReturnStatement(helper_call));
+
+    stubClass->transact_switch->cases.push_back(c);
+  }
+}
+
 static std::unique_ptr<Method> generate_proxy_method(
     const AidlMethod& method,
     const std::string& transactCodeName,
@@ -566,7 +620,15 @@ static void generate_methods(const AidlMethod& method,
   interface->elements.push_back(decl);
 
   // == the stub method ====================================================
-  generate_stub_case(method, transactCodeName, oneway, stubClass, types);
+  if (stubClass->transact_outline) {
+    generate_stub_case_outline(method,
+                               transactCodeName,
+                               oneway,
+                               stubClass,
+                               types);
+  } else {
+    generate_stub_case(method, transactCodeName, oneway, stubClass, types);
+  }
 
   // == the proxy method ===================================================
   Method* proxy = generate_proxy_method(method,
@@ -615,6 +677,9 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
       new StubClass(interfaceType->GetStub(), interfaceType, types);
   interface->elements.push_back(stub);
 
+  // We'll outline (create sub methods) if there are more than 275 cases.
+  stub->transact_outline = iface->GetMethods().size() > 275u;
+
   // the proxy inner class
   ProxyClass* proxy =
       new ProxyClass(types, interfaceType->GetProxy(), interfaceType);
@@ -632,8 +697,14 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   }
 
   // all the declared methods of the interface
+
   for (const auto& item : iface->GetMethods()) {
-    generate_methods(*item, interface, stub, proxy, item->GetId(), types);
+    generate_methods(*item,
+                     interface,
+                     stub,
+                     proxy,
+                     item->GetId(),
+                     types);
   }
   stub->finish();
 
