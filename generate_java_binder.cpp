@@ -20,9 +20,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
+#include <unordered_set>
+
 #include <android-base/macros.h>
 #include <android-base/stringprintf.h>
 
+#include "options.h"
 #include "type_java.h"
 
 using std::string;
@@ -49,11 +53,16 @@ class StubClass : public Class {
 
   // Where onTransact cases should be generated as separate methods.
   bool transact_outline;
+  // Specific methods that should be outlined when transact_outline is true.
+  std::unordered_set<const AidlMethod*> outline_methods;
+  // Number of all methods.
+  size_t all_method_count;
 
   // Finish generation. This will add a default case to the switch.
   void finish();
 
-  Expression* get_transact_descriptor(const JavaTypeNamespace* types);
+  Expression* get_transact_descriptor(const JavaTypeNamespace* types,
+                                      const AidlMethod* method);
 
  private:
   void make_as_interface(const InterfaceType* interfaceType,
@@ -69,6 +78,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
     : Class() {
   transact_descriptor = nullptr;
   transact_outline = false;
+  all_method_count = 0;  // Will be set when outlining may be enabled.
 
   this->comment = "/** Local-side IPC implementation stub class. */";
   this->modifiers = PUBLIC | ABSTRACT | STATIC;
@@ -142,14 +152,28 @@ void StubClass::finish() {
   transact_statements->Add(this->transact_switch);
 }
 
-Expression* StubClass::get_transact_descriptor(const JavaTypeNamespace* types) {
-  // When outlining, each method needs its own literal.
+// The the expression for the interface's descriptor to be used when
+// generating code for the given method. Null is acceptable for method
+// and stands for synthetic cases.
+Expression* StubClass::get_transact_descriptor(const JavaTypeNamespace* types,
+                                               const AidlMethod* method) {
   if (transact_outline) {
-    return new LiteralExpression("DESCRIPTOR");
+    if (method != nullptr) {
+      // When outlining, each outlined method needs its own literal.
+      if (outline_methods.count(method) != 0) {
+        return new LiteralExpression("DESCRIPTOR");
+      }
+    } else {
+      // Synthetic case. A small number is assumed. Use its own descriptor
+      // if there are only synthetic cases.
+      if (outline_methods.size() == all_method_count) {
+        return new LiteralExpression("DESCRIPTOR");
+      }
+    }
   }
 
-  // When not outlining, store the descriptor literal into a local variable, in an
-  // effort to save const-string instructions in each switch case.
+  // When not outlining, store the descriptor literal into a local variable, in
+  // an effort to save const-string instructions in each switch case.
   if (transact_descriptor == nullptr) {
     transact_descriptor = new Variable(types->StringType(), "descriptor");
     transact_statements->Add(
@@ -331,7 +355,8 @@ static void generate_stub_code(const AidlMethod& method,
   // interface token validation is the very first thing we do
   statements->Add(new MethodCall(transact_data,
                                  "enforceInterface", 1,
-                                 stubClass->get_transact_descriptor(types)));
+                                 stubClass->get_transact_descriptor(types,
+                                                                    &method)));
 
   // args
   VariableFactory stubArgs("_arg");
@@ -620,7 +645,9 @@ static void generate_methods(const AidlMethod& method,
   interface->elements.push_back(decl);
 
   // == the stub method ====================================================
-  if (stubClass->transact_outline) {
+  bool outline_stub = stubClass->transact_outline &&
+      stubClass->outline_methods.count(&method) != 0;
+  if (outline_stub) {
     generate_stub_case_outline(method,
                                transactCodeName,
                                oneway,
@@ -644,7 +671,8 @@ static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy,
   // the interface descriptor transaction handler
   Case* c = new Case("INTERFACE_TRANSACTION");
   c->statements->Add(new MethodCall(stub->transact_reply, "writeString", 1,
-                                    stub->get_transact_descriptor(types)));
+                                    stub->get_transact_descriptor(types,
+                                                                  nullptr)));
   c->statements->Add(new ReturnStatement(TRUE_VALUE));
   stub->transact_switch->cases.push_back(c);
 
@@ -660,8 +688,47 @@ static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy,
   proxy->elements.push_back(getDesc);
 }
 
+// Check whether (some) methods in this interface should be "outlined," that
+// is, have specific onTransact methods for certain cases. Set up StubClass
+// metadata accordingly.
+//
+// Outlining will be enabled if the interface has more than outline_threshold
+// methods. In that case, the methods are sorted by number of arguments
+// (so that more "complex" methods come later), and the first non_outline_count
+// number of methods not outlined (are kept in the onTransact() method).
+//
+// Requirements: non_outline_count <= outline_threshold.
+static void compute_outline_methods(const AidlInterface* iface,
+                                    StubClass* stub,
+                                    size_t outline_threshold,
+                                    size_t non_outline_count) {
+  CHECK_LE(non_outline_count, outline_threshold);
+  // We'll outline (create sub methods) if there are more than min_methods
+  // cases.
+  stub->transact_outline = iface->GetMethods().size() > outline_threshold;
+  if (stub->transact_outline) {
+    stub->all_method_count = iface->GetMethods().size();
+    std::vector<const AidlMethod*> methods;
+    methods.reserve(iface->GetMethods().size());
+    for (const std::unique_ptr<AidlMethod>& ptr : iface->GetMethods()) {
+      methods.push_back(ptr.get());
+    }
+
+    std::stable_sort(
+        methods.begin(),
+        methods.end(),
+        [](const AidlMethod* m1, const AidlMethod* m2) {
+          return m1->GetArguments().size() < m2->GetArguments().size();
+        });
+
+    stub->outline_methods.insert(methods.begin() + non_outline_count,
+                                 methods.end());
+  }
+}
+
 Class* generate_binder_interface_class(const AidlInterface* iface,
-                                       JavaTypeNamespace* types) {
+                                       JavaTypeNamespace* types,
+                                       const JavaOptions& options) {
   const InterfaceType* interfaceType = iface->GetLanguageType<InterfaceType>();
 
   // the interface class
@@ -677,8 +744,10 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
       new StubClass(interfaceType->GetStub(), interfaceType, types);
   interface->elements.push_back(stub);
 
-  // We'll outline (create sub methods) if there are more than 275 cases.
-  stub->transact_outline = iface->GetMethods().size() > 275u;
+  compute_outline_methods(iface,
+                          stub,
+                          options.onTransact_outline_threshold_,
+                          options.onTransact_non_outline_count_);
 
   // the proxy inner class
   ProxyClass* proxy =
