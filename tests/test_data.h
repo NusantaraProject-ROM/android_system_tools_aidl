@@ -26,11 +26,13 @@ namespace example_interface {
 extern const char kCanonicalName[];
 extern const char kJavaOutputPath[];
 extern const char kInterfaceDefinition[];
+extern const char kInterfaceDefinitionOutlining[];
 extern const char* kImportedParcelables[];
 extern const char* kImportedInterfaces[];
 
 extern const char kExpectedJavaDepsOutput[];
 extern const char kExpectedJavaOutput[];
+extern const char kExpectedJavaOutputOutlining[];
 
 }  // namespace example_interface
 
