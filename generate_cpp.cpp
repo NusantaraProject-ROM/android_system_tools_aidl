@@ -81,15 +81,6 @@ unique_ptr<AstNode> GotoErrorOnBadStatus() {
   return unique_ptr<AstNode>(ret);
 }
 
-
-unique_ptr<AstNode> ReturnOnStatusNotOk() {
-  IfStatement* ret = new IfStatement(new Comparison(
-      new LiteralExpression(kAndroidStatusVarName), "!=",
-      new LiteralExpression(kAndroidStatusOk)));
-  ret->OnTrue()->AddLiteral(StringPrintf("return %s", kAndroidStatusVarName));
-  return unique_ptr<AstNode>(ret);
-}
-
 string UpperCase(const std::string& s) {
   string result = s;
   for (char& c : result)

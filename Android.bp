@@ -38,19 +38,9 @@ cc_library_host_static {
     name: "libaidl-common",
     defaults: ["aidl_defaults"],
 
-    clang_cflags: [
+    cflags: [
         // Tragically, the code is riddled with unused parameters.
         "-Wno-unused-parameter",
-
-        // yacc dumps a lot of code *just in case*.
-        "-Wno-unused-function",
-        "-Wno-unneeded-internal-declaration",
-
-        // yacc is a tool from a more civilized age.
-        "-Wno-deprecated-register",
-
-        // yacc also has a habit of using char* over const char*.
-        "-Wno-writable-strings",
     ],
 
     srcs: [
