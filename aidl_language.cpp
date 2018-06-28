@@ -283,19 +283,14 @@ bool Parser::ParseFile(const string& filename) {
 
   buffer_ = yy_scan_buffer(&(*raw_buffer_)[0], raw_buffer_->length(), scanner_);
 
-  if (yy::parser(this).parse() != 0 || error_ != 0) {
-    return false;}
+  if (yy::parser(this).parse() != 0 || error_ != 0)
+    return false;
 
   if (document_.get() != nullptr)
     return true;
 
   LOG(ERROR) << "Parser succeeded but yielded no document!";
   return false;
-}
-
-void Parser::ReportError(const string& err, unsigned line) {
-  cerr << filename_ << ":" << line << ": " << err << endl;
-  error_ = 1;
 }
 
 std::vector<std::string> Parser::Package() const {
