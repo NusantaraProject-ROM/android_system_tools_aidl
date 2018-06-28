@@ -399,9 +399,8 @@ class Parser {
   // Parse contents of file |filename|.
   bool ParseFile(const std::string& filename);
 
-  void ReportError(const std::string& err, unsigned line);
+  void AddError() { error_++; }
 
-  bool FoundNoErrors() const { return error_ == 0; }
   const std::string& FileName() const { return filename_; }
   void* Scanner() const { return scanner_; }
 

@@ -94,11 +94,8 @@ oneway                { yylval->token = new AidlToken("oneway", extra_text);
 {hexvalue}            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::HEXVALUE; }
 
-    /* syntax error! */
-.                     { printf("UNKNOWN(%s)", yytext);
-                        yylval->token = new AidlToken(yytext, extra_text);
-                        return yy::parser::token::IDENTIFIER;
-                      }
+  /* lexical error! */
+.                     { return yy::parser::token::UNKNOWN; }
 
 %%
 

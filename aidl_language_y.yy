@@ -17,6 +17,8 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %pure-parser
 %skeleton "glr.cc"
 
+%error-verbose
+
 %union {
     AidlToken* token;
     int integer;
@@ -41,6 +43,7 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %token<integer> INTVALUE
 
 %token '(' ')' ',' '=' '[' ']' '<' '>' '.' '{' '}' ';'
+%token UNKNOWN "unrecognized character"
 %token IN OUT INOUT PACKAGE IMPORT PARCELABLE CPP_HEADER CONST INT STRING
 %token ANNOTATION_NULLABLE ANNOTATION_UTF8 ANNOTATION_UTF8_CPP
 
@@ -116,9 +119,7 @@ parcelable_decls
    $$->AddParcelable($2);
   }
  | parcelable_decls error {
-    fprintf(stderr, "%s:%d: syntax error don't know what to do with \"%s\"\n",
-            ps->FileName().c_str(),
-            @2.begin.line, $2->GetText().c_str());
+    ps->AddError();
     $$ = $1;
   };
 
@@ -129,14 +130,8 @@ parcelable_decl
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
     $$ = new AidlParcelable($2, @2.begin.line, ps->Package(), $4->GetText());
   }
- | PARCELABLE ';' {
-    fprintf(stderr, "%s:%d syntax error in parcelable declaration. Expected type name.\n",
-            ps->FileName().c_str(), @1.begin.line);
-    $$ = NULL;
-  }
  | PARCELABLE error ';' {
-    fprintf(stderr, "%s:%d syntax error in parcelable declaration. Expected type name, saw \"%s\".\n",
-            ps->FileName().c_str(), @2.begin.line, $2->GetText().c_str());
+    ps->AddError();
     $$ = NULL;
   };
 
@@ -157,21 +152,11 @@ interface_decl
     delete $4;
   }
  | annotation_list INTERFACE error '{' members '}' {
-    fprintf(stderr, "%s:%d: syntax error in interface declaration.  Expected "
-                    "type name, saw \"%s\"\n",
-            ps->FileName().c_str(), @3.begin.line, $3->GetText().c_str());
+    ps->AddError();
     $$ = NULL;
     delete $2;
     delete $3;
     delete $5;
-  }
- | annotation_list INTERFACE error '}' {
-    fprintf(stderr, "%s:%d: syntax error in interface declaration.  Expected "
-                    "type name, saw \"%s\"\n",
-            ps->FileName().c_str(), @3.begin.line, $3->GetText().c_str());
-    $$ = NULL;
-    delete $2;
-    delete $3;
   };
 
 members
@@ -182,9 +167,7 @@ members
  | members constant_decl
   { $1->push_back(std::unique_ptr<AidlMember>($2)); }
  | members error ';' {
-    fprintf(stderr, "%s:%d: syntax error before ';' "
-                    "(expected method or constant declaration)\n",
-            ps->FileName().c_str(), @3.begin.line);
+    ps->AddError();
     $$ = $1;
   };
 
@@ -238,21 +221,19 @@ arg_list
  | arg_list ',' arg {
     $$ = $1;
     $$->push_back(std::unique_ptr<AidlArgument>($3));
-  }
- | error {
-    fprintf(stderr, "%s:%d: syntax error in parameter list\n",
-            ps->FileName().c_str(), @1.begin.line);
-    $$ = new std::vector<std::unique_ptr<AidlArgument>>();
   };
 
 arg
  : direction type identifier {
     $$ = new AidlArgument($1, $2, $3->GetText(), @3.begin.line);
     delete $3;
-  };
+  }
  | type identifier {
     $$ = new AidlArgument($1, $2->GetText(), @2.begin.line);
     delete $2;
+  }
+ | error {
+    ps->AddError();
   };
 
 unannotated_type
@@ -318,5 +299,5 @@ direction
 
 void yy::parser::error(const yy::parser::location_type& l,
                        const std::string& errstr) {
-  ps->ReportError(errstr, l.begin.line);
+  std::cerr << ps->FileName() << ":" << l << ": " << errstr << std::endl;
 }
