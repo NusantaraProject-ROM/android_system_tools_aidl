@@ -201,3 +201,33 @@ cc_binary {
         "tests/aidl_test_client_service_exceptions.cpp",
     ],
 }
+
+android_app {
+    name: "aidl_test_services",
+    platform_apis: true,
+    // Turn off Java optimization tools to speed up our test iterations.
+    optimize: {
+        enabled: false,
+    },
+    dex_preopt: {
+        enabled: false,
+    },
+    certificate: "platform",
+    manifest: "tests/java_app/AndroidManifest.xml",
+    resource_dirs: ["tests/java_app/resources"],
+    srcs: [
+        "tests/android/aidl/tests/INamedCallback.aidl",
+        "tests/android/aidl/tests/ITestService.aidl",
+        "tests/java_app/src/android/aidl/tests/NullableTests.java",
+        "tests/java_app/src/android/aidl/tests/SimpleParcelable.java",
+        "tests/java_app/src/android/aidl/tests/TestFailException.java",
+        "tests/java_app/src/android/aidl/tests/TestLogger.java",
+        "tests/java_app/src/android/aidl/tests/TestServiceClient.java",
+    ],
+    aidl: {
+        include_dirs: [
+            "system/tools/aidl/tests/",
+            "frameworks/native/aidl/binder",
+        ],
+    },
+}
