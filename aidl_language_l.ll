@@ -10,6 +10,8 @@
 
 %option yylineno
 %option noyywrap
+%option nounput
+%option noinput
 %option reentrant
 %option bison-bridge
 %option bison-locations
