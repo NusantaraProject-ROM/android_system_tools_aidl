@@ -52,14 +52,18 @@ void ClassDecl::Write(CodeWriter* to) const {
   if (!public_members_.empty())
       to->Write("public:\n");
 
+  to->Indent();
   for (const auto& dec : public_members_)
     dec->Write(to);
+  to->Dedent();
 
   if (!private_members_.empty())
       to->Write("private:\n");
 
+  to->Indent();
   for (const auto& dec : private_members_)
     dec->Write(to);
+  to->Dedent();
 
   to->Write("};  // class %s\n", name_.c_str());
 }
@@ -87,13 +91,15 @@ void Enum::Write(CodeWriter* to) const {
   } else {
     to->Write("enum %s : %s {\n", enum_name_.c_str(), underlying_type_.c_str());
   }
+  to->Indent();
   for (const auto& field : fields_) {
     if (field.value.empty()) {
-      to->Write("  %s,\n", field.key.c_str());
+      to->Write("%s,\n", field.key.c_str());
     } else {
-      to->Write("  %s = %s,\n", field.key.c_str(), field.value.c_str());
+      to->Write("%s = %s,\n", field.key.c_str(), field.value.c_str());
     }
   }
+  to->Dedent();
   to->Write("};\n");
 }
 
@@ -228,9 +234,11 @@ void StatementBlock::AddLiteral(const std::string& expression_str,
 
 void StatementBlock::Write(CodeWriter* to) const {
   to->Write("{\n");
+  to->Indent();
   for (const auto& statement : statements_) {
     statement->Write(to);
   }
+  to->Dedent();
   to->Write("}\n");
 }
 

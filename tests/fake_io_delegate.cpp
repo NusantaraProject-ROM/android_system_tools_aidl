@@ -36,6 +36,7 @@ namespace test {
 class BrokenCodeWriter : public CodeWriter {
   bool Write(const char* /* format */, ...) override {  return true; }
   bool Close() override { return false; }
+  bool Output(const std::string& str) override { return true; }
   virtual ~BrokenCodeWriter() = default;
 };  // class BrokenCodeWriter
 
