@@ -421,6 +421,10 @@ void Method::Write(CodeWriter* to) const {
   }
 }
 
+void LiteralClassElement::Write(CodeWriter* to) const {
+  to->Write("%s", element.c_str());
+}
+
 void IntConstant::Write(CodeWriter* to) const {
   WriteModifiers(to, STATIC | FINAL | PUBLIC, ALL_MODIFIERS);
   to->Write("int %s = %d;\n", name.c_str(), value);

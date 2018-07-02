@@ -166,6 +166,7 @@ cc_library_shared {
     srcs: [
         "tests/android/aidl/tests/ITestService.aidl",
         "tests/android/aidl/tests/INamedCallback.aidl",
+        "tests/android/aidl/tests/StructuredParcelable.aidl",
         "tests/simple_parcelable.cpp",
     ],
 }
@@ -208,6 +209,7 @@ android_app {
     srcs: [
         "tests/android/aidl/tests/INamedCallback.aidl",
         "tests/android/aidl/tests/ITestService.aidl",
+        "tests/android/aidl/tests/StructuredParcelable.aidl",
         "tests/java_app/src/android/aidl/tests/NullableTests.java",
         "tests/java_app/src/android/aidl/tests/SimpleParcelable.java",
         "tests/java_app/src/android/aidl/tests/TestFailException.java",

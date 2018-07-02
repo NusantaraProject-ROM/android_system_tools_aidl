@@ -49,20 +49,23 @@ string AidlType::ToString() const {
   return name_ + (is_array_ ? "[]" : "");
 }
 
-AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlType* type,
-                           std::string name, unsigned line)
-    : type_(type),
+AidlVariableDeclaration::AidlVariableDeclaration(AidlType* type, std::string name, unsigned line)
+    : type_(type), name_(name), line_(line) {}
+
+string AidlVariableDeclaration::ToString() const {
+  return type_->ToString() + " " + name_;
+}
+
+AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlType* type, std::string name,
+                           unsigned line)
+    : AidlVariableDeclaration(type, name, line),
       direction_(direction),
-      direction_specified_(true),
-      name_(name),
-      line_(line) {}
+      direction_specified_(true) {}
 
 AidlArgument::AidlArgument(AidlType* type, std::string name, unsigned line)
-    : type_(type),
+    : AidlVariableDeclaration(type, name, line),
       direction_(AidlArgument::IN_DIR),
-      direction_specified_(false),
-      name_(name),
-      line_(line) {}
+      direction_specified_(false) {}
 
 string AidlArgument::ToString() const {
   string ret;
@@ -81,9 +84,7 @@ string AidlArgument::ToString() const {
     }
   }
 
-  ret += type_->ToString();
-  ret += " ";
-  ret += name_;
+  ret += AidlVariableDeclaration::ToString();
 
   return ret;
 }
@@ -188,6 +189,11 @@ AidlParcelable::AidlParcelable(AidlQualifiedName* name, unsigned line,
   }
 }
 
+AidlStructuredParcelable::AidlStructuredParcelable(
+    AidlQualifiedName* name, unsigned line, const std::vector<std::string>& package,
+    std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables)
+    : AidlParcelable(name, line, package, "" /*cpp_header*/), variables_(std::move(*variables)) {}
+
 AidlInterface::AidlInterface(const std::string& name, unsigned line,
                              const std::string& comments, bool oneway,
                              std::vector<std::unique_ptr<AidlMember>>* members,
@@ -216,6 +222,26 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
 
 AidlDocument::AidlDocument(AidlInterface* interface)
     : interface_(interface) {}
+
+AidlStructuredParcelable* AidlDocument::ReleaseStructuredParcelable() {
+  if (parcelables_.size() == 0) {
+    return nullptr;
+  }
+
+  AidlStructuredParcelable* ret = nullptr;
+  for (auto& p : parcelables_) {
+    if (p->AsStructuredParcelable() == nullptr) continue;
+
+    if (ret != nullptr) {
+      LOG(ERROR) << "AIDL only supports one structured parcelable per file.";
+      return nullptr;
+    }
+
+    ret = static_cast<AidlStructuredParcelable*>(p.release());
+  }
+
+  return ret;
+}
 
 AidlQualifiedName::AidlQualifiedName(std::string term,
                                      std::string comments)

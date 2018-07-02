@@ -108,7 +108,27 @@ class AidlType : public AidlAnnotatable {
   DISALLOW_COPY_AND_ASSIGN(AidlType);
 };
 
-class AidlArgument : public AidlNode {
+class AidlVariableDeclaration : public AidlNode {
+ public:
+  AidlVariableDeclaration(AidlType* type, std::string name, unsigned line);
+  virtual ~AidlVariableDeclaration() = default;
+
+  std::string GetName() const { return name_; }
+  int GetLine() const { return line_; }
+  const AidlType& GetType() const { return *type_; }
+  AidlType* GetMutableType() { return type_.get(); }
+
+  std::string ToString() const;
+
+ private:
+  std::unique_ptr<AidlType> type_;
+  std::string name_;
+  unsigned line_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlVariableDeclaration);
+};
+
+class AidlArgument : public AidlVariableDeclaration {
  public:
   enum Direction { IN_DIR = 1, OUT_DIR = 2, INOUT_DIR = 3 };
 
@@ -122,19 +142,11 @@ class AidlArgument : public AidlNode {
   bool IsIn() const { return direction_ & IN_DIR; }
   bool DirectionWasSpecified() const { return direction_specified_; }
 
-  std::string GetName() const { return name_; }
-  int GetLine() const { return line_; }
-  const AidlType& GetType() const { return *type_; }
-  AidlType* GetMutableType() { return type_.get(); }
-
   std::string ToString() const;
 
  private:
-  std::unique_ptr<AidlType> type_;
   Direction direction_;
   bool direction_specified_;
-  std::string name_;
-  unsigned line_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlArgument);
 };
@@ -245,6 +257,7 @@ class AidlMethod : public AidlMember {
 };
 
 class AidlParcelable;
+class AidlStructuredParcelable;
 class AidlInterface;
 class AidlDocument : public AidlNode {
  public:
@@ -254,11 +267,11 @@ class AidlDocument : public AidlNode {
 
   const AidlInterface* GetInterface() const { return interface_.get(); }
   AidlInterface* ReleaseInterface() { return interface_.release(); }
+  AidlStructuredParcelable* ReleaseStructuredParcelable();
 
   const std::vector<std::unique_ptr<AidlParcelable>>& GetParcelables() const {
     return parcelables_;
   }
-
   void AddParcelable(AidlParcelable* parcelable) {
     parcelables_.push_back(std::unique_ptr<AidlParcelable>(parcelable));
   }
@@ -302,8 +315,13 @@ class AidlDefinedType : public AidlType {
   std::string GetCanonicalName() const;
   const std::vector<std::string>& GetSplitPackage() const { return package_; }
 
+  virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
+  virtual const AidlInterface* AsInterface() const { return nullptr; }
+
  private:
   const std::vector<std::string> package_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlDefinedType);
 };
 
 class AidlParcelable : public AidlDefinedType {
@@ -315,6 +333,8 @@ class AidlParcelable : public AidlDefinedType {
 
   // C++ uses "::" instead of "." to refer to a inner class.
   std::string GetCppName() const { return name_->GetColonName(); }
+
+  void SetCppHeader(const std::string& cpp_header) { cpp_header_ = cpp_header; }
   std::string GetCppHeader() const { return cpp_header_; }
 
  private:
@@ -322,6 +342,24 @@ class AidlParcelable : public AidlDefinedType {
   std::string cpp_header_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlParcelable);
+};
+
+class AidlStructuredParcelable : public AidlParcelable {
+ public:
+  AidlStructuredParcelable(AidlQualifiedName* name, unsigned line,
+                           const std::vector<std::string>& package,
+                           std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables);
+
+  const std::vector<std::unique_ptr<AidlVariableDeclaration>>& GetFields() const {
+    return variables_;
+  }
+
+  virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return this; }
+
+ private:
+  const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlStructuredParcelable);
 };
 
 class AidlInterface : public AidlDefinedType {
@@ -347,6 +385,8 @@ class AidlInterface : public AidlDefinedType {
   bool ShouldGenerateTraces() const {
     return generate_traces_;
   }
+
+  virtual const AidlInterface* AsInterface() const { return this; }
 
  private:
   bool oneway_;

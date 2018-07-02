@@ -438,6 +438,13 @@ class NativeService : public BnTestService {
     return Status::ok();
   }
 
+  virtual ::android::binder::Status FillOutStructuredParcelable(
+      ::android::aidl::tests::StructuredParcelable* parcelable) {
+    parcelable->shouldBeJerry = "Jerry";
+    parcelable->shouldContainThreeFs = {parcelable->f, parcelable->f, parcelable->f};
+    return Status::ok();
+  }
+
  private:
   map<String16, sp<INamedCallback>> service_map_;
 };

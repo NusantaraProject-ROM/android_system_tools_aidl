@@ -326,6 +326,15 @@ struct Method : public ClassElement {
   void Write(CodeWriter* to) const override;
 };
 
+struct LiteralClassElement : public ClassElement {
+  std::string element;
+
+  LiteralClassElement(std::string e) : element(e) {}
+  virtual ~LiteralClassElement() = default;
+
+  void Write(CodeWriter* to) const override;
+};
+
 struct IntConstant : public ClassElement {
   const std::string name;
   const int value;

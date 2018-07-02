@@ -29,10 +29,8 @@ namespace android {
 namespace aidl {
 namespace cpp {
 
-bool GenerateCpp(const CppOptions& options,
-                 const cpp::TypeNamespace& types,
-                 const AidlInterface& parsed_doc,
-                 const IoDelegate& io_delegate);
+bool GenerateCpp(const CppOptions& options, const cpp::TypeNamespace& types,
+                 const AidlDefinedType& parsed_doc, const IoDelegate& io_delegate);
 
 // These roughly correspond to the various class names in the C++ hierarchy:
 enum class ClassNames {
@@ -45,7 +43,7 @@ enum class ClassNames {
 // Generate the relative path to a header file.  If |use_os_sep| we'll use the
 // operating system specific path separator rather than C++'s expected '/' when
 // including headers.
-std::string HeaderFile(const AidlInterface& interface, ClassNames class_type,
+std::string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_type,
                        bool use_os_sep = true);
 
 namespace internals {
@@ -61,6 +59,11 @@ std::unique_ptr<Document> BuildServerHeader(const TypeNamespace& types,
                                             const AidlInterface& parsed_doc);
 std::unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
                                                const AidlInterface& parsed_doc);
+
+std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& types,
+                                            const AidlStructuredParcelable& parsed_doc);
+std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& types,
+                                            const AidlStructuredParcelable& parsed_doc);
 }
 }  // namespace cpp
 }  // namespace aidl

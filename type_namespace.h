@@ -97,6 +97,7 @@ class TypeNamespace {
   // Load this TypeNamespace with user defined types.
   virtual bool AddParcelableType(const AidlParcelable& p,
                                  const std::string& filename) = 0;
+
   virtual bool AddBinderType(const AidlInterface& b,
                              const std::string& filename) = 0;
   // Add a container type to this namespace.  Returns false only
@@ -111,30 +112,25 @@ class TypeNamespace {
 
   // Returns a pointer to a type corresponding to |raw_type| or nullptr
   // if this is an invalid return type.
-  virtual const ValidatableType* GetReturnType(
-      const AidlType& raw_type,
-      const std::string& filename,
-      const AidlInterface& interface) const;
+  virtual const ValidatableType* GetReturnType(const AidlType& raw_type,
+                                               const std::string& filename,
+                                               const AidlDefinedType& context) const;
 
   // Returns a pointer to a type corresponding to |a| or nullptr if |a|
   // has an invalid argument type.
-  virtual const ValidatableType* GetArgType(
-      const AidlArgument& a,
-      int arg_index,
-      const std::string& filename,
-      const AidlInterface& interface) const;
+  virtual const ValidatableType* GetArgType(const AidlArgument& a, int arg_index,
+                                            const std::string& filename,
+                                            const AidlDefinedType& context) const;
 
-  // Returns a pointer to a type corresponding to |interface|.
-  virtual const ValidatableType* GetInterfaceType(
-      const AidlInterface& interface) const = 0;
+  // Returns a pointer to a type corresponding to |defined_type|.
+  virtual const ValidatableType* GetDefinedType(const AidlDefinedType& defined_type) const = 0;
 
  protected:
   TypeNamespace() = default;
   virtual ~TypeNamespace() = default;
 
-  virtual const ValidatableType* GetValidatableType(
-      const AidlType& type, std::string* error_msg,
-      const AidlInterface& interface) const = 0;
+  virtual const ValidatableType* GetValidatableType(const AidlType& type, std::string* error_msg,
+                                                    const AidlDefinedType& context) const = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(TypeNamespace);
@@ -160,9 +156,8 @@ class LanguageTypeNamespace : public TypeNamespace {
   bool HasImportType(const AidlImport& import) const override {
     return HasTypeByCanonicalName(import.GetNeededClass());
   }
-  const ValidatableType* GetInterfaceType(
-      const AidlInterface& interface) const override {
-    return FindTypeByCanonicalName(interface.GetCanonicalName());
+  const ValidatableType* GetDefinedType(const AidlDefinedType& defined_type) const override {
+    return FindTypeByCanonicalName(defined_type.GetCanonicalName());
   }
 
   bool MaybeAddContainerType(const AidlType& aidl_type) override;
@@ -185,9 +180,8 @@ class LanguageTypeNamespace : public TypeNamespace {
   // Returns true if this is a container type, rather than a normal type.
   bool IsContainerType(const std::string& type_name) const;
 
-  const ValidatableType* GetValidatableType(
-      const AidlType& type, std::string* error_msg,
-      const AidlInterface& interface) const override;
+  const ValidatableType* GetValidatableType(const AidlType& type, std::string* error_msg,
+                                            const AidlDefinedType& context) const override;
 
   std::vector<std::unique_ptr<const T>> types_;
 
@@ -383,10 +377,9 @@ bool LanguageTypeNamespace<T>::CanonicalizeContainerType(
   return false;
 }
 
-template<typename T>
+template <typename T>
 const ValidatableType* LanguageTypeNamespace<T>::GetValidatableType(
-    const AidlType& aidl_type, std::string* error_msg,
-    const AidlInterface& interface) const {
+    const AidlType& aidl_type, std::string* error_msg, const AidlDefinedType& context) const {
   using android::base::StringPrintf;
 
   const ValidatableType* type = Find(aidl_type);
@@ -428,8 +421,8 @@ const ValidatableType* LanguageTypeNamespace<T>::GetValidatableType(
     utf8InCpp = false;
   } else if (aidl_type.GetName() == "String" ||
              aidl_type.GetName() == "java.lang.String") {
-    utf8 = utf8 || interface.IsUtf8();
-    utf8InCpp = utf8InCpp || interface.IsUtf8InCpp();
+    utf8 = utf8 || context.IsUtf8();
+    utf8InCpp = utf8InCpp || context.IsUtf8InCpp();
   } else if (utf8 || utf8InCpp) {
     const char* annotation_literal =
         (utf8) ? kUtf8Annotation : kUtf8InCppAnnotation;
@@ -469,7 +462,7 @@ const ValidatableType* LanguageTypeNamespace<T>::GetValidatableType(
     }
   }
 
-  if (interface.IsNullable()) {
+  if (context.IsNullable()) {
     const ValidatableType* nullableType = type->NullableType();
 
     if (nullableType) {
