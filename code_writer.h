@@ -31,9 +31,19 @@ class CodeWriter {
  public:
   // Write a formatted string to this writer in the usual printf sense.
   // Returns false on error.
-  virtual bool Write(const char* format, ...) = 0;
+  virtual bool Write(const char* format, ...);
   virtual bool Close() = 0;
   virtual ~CodeWriter() = default;
+  inline void Indent() { indent_level_++; }
+  inline void Dedent() { indent_level_--; }
+ protected:
+  // Actuall writes str which is formatted and properly indented
+  // to the actual medium (file, string, etc.)
+  virtual bool Output(const std::string& str) = 0;
+ private:
+  std::string ApplyIndent(const std::string& str);
+  int indent_level_ {0};
+  bool start_of_line_ {true};
 };  // class CodeWriter
 
 using CodeWriterPtr = std::unique_ptr<CodeWriter>;

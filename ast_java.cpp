@@ -125,10 +125,12 @@ void FieldVariable::Write(CodeWriter* to) const {
 
 void StatementBlock::Write(CodeWriter* to) const {
   to->Write("{\n");
+  to->Indent();
   int N = this->statements.size();
   for (int i = 0; i < N; i++) {
     this->statements[i]->Write(to);
   }
+  to->Dedent();
   to->Write("}\n");
 }
 
@@ -360,10 +362,12 @@ void SwitchStatement::Write(CodeWriter* to) const {
   to->Write("switch (");
   this->expression->Write(to);
   to->Write(")\n{\n");
+  to->Indent();
   int N = this->cases.size();
   for (int i = 0; i < N; i++) {
     this->cases[i]->Write(to);
   }
+  to->Dedent();
   to->Write("}\n");
 }
 
@@ -468,12 +472,14 @@ void Class::Write(CodeWriter* to) const {
 
   to->Write("\n");
   to->Write("{\n");
+  to->Indent();
 
   N = this->elements.size();
   for (i = 0; i < N; i++) {
     this->elements[i]->Write(to);
   }
 
+  to->Dedent();
   to->Write("}\n");
 }
 
