@@ -16,29 +16,62 @@
 
 #include "code_writer.h"
 
+#include <fstream>
 #include <iostream>
 #include <stdarg.h>
+#include <vector>
 
 #include <android-base/stringprintf.h>
-
-using std::cerr;
-using std::endl;
 
 namespace android {
 namespace aidl {
 
-namespace {
+std::string CodeWriter::ApplyIndent(const std::string& str) {
+  std::string output;
+  if (!start_of_line_ || str == "\n") {
+    output = str;
+  } else {
+    output = std::string(indent_level_ * 2, ' ') + str;
+  }
+  start_of_line_ = !output.empty() && output.back() == '\n';
+  return output;
+}
+
+bool CodeWriter::Write(const char* format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  std::string formatted;
+  android::base::StringAppendV(&formatted, format, ap);
+  va_end(ap);
+
+  // extract lines. empty line is preserved.
+  std::vector<std::string> lines;
+  size_t pos = 0;
+  while (pos < formatted.size()) {
+    size_t line_end = formatted.find('\n', pos);
+    if (line_end != std::string::npos) {
+      lines.push_back(formatted.substr(pos, (line_end - pos) + 1));
+      pos = line_end + 1;
+    } else {
+      lines.push_back(formatted.substr(pos));
+      break;
+    }
+  }
+
+  std::string indented;
+  for (auto line : lines) {
+    indented.append(ApplyIndent(line));
+  }
+  return Output(indented);
+}
 
 class StringCodeWriter : public CodeWriter {
  public:
   explicit StringCodeWriter(std::string* output_buffer) : output_(output_buffer) {}
   virtual ~StringCodeWriter() = default;
 
-  bool Write(const char* format, ...) override {
-    va_list ap;
-    va_start(ap, format);
-    android::base::StringAppendV(output_, format, ap);
-    va_end(ap);
+  bool Output(const std::string& str) override {
+    output_->append(str);
     return true;
   }
 
@@ -50,61 +83,47 @@ class StringCodeWriter : public CodeWriter {
 
 class FileCodeWriter : public CodeWriter {
  public:
-  FileCodeWriter(FILE* output_file, bool close_on_destruction)
-      : output_(output_file),
-        close_on_destruction_(close_on_destruction) {}
-  virtual ~FileCodeWriter() {
-    if (close_on_destruction_ && output_ != nullptr) {
-      fclose(output_);
+  explicit FileCodeWriter(const std::string& filename) : cout_(std::cout) {
+    if (filename == "-") {
+      to_stdout_ = true;
+    } else {
+      to_stdout_ = false;
+      fileout_.open(filename, std::ofstream::out |
+                    std::ofstream::binary);
+      if (fileout_.fail()) {
+        std::cerr << "unable to open " << filename << " for write" << std::endl;
+      }
     }
   }
 
-  bool Write(const char* format, ...) override {
-    bool success;
-    va_list ap;
-    va_start(ap, format);
-    success = vfprintf(output_, format, ap) >= 0;
-    va_end(ap);
-    no_error_ = no_error_ && success;
-    return success;
+  bool Output(const std::string& str) override {
+    if (to_stdout_) {
+      cout_ << str;
+    } else {
+      fileout_ << str;
+    }
+    return TestSuccess();
   }
 
   bool Close() override {
-    if (output_ != nullptr) {
-      no_error_ = fclose(output_) == 0 && no_error_;
-      output_ = nullptr;
+    if (!to_stdout_) {
+      fileout_.close();
     }
-    return no_error_;
+    return TestSuccess();
+  }
+
+  bool TestSuccess() const {
+    return to_stdout_ ? true : !fileout_.fail();
   }
 
  private:
-  bool no_error_ = true;
-  FILE* output_;
-  bool close_on_destruction_;
+  std::ostream& cout_;
+  std::ofstream fileout_;
+  bool to_stdout_;
 };  // class StringCodeWriter
 
-}  // namespace
-
 CodeWriterPtr GetFileWriter(const std::string& output_file) {
-  CodeWriterPtr result;
-  FILE* to = nullptr;
-  bool close_on_destruction = true;
-  if (output_file == "-") {
-    to = stdout;
-    close_on_destruction = false;
-  } else {
-    // open file in binary mode to ensure that the tool produces the
-    // same output on all platforms !!
-    to = fopen(output_file.c_str(), "wb");
-  }
-
-  if (to != nullptr) {
-    result.reset(new FileCodeWriter(to, close_on_destruction));
-  } else {
-    cerr << "unable to open " << output_file << " for write" << endl;
-  }
-
-  return result;
+  return CodeWriterPtr(new FileCodeWriter(output_file));
 }
 
 CodeWriterPtr GetStringWriter(std::string* output_buffer) {
