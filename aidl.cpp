@@ -125,8 +125,7 @@ bool check_filename(const std::string& filename,
     }
 
     if (!valid) {
-        fprintf(stderr, "%s:%d interface %s should be declared in a file"
-                " called %s.\n",
+        fprintf(stderr, "%s:%d %s should be declared in a file called %s.\n",
                 filename.c_str(), line, name.c_str(), expected.c_str());
     }
 
