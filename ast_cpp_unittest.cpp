@@ -95,8 +95,7 @@ class AstCppTests : public ::testing::Test {
   void CompareGeneratedCode(const AstNode& node,
                             const string& expected_output) {
     string actual_output;
-    CodeWriterPtr writer = GetStringWriter(&actual_output);
-    node.Write(writer.get());
+    node.Write(CodeWriter::ForString(&actual_output).get());
     EXPECT_EQ(expected_output, actual_output);
   }
 };  // class AstCppTests
