@@ -445,6 +445,20 @@ class NativeService : public BnTestService {
     return Status::ok();
   }
 
+  Status UnimplementedMethod(int32_t /* arg */, int32_t* /* _aidl_return */) override {
+    LOG_ALWAYS_FATAL("UnimplementedMethod shouldn't be called");
+  }
+
+  android::status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+                               uint32_t flags) override {
+    if (code == Call::UNIMPLEMENTEDMETHOD) {
+      // pretend that UnimplementedMethod isn't implemented by this service.
+      return android::UNKNOWN_TRANSACTION;
+    } else {
+      return BnTestService::onTransact(code, data, reply, flags);
+    }
+  }
+
  private:
   map<String16, sp<INamedCallback>> service_map_;
 };
