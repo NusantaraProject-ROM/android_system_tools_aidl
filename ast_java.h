@@ -54,16 +54,20 @@ class Type;
 // Write the modifiers that are set in both mod and mask
 void WriteModifiers(CodeWriter* to, int mod, int mask);
 
-struct ClassElement {
-  ClassElement() = default;
-  virtual ~ClassElement() = default;
-
+struct AstNode {
+  AstNode() = default;
+  virtual ~AstNode() = default;
   virtual void Write(CodeWriter* to) const = 0;
+  std::string ToString();
 };
 
-struct Expression {
+struct ClassElement : public AstNode {
+  ClassElement() = default;
+  virtual ~ClassElement() = default;
+};
+
+struct Expression : public AstNode {
   virtual ~Expression() = default;
-  virtual void Write(CodeWriter* to) const = 0;
 };
 
 struct LiteralExpression : public Expression {
@@ -122,9 +126,18 @@ struct Field : public ClassElement {
   void Write(CodeWriter* to) const override;
 };
 
-struct Statement {
+struct Statement : public AstNode {
   virtual ~Statement() = default;
-  virtual void Write(CodeWriter* to) const = 0;
+};
+
+struct LiteralStatement : public Statement {
+ public:
+  LiteralStatement(const std::string& value);
+  virtual ~LiteralStatement() = default;
+  void Write(CodeWriter* to) const override;
+
+ private:
+  const std::string value_;
 };
 
 struct StatementBlock : public Statement {
@@ -285,14 +298,14 @@ struct FinallyStatement : public Statement {
   void Write(CodeWriter* to) const override;
 };
 
-struct Case {
+struct Case : public AstNode {
   std::vector<std::string> cases;
   StatementBlock* statements = new StatementBlock;
 
   Case() = default;
   explicit Case(const std::string& c);
   virtual ~Case() = default;
-  virtual void Write(CodeWriter* to) const;
+  void Write(CodeWriter* to) const override;
 };
 
 struct SwitchStatement : public Statement {
@@ -374,14 +387,14 @@ struct Class : public ClassElement {
   void Write(CodeWriter* to) const override;
 };
 
-class Document {
+class Document : public AstNode {
  public:
   Document(const std::string& comment,
            const std::string& package,
            const std::string& original_src,
            std::unique_ptr<Class> clazz);
   virtual ~Document() = default;
-  virtual void Write(CodeWriter* to) const;
+  void Write(CodeWriter* to) const override;
 
  private:
   std::string comment_;
