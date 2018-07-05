@@ -41,7 +41,7 @@ namespace java {
 class StubClass : public Class {
  public:
   StubClass(const Type* type, const InterfaceType* interfaceType,
-            JavaTypeNamespace* types);
+            JavaTypeNamespace* types, const JavaOptions& options);
   virtual ~StubClass() = default;
 
   Variable* transact_code;
@@ -50,6 +50,7 @@ class StubClass : public Class {
   Variable* transact_flags;
   SwitchStatement* transact_switch;
   StatementBlock* transact_statements;
+  SwitchStatement* code_to_method_name_switch;
 
   // Where onTransact cases should be generated as separate methods.
   bool transact_outline;
@@ -69,13 +70,14 @@ class StubClass : public Class {
                          JavaTypeNamespace* types);
 
   Variable* transact_descriptor;
+  const JavaOptions& options_;
 
   DISALLOW_COPY_AND_ASSIGN(StubClass);
 };
 
 StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
-                     JavaTypeNamespace* types)
-    : Class() {
+                     JavaTypeNamespace* types, const JavaOptions& options)
+    : Class(), options_(options) {
   transact_descriptor = nullptr;
   transact_outline = false;
   all_method_count = 0;  // Will be set when outlining may be enabled.
@@ -120,6 +122,20 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
   asBinder->statements->Add(new ReturnStatement(THIS_VALUE));
   this->elements.push_back(asBinder);
 
+  // getTransactionName
+  if (options_.ShouldGenGetTransactionName()) {
+    Method* getTransactionName = new Method;
+    getTransactionName->modifiers = PUBLIC;
+    getTransactionName->returnType = types->StringType();
+    getTransactionName->name = "getTransactionName";
+    Variable* code = new Variable(types->IntType(), "transactionCode");
+    getTransactionName->parameters.push_back(code);
+    getTransactionName->statements = new StatementBlock;
+    this->code_to_method_name_switch = new SwitchStatement(code);
+    getTransactionName->statements->Add(this->code_to_method_name_switch);
+    this->elements.push_back(getTransactionName);
+  }
+
   // onTransact
   this->transact_code = new Variable(types->IntType(), "code");
   this->transact_data = new Variable(types->ParcelType(), "data");
@@ -150,6 +166,16 @@ void StubClass::finish() {
   transact_switch->cases.push_back(default_case);
 
   transact_statements->Add(this->transact_switch);
+
+  // getTransactionName
+  if (options_.ShouldGenGetTransactionName()) {
+    // Some transaction codes are common, e.g. INTERFACE_TRANSACTION or DUMP_TRANSACTION.
+    // Common transaction codes will not be resolved to a string by getTransactionName. The method
+    // will return NULL in this case.
+    Case* code_switch_default_case = new Case;
+    code_switch_default_case->statements->Add(new ReturnStatement(NULL_VALUE));
+    this->code_to_method_name_switch->cases.push_back(code_switch_default_case);
+  }
 }
 
 // The the expression for the interface's descriptor to be used when
@@ -679,7 +705,8 @@ static void generate_methods(const AidlInterface& iface,
                              StubClass* stubClass,
                              ProxyClass* proxyClass,
                              int index,
-                             JavaTypeNamespace* types) {
+                             JavaTypeNamespace* types,
+                             const JavaOptions& options) {
   const bool oneway = proxyClass->mOneWay || method.IsOneway();
 
   // == the TRANSACT_ constant =============================================
@@ -691,6 +718,13 @@ static void generate_methods(const AidlInterface& iface,
   transactCode->value =
       StringPrintf("(android.os.IBinder.FIRST_CALL_TRANSACTION + %d)", index);
   stubClass->elements.push_back(transactCode);
+
+  // getTransactionName
+  if (options.ShouldGenGetTransactionName()) {
+    Case* c = new Case(transactCodeName);
+    c->statements->Add(new ReturnStatement(new StringLiteralExpression(method.GetName())));
+    stubClass->code_to_method_name_switch->cases.push_back(c);
+  }
 
   // == the declaration in the interface ===================================
   Method* decl = generate_interface_method(method, types).release();
@@ -795,7 +829,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
 
   // the stub inner class
   StubClass* stub =
-      new StubClass(interfaceType->GetStub(), interfaceType, types);
+      new StubClass(interfaceType->GetStub(), interfaceType, types, options);
   interface->elements.push_back(stub);
 
   compute_outline_methods(iface,
@@ -828,7 +862,8 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
                      stub,
                      proxy,
                      item->GetId(),
-                     types);
+                     types,
+                     options);
   }
   stub->finish();
 
