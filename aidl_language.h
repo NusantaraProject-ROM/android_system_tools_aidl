@@ -289,32 +289,42 @@ class AidlQualifiedName : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlQualifiedName);
 };
 
-class AidlParcelable : public AidlNode {
+class AidlDefinedType : public AidlType {
+ public:
+  AidlDefinedType(std::string name, unsigned line,
+                  const std::string& comments,
+                  const std::vector<std::string>& package);
+  virtual ~AidlDefinedType() = default;
+
+  /* dot joined package, example: "android.package.foo" */
+  std::string GetPackage() const;
+  /* dot joined package and name, example: "android.package.foo.IBar" */
+  std::string GetCanonicalName() const;
+  const std::vector<std::string>& GetSplitPackage() const { return package_; }
+
+ private:
+  const std::vector<std::string> package_;
+};
+
+class AidlParcelable : public AidlDefinedType {
  public:
   AidlParcelable(AidlQualifiedName* name, unsigned line,
                  const std::vector<std::string>& package,
                  const std::string& cpp_header = "");
   virtual ~AidlParcelable() = default;
 
-  std::string GetName() const { return name_->GetDotName(); }
   // C++ uses "::" instead of "." to refer to a inner class.
   std::string GetCppName() const { return name_->GetColonName(); }
-  unsigned GetLine() const { return line_; }
-  std::string GetPackage() const;
-  const std::vector<std::string>& GetSplitPackage() const { return package_; }
   std::string GetCppHeader() const { return cpp_header_; }
-  std::string GetCanonicalName() const;
 
  private:
   std::unique_ptr<AidlQualifiedName> name_;
-  unsigned line_;
-  const std::vector<std::string> package_;
   std::string cpp_header_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlParcelable);
 };
 
-class AidlInterface : public AidlAnnotatable {
+class AidlInterface : public AidlDefinedType {
  public:
   AidlInterface(const std::string& name, unsigned line,
                 const std::string& comments, bool oneway_,
@@ -322,9 +332,6 @@ class AidlInterface : public AidlAnnotatable {
                 const std::vector<std::string>& package);
   virtual ~AidlInterface() = default;
 
-  const std::string& GetName() const { return name_; }
-  unsigned GetLine() const { return line_; }
-  const std::string& GetComments() const { return comments_; }
   bool IsOneway() const { return oneway_; }
   const std::vector<std::unique_ptr<AidlMethod>>& GetMethods() const
       { return methods_; }
@@ -332,18 +339,6 @@ class AidlInterface : public AidlAnnotatable {
       { return int_constants_; }
   const std::vector<std::unique_ptr<AidlStringConstant>>&
       GetStringConstants() const { return string_constants_; }
-  std::string GetPackage() const;
-  std::string GetCanonicalName() const;
-  const std::vector<std::string>& GetSplitPackage() const { return package_; }
-
-  void SetLanguageType(const android::aidl::ValidatableType* language_type) {
-    language_type_ = language_type;
-  }
-
-  template<typename T>
-  const T* GetLanguageType() const {
-    return reinterpret_cast<const T*>(language_type_);
-  }
 
   void SetGenerateTraces(bool generate_traces) {
     generate_traces_ = generate_traces;
@@ -354,16 +349,11 @@ class AidlInterface : public AidlAnnotatable {
   }
 
  private:
-  std::string name_;
-  std::string comments_;
-  unsigned line_;
   bool oneway_;
   std::vector<std::unique_ptr<AidlMethod>> methods_;
   std::vector<std::unique_ptr<AidlIntConstant>> int_constants_;
   std::vector<std::unique_ptr<AidlStringConstant>> string_constants_;
-  std::vector<std::string> package_;
 
-  const android::aidl::ValidatableType* language_type_ = nullptr;
   bool generate_traces_ = false;
 
   DISALLOW_COPY_AND_ASSIGN(AidlInterface);
