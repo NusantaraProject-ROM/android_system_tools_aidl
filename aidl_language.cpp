@@ -159,12 +159,28 @@ Parser::Parser(const IoDelegate& io_delegate)
   yylex_init(&scanner_);
 }
 
+AidlDefinedType::AidlDefinedType(std::string name, unsigned line,
+                                 const std::string& comments,
+                                 const std::vector<std::string>& package)
+    : AidlType(name, line, comments, false /*is_array*/),
+      package_(package) {}
+
+std::string AidlDefinedType::GetPackage() const {
+  return Join(package_, '.');
+}
+
+std::string AidlDefinedType::GetCanonicalName() const {
+  if (package_.empty()) {
+    return GetName();
+  }
+  return GetPackage() + "." + GetName();
+}
+
 AidlParcelable::AidlParcelable(AidlQualifiedName* name, unsigned line,
                                const std::vector<std::string>& package,
                                const std::string& cpp_header)
-    : name_(name),
-      line_(line),
-      package_(package),
+    : AidlDefinedType(name->GetDotName(), line, "" /*comments*/, package),
+      name_(name),
       cpp_header_(cpp_header) {
   // Strip off quotation marks if we actually have a cpp header.
   if (cpp_header_.length() >= 2) {
@@ -172,26 +188,12 @@ AidlParcelable::AidlParcelable(AidlQualifiedName* name, unsigned line,
   }
 }
 
-std::string AidlParcelable::GetPackage() const {
-  return Join(package_, '.');
-}
-
-std::string AidlParcelable::GetCanonicalName() const {
-  if (package_.empty()) {
-    return GetName();
-  }
-  return GetPackage() + "." + GetName();
-}
-
 AidlInterface::AidlInterface(const std::string& name, unsigned line,
                              const std::string& comments, bool oneway,
                              std::vector<std::unique_ptr<AidlMember>>* members,
                              const std::vector<std::string>& package)
-    : name_(name),
-      comments_(comments),
-      line_(line),
-      oneway_(oneway),
-      package_(package) {
+    : AidlDefinedType(name, line, comments, package),
+      oneway_(oneway) {
   for (auto& member : *members) {
     AidlMember* local = member.release();
     AidlMethod* method = local->AsMethod();
@@ -210,17 +212,6 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
   }
 
   delete members;
-}
-
-std::string AidlInterface::GetPackage() const {
-  return Join(package_, '.');
-}
-
-std::string AidlInterface::GetCanonicalName() const {
-  if (package_.empty()) {
-    return GetName();
-  }
-  return GetPackage() + "." + GetName();
 }
 
 AidlDocument::AidlDocument(AidlInterface* interface)
