@@ -56,7 +56,7 @@ const char* kCompileJavaCommand[] = {
 };
 const char kCompileCommandJavaOutput[] = "directory/ITool.java";
 
-const char kCompileDepFileNinja[] = "-ninja";
+const char kCompileDepFileNinja[] = "--ninja";
 const char* kCompileJavaCommandNinja[] = {
     "aidl",
     "-b",
