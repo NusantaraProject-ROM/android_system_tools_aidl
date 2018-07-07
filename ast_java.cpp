@@ -71,8 +71,8 @@ void Field::Write(CodeWriter* to) const {
     to->Write("%s\n", this->comment.c_str());
   }
   WriteModifiers(to, this->modifiers, SCOPE_MASK | STATIC | FINAL | OVERRIDE);
-  to->Write("%s %s", this->variable->type->JavaType().c_str(),
-            this->variable->name.c_str());
+  this->variable->WriteDeclaration(to);
+
   if (this->value.length() != 0) {
     to->Write(" = %s", this->value.c_str());
   }
