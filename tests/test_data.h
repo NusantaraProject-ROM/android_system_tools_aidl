@@ -33,6 +33,7 @@ extern const char* kImportedInterfaces[];
 extern const char kExpectedJavaDepsOutput[];
 extern const char kExpectedJavaOutput[];
 extern const char kExpectedJavaOutputOutlining[];
+extern const char kExpectedJavaOutputWithTransactionNames[];
 extern const char kExpectedJavaOutputWithTrace[];
 
 }  // namespace example_interface
