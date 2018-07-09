@@ -43,6 +43,7 @@ class JavaOptions final {
 
   std::string DependencyFilePath() const;
   bool DependencyFileNinja() const { return dep_file_ninja_; }
+  bool ShouldGenGetTransactionName() const { return gen_transaction_names_; }
 
   int task{COMPILE_AIDL_TO_JAVA};
   bool fail_on_parcelable_{false};
@@ -54,6 +55,8 @@ class JavaOptions final {
   std::string dep_file_name_;
   bool auto_dep_file_{false};
   bool dep_file_ninja_{false};
+  // If enabled, the Binder#getTransactionName method will be generated.
+  bool gen_transaction_names_{false};
   bool gen_traces_{false};
   std::vector<std::string> files_to_preprocess_;
 
@@ -68,6 +71,7 @@ class JavaOptions final {
   JavaOptions() = default;
 
   FRIEND_TEST(EndToEndTest, IExampleInterface);
+  FRIEND_TEST(EndToEndTest, IExampleInterface_WithTransactionNames);
   FRIEND_TEST(EndToEndTest, IExampleInterface_WithTrace);
   FRIEND_TEST(EndToEndTest, IExampleInterface_Outlining);
   FRIEND_TEST(AidlTest, FailOnParcelable);

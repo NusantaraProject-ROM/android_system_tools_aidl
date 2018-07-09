@@ -115,6 +115,29 @@ TEST_F(EndToEndTest, IExampleInterface_WithTrace) {
   CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
 }
 
+TEST_F(EndToEndTest, IExampleInterface_WithTransactionNames) {
+  using namespace ::android::aidl::test_data::example_interface;
+
+  JavaOptions options;
+  options.fail_on_parcelable_ = true;
+  options.import_paths_.push_back("");
+  options.input_file_name_ = CanonicalNameToPath(kCanonicalName, ".aidl");
+  options.output_file_name_ = kJavaOutputPath;
+  options.dep_file_name_ = "an/arbitrary/path/to/deps.P";
+  options.gen_transaction_names_ = true;
+
+  // Load up our fake file system with data.
+  io_delegate_.SetFileContents(options.input_file_name_, kInterfaceDefinition);
+  io_delegate_.AddCompoundParcelable("android.test.CompoundParcelable",
+                                     {"Subclass1", "Subclass2"});
+  AddStubAidls(kImportedParcelables, kImportedInterfaces);
+
+  // Check that we parse correctly.
+  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithTransactionNames);
+  CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
+}
+
 TEST_F(EndToEndTest, IExampleInterface_Outlining) {
   using namespace ::android::aidl::test_data::example_interface;
 
