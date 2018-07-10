@@ -46,7 +46,7 @@ class ValidatableType;
 
 class AidlAnnotatable : public AidlNode {
  public:
-  enum Annotation : uint32_t {
+  enum Annotation {
     AnnotationNone = 0,
     AnnotationNullable = 1 << 0,
     AnnotationUtf8 = 1 << 1,

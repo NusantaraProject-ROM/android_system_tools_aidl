@@ -65,6 +65,11 @@ hexvalue    0[x|X][0-9a-fA-F]+
 \<                    { return '<'; }
 \>                    { return '>'; }
 
+    /* annotations */
+@{identifier}         { yylval->token = new AidlToken(yytext + 1, "");
+                        return yy::parser::token::ANNOTATION;
+                      }
+
     /* keywords */
 parcelable            { return yy::parser::token::PARCELABLE; }
 import                { return yy::parser::token::IMPORT; }
@@ -76,9 +81,6 @@ out                   { return yy::parser::token::OUT; }
 inout                 { return yy::parser::token::INOUT; }
 cpp_header            { return yy::parser::token::CPP_HEADER; }
 const                 { return yy::parser::token::CONST; }
-@nullable             { return yy::parser::token::ANNOTATION_NULLABLE; }
-@utf8                 { return yy::parser::token::ANNOTATION_UTF8; }
-@utf8InCpp            { return yy::parser::token::ANNOTATION_UTF8_CPP; }
 
 interface             { yylval->token = new AidlToken("interface", extra_text);
                         return yy::parser::token::INTERFACE;
