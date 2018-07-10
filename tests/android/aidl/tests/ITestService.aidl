@@ -18,6 +18,7 @@ package android.aidl.tests;
 
 import android.aidl.tests.INamedCallback;
 import android.aidl.tests.SimpleParcelable;
+import android.aidl.tests.StructuredParcelable;
 import android.os.PersistableBundle;
 
 interface ITestService {
@@ -113,4 +114,7 @@ interface ITestService {
       out @nullable @utf8InCpp List<String> repeated);
 
   @nullable INamedCallback GetCallback(boolean return_null);
+
+  // This is not a well designed API and should not be taken as an example
+  void FillOutStructuredParcelable(inout StructuredParcelable parcel);
 }
