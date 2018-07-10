@@ -145,6 +145,35 @@ bool ConfirmPersistableBundles(const sp<ITestService>& s) {
   return true;
 }
 
+bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
+  constexpr int kDesiredValue = 23;
+
+  StructuredParcelable parcelable;
+  parcelable.f = kDesiredValue;
+
+  s->FillOutStructuredParcelable(&parcelable);
+
+  if (parcelable.shouldContainThreeFs.size() != 3) {
+    cout << "shouldContainThreeFs is of length " << parcelable.shouldContainThreeFs.size() << endl;
+    return false;
+  }
+
+  for (int i = 0; i < 3; i++) {
+    if (parcelable.shouldContainThreeFs[i] != kDesiredValue) {
+      cout << "shouldContainThreeFs[" << i << "] is " << parcelable.shouldContainThreeFs[i]
+           << " but should be " << kDesiredValue << endl;
+      return false;
+    }
+  }
+
+  if (parcelable.shouldBeJerry != "Jerry") {
+    cout << "shouldBeJerry is not Jerry and is instead " << parcelable.shouldBeJerry << endl;
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace client
 }  // namespace tests
 }  // namespace aidl

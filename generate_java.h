@@ -32,13 +32,17 @@ namespace java {
 
 class JavaTypeNamespace;
 
-int generate_java(const std::string& filename, const std::string& originalSrc,
-                  AidlInterface* iface, java::JavaTypeNamespace* types,
+int generate_java(const std::string& filename, const std::string& original_src,
+                  const AidlDefinedType* iface, java::JavaTypeNamespace* types,
                   const IoDelegate& io_delegate, const JavaOptions& options);
 
 android::aidl::java::Class* generate_binder_interface_class(
     const AidlInterface* iface, java::JavaTypeNamespace* types,
     const JavaOptions& options);
+
+android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
+                                                  java::JavaTypeNamespace* types,
+                                                  const JavaOptions& options);
 
 }  // namespace java
 

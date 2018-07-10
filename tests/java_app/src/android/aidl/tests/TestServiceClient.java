@@ -17,6 +17,7 @@
 package android.aidl.tests;
 
 import android.aidl.tests.SimpleParcelable;
+import android.aidl.tests.StructuredParcelable;
 import android.aidl.tests.TestFailException;
 import android.aidl.tests.TestLogger;
 import android.app.Activity;
@@ -699,6 +700,37 @@ public class TestServiceClient extends Activity {
         mLog.log("...UTF8 annotations work.");
     }
 
+    private void checkStructuredParcelable(ITestService service) throws TestFailException {
+      final int kDesiredFValue = 17;
+
+      StructuredParcelable parcelable = new StructuredParcelable();
+      parcelable.shouldContainThreeFs = new int[0];
+      parcelable.f = kDesiredFValue;
+      parcelable.shouldBeJerry = "";
+
+      try {
+        service.FillOutStructuredParcelable(parcelable);
+      } catch (RemoteException ex) {
+        mLog.log(ex.toString());
+        mLog.logAndThrow("Service failed to handle structured parcelable.");
+      }
+
+      if (parcelable.shouldContainThreeFs.length != 3) {
+        mLog.logAndThrow(
+            "shouldContainThreeFs is of length " + parcelable.shouldContainThreeFs.length);
+      }
+      for (int i = 0; i < 3; i++) {
+        if (parcelable.shouldContainThreeFs[i] != kDesiredFValue) {
+          mLog.logAndThrow("shouldContainThreeFs[" + i + "] is "
+              + parcelable.shouldContainThreeFs[i] + " but should be " + kDesiredFValue);
+        }
+      }
+
+      if (!parcelable.shouldBeJerry.equals("Jerry")) {
+        mLog.logAndThrow("shouldBeJerry should be 'Jerry' but is " + parcelable.shouldBeJerry);
+      }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -715,6 +747,7 @@ public class TestServiceClient extends Activity {
           checkFileDescriptorPassing(service);
           checkServiceSpecificExceptions(service);
           checkUtf8Strings(service);
+          checkStructuredParcelable(service);
           new NullableTests(service, mLog).runTests();
 
           mLog.log(mSuccessSentinel);
