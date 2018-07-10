@@ -51,12 +51,11 @@ class Type : public ValidatableType {
   virtual std::string CreatorName() const;
   virtual std::string InstantiableName() const;
 
-  virtual void WriteToParcel(StatementBlock* addTo, Variable* v,
-                             Variable* parcel, int flags) const;
-  virtual void CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                Variable* parcel, Variable** cl) const;
-  virtual void ReadFromParcel(StatementBlock* addTo, Variable* v,
-                              Variable* parcel, Variable** cl) const;
+  virtual void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel, int flags) const;
+  virtual void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
+                                Variable** cl) const;
+  virtual void ReadFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
+                              Variable** cl) const;
 
  protected:
   Expression* BuildWriteToParcelFlags(int flags) const;
@@ -229,21 +228,11 @@ class CharSequenceType : public Type {
 class RemoteExceptionType : public Type {
  public:
   explicit RemoteExceptionType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class RuntimeExceptionType : public Type {
  public:
   explicit RuntimeExceptionType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class IBinderArrayType : public Type {
@@ -273,52 +262,27 @@ class IBinderType : public Type {
 class IInterfaceType : public Type {
  public:
   explicit IInterfaceType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class BinderType : public Type {
  public:
   explicit BinderType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class BinderProxyType : public Type {
  public:
   explicit BinderProxyType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class ParcelType : public Type {
  public:
   explicit ParcelType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
   const ValidatableType* NullableType() const override { return this; }
 };
 
 class ParcelableInterfaceType : public Type {
  public:
   explicit ParcelableInterfaceType(const JavaTypeNamespace* types);
-
-  void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                     int flags) const override;
-  void CreateFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                        Variable** cl) const override;
 };
 
 class MapType : public Type {
