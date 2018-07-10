@@ -58,28 +58,19 @@ string Type::CreatorName() const { return ""; }
 
 string Type::InstantiableName() const { return JavaType(); }
 
-void Type::WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                         int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d qualifiedName=%sn", __FILE__,
-          __LINE__, m_javaType.c_str());
-  addTo->Add(new LiteralExpression("/* WriteToParcel error " + m_javaType +
-                                   " */"));
+void Type::WriteToParcel(StatementBlock* /*addTo*/, Variable* /*v*/, Variable* /*parcel*/,
+                         int /*flags*/) const {
+  LOG(FATAL) << "aidl internal error: qualifiedName=" << m_javaType.c_str();
 }
 
-void Type::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                            Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d qualifiedName=%s\n", __FILE__,
-          __LINE__, m_javaType.c_str());
-  addTo->Add(new LiteralExpression("/* CreateFromParcel error " +
-                                   m_javaType + " */"));
+void Type::CreateFromParcel(StatementBlock* /*addTo*/, Variable* /*v*/, Variable* /*parcel*/,
+                            Variable** /*cl*/) const {
+  LOG(FATAL) << "aidl internal error: qualifiedName=" << m_javaType.c_str();
 }
 
-void Type::ReadFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
-                          Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d qualifiedName=%s\n", __FILE__,
-          __LINE__, m_javaType.c_str());
-  addTo->Add(new LiteralExpression("/* ReadFromParcel error " +
-                                   m_javaType + " */"));
+void Type::ReadFromParcel(StatementBlock* /*addTo*/, Variable* /*v*/, Variable* /*parcel*/,
+                          Variable** /*cl*/) const {
+  LOG(FATAL) << "aidl internal error: qualifiedName=" << m_javaType.c_str();
 }
 
 Expression* Type::BuildWriteToParcelFlags(int flags) const {
@@ -363,32 +354,11 @@ RemoteExceptionType::RemoteExceptionType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "RemoteException",
            ValidatableType::KIND_BUILT_IN, false, false) {}
 
-void RemoteExceptionType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                                        Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void RemoteExceptionType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                           Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
 // ================================================================
 
 RuntimeExceptionType::RuntimeExceptionType(const JavaTypeNamespace* types)
     : Type(types, "java.lang", "RuntimeException",
            ValidatableType::KIND_BUILT_IN, false, false) {}
-
-void RuntimeExceptionType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                                         Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void RuntimeExceptionType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                            Variable* parcel,
-                                            Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
 
 // ================================================================
 
@@ -433,31 +403,11 @@ IInterfaceType::IInterfaceType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "IInterface", ValidatableType::KIND_BUILT_IN,
            false, false) {}
 
-void IInterfaceType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                                   Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void IInterfaceType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                      Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
 // ================================================================
 
 BinderType::BinderType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "Binder", ValidatableType::KIND_BUILT_IN,
            false, false) {}
-
-void BinderType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                               Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void BinderType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                  Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
 
 // ================================================================
 
@@ -465,48 +415,17 @@ BinderProxyType::BinderProxyType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "BinderProxy", ValidatableType::KIND_BUILT_IN,
            false, false) {}
 
-void BinderProxyType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                                    Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void BinderProxyType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                       Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
 // ================================================================
 
 ParcelType::ParcelType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "Parcel", ValidatableType::KIND_BUILT_IN,
            false, false) {}
 
-void ParcelType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                               Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void ParcelType::CreateFromParcel(StatementBlock* addTo, Variable* v,
-                                  Variable* parcel, Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
 // ================================================================
 
 ParcelableInterfaceType::ParcelableInterfaceType(const JavaTypeNamespace* types)
     : Type(types, "android.os", "Parcelable", ValidatableType::KIND_BUILT_IN,
            false, false) {}
-
-void ParcelableInterfaceType::WriteToParcel(StatementBlock* addTo, Variable* v,
-                                            Variable* parcel, int flags) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
-
-void ParcelableInterfaceType::CreateFromParcel(StatementBlock* addTo,
-                                               Variable* v, Variable* parcel,
-                                               Variable**) const {
-  fprintf(stderr, "aidl:internal error %s:%d\n", __FILE__, __LINE__);
-}
 
 // ================================================================
 
