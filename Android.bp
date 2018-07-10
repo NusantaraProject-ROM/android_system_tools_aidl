@@ -38,11 +38,6 @@ cc_library_host_static {
     name: "libaidl-common",
     defaults: ["aidl_defaults"],
 
-    cflags: [
-        // Tragically, the code is riddled with unused parameters.
-        "-Wno-unused-parameter",
-    ],
-
     srcs: [
         "aidl.cpp",
         "aidl_language.cpp",
@@ -97,8 +92,7 @@ cc_test_host {
         "-g",
         "-DUNIT_TEST",
     ],
-    // Tragically, the code is riddled with unused parameters.
-    clang_cflags: ["-Wno-unused-parameter"],
+
     srcs: [
         "aidl_unittest.cpp",
         "ast_cpp_unittest.cpp",
@@ -135,7 +129,6 @@ cc_binary {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-Wunused-parameter",
     ],
 }
 
@@ -145,7 +138,6 @@ cc_defaults {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-Wunused-parameter",
     ],
     shared_libs: [
         "libbase",
