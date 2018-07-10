@@ -1,6 +1,7 @@
 %{
 #include "aidl_language.h"
 #include "aidl_language_y.h"
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,12 +46,12 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 }
 
 %token<token> IDENTIFIER INTERFACE ONEWAY C_STR HEXVALUE
+%token<token> ANNOTATION "annotation"
 %token<integer> INTVALUE
 
 %token '(' ')' ',' '=' '[' ']' '<' '>' '.' '{' '}' ';'
 %token UNKNOWN "unrecognized character"
 %token IN OUT INOUT PACKAGE IMPORT PARCELABLE CPP_HEADER CONST INT STRING
-%token ANNOTATION_NULLABLE ANNOTATION_UTF8 ANNOTATION_UTF8_CPP
 
 %type<parcelable_list> parcelable_decls
 %type<parcelable> parcelable_decl
@@ -303,17 +304,34 @@ generic_list
 
 annotation_list
  :
-  { $$ = AidlType::AnnotationNone; }
+  { $$ = AidlAnnotatable::AnnotationNone; }
  | annotation_list annotation
-  { $$ = static_cast<AidlType::Annotation>($1 | $2); };
+  { $$ = static_cast<AidlAnnotatable::Annotation>($1 | $2); };
 
 annotation
- : ANNOTATION_NULLABLE
-  { $$ = AidlType::AnnotationNullable; }
- | ANNOTATION_UTF8
-  { $$ = AidlType::AnnotationUtf8; }
- | ANNOTATION_UTF8_CPP
-  { $$ = AidlType::AnnotationUtf8InCpp; };
+ : ANNOTATION
+  { static const std::map<std::string, AidlAnnotatable::Annotation> kAnnotations = {
+      { "nullable", AidlAnnotatable::AnnotationNullable },
+      { "utf8", AidlAnnotatable::AnnotationUtf8 },
+      { "utf8InCpp", AidlAnnotatable::AnnotationUtf8InCpp },
+    };
+
+    auto it = kAnnotations.find($1->GetText());
+    if (it == kAnnotations.end()) {
+      std::cerr << ps->FileName() << ":" << @1 << ": '" << $1->GetText()
+                << "' is not a recognized annotation. It must be one of:";
+      for (const auto& kv : kAnnotations) {
+        std::cerr << " " << kv.first;
+      }
+      std::cerr << "." << std::endl;
+
+      ps->AddError();
+      $$ = AidlAnnotatable::AnnotationNone;
+    } else {
+      $$ = it->second;
+    }
+
+  };
 
 direction
  : IN
