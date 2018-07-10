@@ -15,7 +15,10 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %lex-param { void *lex_scanner }
 
 %pure-parser
+%glr-parser
 %skeleton "glr.cc"
+
+%expect-rr 0
 
 %error-verbose
 
@@ -118,17 +121,10 @@ qualified_name
 parcelable_decls
  :
   { $$ = new AidlDocument(); }
- | parcelable_decls annotation_list parcelable_decl {
+ | parcelable_decls parcelable_decl {
    $$ = $1;
 
-   if ($2 != AidlType::AnnotationNone && !$3->AsStructuredParcelable()) {
-     std::cerr << ps->FileName() << ":" << @3 << ": unstructured parcelables cannot be annotated"
-               << std::endl;
-     ps->AddError();
-   }
-
-   $3->Annotate($2);
-   $$->AddParcelable($3);
+   $$->AddParcelable($2);
   }
  | parcelable_decls error {
     ps->AddError();
