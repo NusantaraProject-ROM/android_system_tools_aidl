@@ -195,8 +195,7 @@ unique_ptr<CppNamespace> NestInNamespaces(unique_ptr<Declaration> decl,
   return NestInNamespaces(std::move(decls), package);
 }
 
-bool DeclareLocalVariable(const TypeNamespace& types, const AidlArgument& a,
-                          StatementBlock* b) {
+bool DeclareLocalVariable(const AidlArgument& a, StatementBlock* b) {
   const Type* cpp_type = a.GetType().GetLanguageType<Type>();
   if (!cpp_type) { return false; }
 
@@ -428,7 +427,9 @@ bool HandleServerTransaction(const TypeNamespace& types,
   // Declare all the parameters now.  In the common case, we expect no errors
   // in serialization.
   for (const unique_ptr<AidlArgument>& a : method.GetArguments()) {
-    if (!DeclareLocalVariable(types, *a, b)) { return false; }
+    if (!DeclareLocalVariable(*a, b)) {
+      return false;
+    }
   }
 
   // Declare a variable to hold the return value.
@@ -807,7 +808,7 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
       BuildHeaderGuard(parcel, ClassNames::BASE), vector<string>(includes.begin(), includes.end()),
       NestInNamespaces(std::move(parcel_class), parcel.GetSplitPackage())}};
 }
-std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& types,
+std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
                                             const AidlStructuredParcelable& parcel) {
   unique_ptr<MethodImpl> read{new MethodImpl{kAndroidStatusLiteral, parcel.GetName(),
                                              "readFromParcel",

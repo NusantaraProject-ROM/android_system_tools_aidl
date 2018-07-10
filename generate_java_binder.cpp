@@ -370,7 +370,6 @@ static std::unique_ptr<Method> generate_interface_method(
 
 static void generate_stub_code(const AidlInterface& iface,
                                const AidlMethod& method,
-                               const std::string& transactCodeName,
                                bool oneway,
                                Variable* transact_data,
                                Variable* transact_reply,
@@ -511,7 +510,6 @@ static void generate_stub_case(const AidlInterface& iface,
 
   generate_stub_code(iface,
                      method,
-                     transactCodeName,
                      oneway,
                      stubClass->transact_data,
                      stubClass->transact_reply,
@@ -545,7 +543,6 @@ static void generate_stub_case_outline(const AidlInterface& iface,
 
     generate_stub_code(iface,
                        method,
-                       transactCodeName,
                        oneway,
                        transact_data,
                        transact_reply,

@@ -102,7 +102,7 @@ int generate_java(const std::string& filename, const std::string& original_src,
 
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
                                                   java::JavaTypeNamespace* types,
-                                                  const JavaOptions& options) {
+                                                  const JavaOptions& /*options*/) {
   const ParcelType* parcelType = parcel->GetLanguageType<ParcelType>();
 
   Class* parcel_class = new Class;
