@@ -29,6 +29,12 @@ namespace android {
 namespace aidl {
 namespace cpp {
 
+LiteralDecl::LiteralDecl(const std::string& expression) : expression_(expression) {}
+
+void LiteralDecl::Write(CodeWriter* to) const {
+  to->Write("%s", expression_.c_str());
+}
+
 ClassDecl::ClassDecl(const std::string& name, const std::string& parent)
     : name_(name),
       parent_(parent) {}

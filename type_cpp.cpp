@@ -171,6 +171,12 @@ class ByteType : public Type {
   DISALLOW_COPY_AND_ASSIGN(ByteType);
 };  // class PrimitiveType
 
+static string GetCppHeader(const AidlDefinedType& defined_type) {
+  vector<string> name = defined_type.GetSplitPackage();
+  name.push_back(defined_type.GetName());
+  return Join(name, '/') + ".h";
+}
+
 class BinderType : public Type {
  public:
   BinderType(const AidlInterface& interface, const std::string& src_file_name)
@@ -212,25 +218,16 @@ class BinderType : public Type {
     return ret;
   }
 
-  static string GetCppHeader(const AidlInterface& interface) {
-    vector<string> name = interface.GetSplitPackage();
-    name.push_back(interface.GetName());
-    return Join(name, '/') + ".h";
-  }
-
   std::string write_cast_;
 };
 
 class NullableParcelableType : public Type {
  public:
-  NullableParcelableType(const AidlParcelable& parcelable,
+  NullableParcelableType(const AidlParcelable& parcelable, const std::string& cpp_header,
                          const std::string& src_file_name)
-      : Type(ValidatableType::KIND_PARCELABLE,
-             parcelable.GetPackage(), parcelable.GetName(),
-             {parcelable.GetCppHeader()}, GetCppName(parcelable),
-             "readParcelable", "writeNullableParcelable",
-             kNoArrayType, kNoNullableType,
-             src_file_name, parcelable.GetLine()) {}
+      : Type(ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(), parcelable.GetName(),
+             {cpp_header}, GetCppName(parcelable), "readParcelable", "writeNullableParcelable",
+             kNoArrayType, kNoNullableType, src_file_name, parcelable.GetLine()) {}
   virtual ~NullableParcelableType() = default;
   bool CanBeOutParameter() const override { return true; }
 
@@ -243,20 +240,16 @@ class NullableParcelableType : public Type {
 
 class ParcelableType : public Type {
  public:
-  ParcelableType(const AidlParcelable& parcelable,
+  ParcelableType(const AidlParcelable& parcelable, const std::string& cpp_header,
                  const std::string& src_file_name)
-      : Type(ValidatableType::KIND_PARCELABLE,
-             parcelable.GetPackage(), parcelable.GetName(),
-             {parcelable.GetCppHeader()}, GetCppName(parcelable),
-             "readParcelable", "writeParcelable",
-             new CppArrayType(
-                 ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(),
-                 parcelable.GetName(), parcelable.GetCppHeader(),
-                 GetCppName(parcelable), GetCppName(parcelable),
-                 "readParcelableVector", "writeParcelableVector", false,
-                 src_file_name),
-             new NullableParcelableType(parcelable, src_file_name),
-             src_file_name, parcelable.GetLine()) {}
+      : Type(ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(), parcelable.GetName(),
+             {cpp_header}, GetCppName(parcelable), "readParcelable", "writeParcelable",
+             new CppArrayType(ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(),
+                              parcelable.GetName(), cpp_header, GetCppName(parcelable),
+                              GetCppName(parcelable), "readParcelableVector",
+                              "writeParcelableVector", false, src_file_name),
+             new NullableParcelableType(parcelable, cpp_header, src_file_name), src_file_name,
+             parcelable.GetLine()) {}
   virtual ~ParcelableType() = default;
   bool CanBeOutParameter() const override { return true; }
 
@@ -515,12 +508,15 @@ void TypeNamespace::Init() {
 
 bool TypeNamespace::AddParcelableType(const AidlParcelable& p,
                                       const string& filename) {
-  if (p.GetCppHeader().empty()) {
+  const std::string cpp_header = p.AsStructuredParcelable() ? GetCppHeader(p) : p.GetCppHeader();
+
+  if (cpp_header.empty()) {
     LOG(ERROR) << "Parcelable " << p.GetCanonicalName()
                << " has no C++ header defined.";
     return false;
   }
-  Add(new ParcelableType(p, filename));
+
+  Add(new ParcelableType(p, cpp_header, filename));
   return true;
 }
 
@@ -578,10 +574,9 @@ bool TypeNamespace::IsValidPackage(const string& package) const {
   return true;
 }
 
-const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a,
-    int arg_index,
-    const std::string& filename,
-    const AidlInterface& interface) const {
+const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_index,
+                                                 const std::string& filename,
+                                                 const AidlDefinedType& context) const {
   const string error_prefix = StringPrintf(
       "In file %s line %d parameter %s (%d):\n    ",
       filename.c_str(), a.GetLine(), a.GetName().c_str(), arg_index);
@@ -593,8 +588,7 @@ const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a,
     return nullptr;
   }
 
-  return ::android::aidl::TypeNamespace::GetArgType(a, arg_index, filename,
-                                                    interface);
+  return ::android::aidl::TypeNamespace::GetArgType(a, arg_index, filename, context);
 }
 
 }  // namespace cpp

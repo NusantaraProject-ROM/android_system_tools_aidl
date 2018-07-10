@@ -30,6 +30,8 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlArgument* arg;
     AidlArgument::Direction direction;
     std::vector<std::unique_ptr<AidlArgument>>* arg_list;
+    AidlVariableDeclaration* variable;
+    std::vector<std::unique_ptr<AidlVariableDeclaration>>* variable_list;
     AidlMethod* method;
     AidlMember* constant;
     std::vector<std::unique_ptr<AidlMember>>* members;
@@ -49,6 +51,8 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 
 %type<parcelable_list> parcelable_decls
 %type<parcelable> parcelable_decl
+%type<variable_list> variable_decls
+%type<variable> variable_decl
 %type<members> members
 %type<interface_obj> interface_decl
 %type<method> method_decl
@@ -114,9 +118,17 @@ qualified_name
 parcelable_decls
  :
   { $$ = new AidlDocument(); }
- | parcelable_decls parcelable_decl {
+ | parcelable_decls annotation_list parcelable_decl {
    $$ = $1;
-   $$->AddParcelable($2);
+
+   if ($2 != AidlType::AnnotationNone && !$3->AsStructuredParcelable()) {
+     std::cerr << ps->FileName() << ":" << @3 << ": unstructured parcelables cannot be annotated"
+               << std::endl;
+     ps->AddError();
+   }
+
+   $3->Annotate($2);
+   $$->AddParcelable($3);
   }
  | parcelable_decls error {
     ps->AddError();
@@ -130,10 +142,33 @@ parcelable_decl
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
     $$ = new AidlParcelable($2, @2.begin.line, ps->Package(), $4->GetText());
   }
+ | PARCELABLE identifier '{' variable_decls '}' {
+    AidlQualifiedName* name = new AidlQualifiedName($2->GetText(), $2->GetComments());
+    $$ = new AidlStructuredParcelable(name, @2.begin.line, ps->Package(), $4);
+ }
  | PARCELABLE error ';' {
     ps->AddError();
     $$ = NULL;
   };
+
+variable_decls
+ : /* empty */ {
+    $$ = new std::vector<std::unique_ptr<AidlVariableDeclaration>>; }
+ | variable_decls variable_decl {
+    $$ = $1;
+    if ($2 != nullptr) {
+      $$->push_back(std::unique_ptr<AidlVariableDeclaration>($2));
+    }
+ };
+
+variable_decl
+ : type identifier ';' {
+   $$ = new AidlVariableDeclaration($1, $2->GetText(), @2.begin.line);
+ }
+ | error ';' {
+   ps->AddError();
+   $$ = nullptr;
+ }
 
 interface_decl
  : annotation_list INTERFACE identifier '{' members '}' {
