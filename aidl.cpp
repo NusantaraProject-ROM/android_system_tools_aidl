@@ -132,20 +132,10 @@ bool check_filename(const std::string& filename,
     return valid;
 }
 
-bool check_filenames(const std::string& filename, const AidlDocument* doc) {
-  if (!doc)
-    return true;
-
-  const AidlInterface* interface = doc->GetInterface();
-
-  if (interface) {
-    return check_filename(filename, interface->GetPackage(),
-                          interface->GetName(), interface->GetLine());
-  }
-
+bool check_filenames(const std::string& filename, const AidlDocument& doc) {
   bool success = true;
 
-  for (const auto& item : doc->GetParcelables()) {
+  for (const auto& item : doc.GetDefinedTypes()) {
     success &= check_filename(filename, item->GetPackage(), item->GetName(),
                               item->GetLine());
   }
@@ -153,18 +143,23 @@ bool check_filenames(const std::string& filename, const AidlDocument* doc) {
   return success;
 }
 
-bool gather_types(const std::string& filename,
-                  const AidlDocument* doc,
-                  TypeNamespace* types) {
+bool gather_types(const std::string& filename, const AidlDocument& doc, TypeNamespace* types) {
   bool success = true;
 
-  const AidlInterface* interface = doc->GetInterface();
+  for (const auto& item : doc.GetDefinedTypes()) {
+    const AidlInterface* interface = item->AsInterface();
+    if (interface != nullptr) {
+      success &= types->AddBinderType(*interface, filename);
+      continue;
+    }
 
-  if (interface)
-    return types->AddBinderType(*interface, filename);
+    const AidlParcelable* parcelable = item->AsParcelable();
+    if (parcelable != nullptr) {
+      success &= types->AddParcelableType(*parcelable, filename);
+      continue;
+    }
 
-  for (const auto& item : doc->GetParcelables()) {
-    success &= types->AddParcelableType(*item, filename);
+    CHECK(false) << "aidl internal error: unrecognized type";
   }
 
   return success;
@@ -588,19 +583,34 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
 
   AidlDocument* parsed_doc = p.GetDocument();
 
-  unique_ptr<AidlInterface> interface(parsed_doc->ReleaseInterface());
-  unique_ptr<AidlStructuredParcelable> parcelable(parsed_doc->ReleaseStructuredParcelable());
+  if (parsed_doc->GetDefinedTypes().empty()) {
+    LOG(ERROR) << "Cannot generate file without any definitions.";
+    return AidlError::BAD_TYPE;
+  }
 
-  CHECK(interface == nullptr || parcelable == nullptr);  // grammar invariant
-
-  AidlDefinedType* defined_type = interface.get();
-  if (defined_type == nullptr) defined_type = parcelable.get();
-
-  if (!defined_type) {
-    LOG(ERROR)
-        << "cannot generate code from aidl file w/o either one interface or structured parcelable";
+  bool has_only_unstructured_parcelables = true;
+  for (const auto& defined_type : parsed_doc->GetDefinedTypes()) {
+    if (defined_type->AsStructuredParcelable() != nullptr ||
+        defined_type->AsInterface() != nullptr) {
+      has_only_unstructured_parcelables = false;
+      break;
+    }
+  }
+  if (has_only_unstructured_parcelables) {
+    LOG(ERROR) << "Refusing to generate code with unstructured parcelables.";
     return AidlError::FOUND_PARCELABLE;
   }
+
+  if (parsed_doc->GetDefinedTypes().size() > 1) {
+    LOG(ERROR) << "Exactly one structured type is required to be defined.";
+    return AidlError::BAD_TYPE;
+  }
+
+  unique_ptr<AidlDefinedType> defined_type(parsed_doc->ReleaseDefinedType());
+  AidlInterface* interface = defined_type->AsInterface();
+  AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
+
+  CHECK(interface != nullptr || parcelable != nullptr);
 
   if (!check_filename(input_file_name.c_str(), defined_type->GetPackage(), defined_type->GetName(),
                       defined_type->GetLine()) ||
@@ -637,8 +647,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     }
 
     std::unique_ptr<AidlDocument> document(p.ReleaseDocument());
-    if (!check_filenames(import->GetFilename(), document.get()))
-      err = AidlError::BAD_IMPORT;
+    if (!check_filenames(import->GetFilename(), *document)) err = AidlError::BAD_IMPORT;
     docs[import.get()] = std::move(document);
   }
   if (err != AidlError::OK) {
@@ -647,7 +656,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
 
   if (interface) {
     // gather the types that have been declared
-    if (!types->AddBinderType(*interface.get(), input_file_name)) {
+    if (!types->AddBinderType(*interface, input_file_name)) {
       err = AidlError::BAD_TYPE;
     }
 
@@ -655,7 +664,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   }
 
   if (parcelable) {
-    if (!types->AddParcelableType(*parcelable.get(), input_file_name)) {
+    if (!types->AddParcelableType(*parcelable, input_file_name)) {
       err = AidlError::BAD_TYPE;
     }
   }
@@ -670,16 +679,16 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
       continue;
     }
 
-    if (!gather_types(import->GetFilename(), import_itr->second.get(), types)) {
+    if (!gather_types(import->GetFilename(), *import_itr->second, types)) {
       err = AidlError::BAD_TYPE;
     }
   }
 
   // check the referenced types in parsed_doc to make sure we've imported them
-  if (interface && check_types(input_file_name, interface.get(), types) != 0) {
+  if (interface && check_types(input_file_name, interface, types) != 0) {
     err = AidlError::BAD_TYPE;
   }
-  if (parcelable && check_types(input_file_name, parcelable.get(), types) != 0) {
+  if (parcelable && check_types(input_file_name, parcelable, types) != 0) {
     err = AidlError::BAD_TYPE;
   }
   if (err != AidlError::OK) {
@@ -695,8 +704,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     return AidlError::BAD_CONSTANTS;
   }
 
-  if (returned_type && interface) *returned_type = std::move(interface);
-  if (returned_type && parcelable) *returned_type = std::move(parcelable);
+  *returned_type = std::move(defined_type);
 
   if (returned_imports)
     p.ReleaseImports(returned_imports);
@@ -783,17 +791,9 @@ bool preprocess_aidl(const JavaOptions& options,
     AidlDocument* doc = p.GetDocument();
     string line;
 
-    const AidlInterface* interface = doc->GetInterface();
-
-    if (interface != nullptr &&
-        !writer->Write("interface %s;\n",
-                       interface->GetCanonicalName().c_str())) {
-      return false;
-    }
-
-    for (const auto& parcelable : doc->GetParcelables()) {
-      if (!writer->Write("parcelable %s;\n",
-                         parcelable->GetCanonicalName().c_str())) {
+    for (const auto& defined_type : doc->GetDefinedTypes()) {
+      if (!writer->Write("%s %s;\n", defined_type->GetAidlDeclarationName().c_str(),
+                         defined_type->GetCanonicalName().c_str())) {
         return false;
       }
     }

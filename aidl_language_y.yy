@@ -38,11 +38,12 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     std::vector<std::unique_ptr<AidlVariableDeclaration>>* variable_list;
     AidlMethod* method;
     AidlMember* constant;
-    std::vector<std::unique_ptr<AidlMember>>* members;
+    std::vector<std::unique_ptr<AidlMember>>* interface_members;
     AidlQualifiedName* qname;
-    AidlInterface* interface_obj;
+    AidlInterface* interface;
     AidlParcelable* parcelable;
-    AidlDocument* parcelable_list;
+    AidlDefinedType* declaration;
+    AidlDocument* declaration_list;
 }
 
 %token<token> IDENTIFIER INTERFACE ONEWAY C_STR HEXVALUE
@@ -53,12 +54,14 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %token UNKNOWN "unrecognized character"
 %token IN OUT INOUT PACKAGE IMPORT PARCELABLE CPP_HEADER CONST INT STRING
 
-%type<parcelable_list> parcelable_decls
-%type<parcelable> parcelable_decl
+%type<declaration_list> decls
+%type<declaration> decl
 %type<variable_list> variable_decls
 %type<variable> variable_decl
-%type<members> members
-%type<interface_obj> interface_decl
+%type<interface_members> interface_members
+%type<declaration> unannotated_decl
+%type<interface> interface_decl
+%type<parcelable> parcelable_decl
 %type<method> method_decl
 %type<constant> constant_decl
 %type<annotation> annotation
@@ -74,10 +77,9 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %type<token> identifier error
 %%
 document
- : package imports parcelable_decls
+ : package imports decls
   { ps->SetDocument($3); }
- | package imports interface_decl
-  { ps->SetDocument(new AidlDocument($3)); };
+ ;
 
 /* A couple of tokens that are keywords elsewhere are identifiers when
  * occurring in the identifier position. Therefore identifier is a
@@ -119,18 +121,39 @@ qualified_name
     delete $3;
   };
 
-parcelable_decls
- :
+decls
+ : /* empty */
   { $$ = new AidlDocument(); }
- | parcelable_decls parcelable_decl {
+ | decls decl {
    $$ = $1;
-
-   $$->AddParcelable($2);
+   $$->AddDefinedType($2);
   }
- | parcelable_decls error {
-    ps->AddError();
-    $$ = $1;
-  };
+ ;
+
+decl
+ : annotation_list unannotated_decl
+   {
+    $$ = $2;
+
+    bool is_unstructured_parcelable =
+      $$->AsParcelable() != nullptr && $$->AsStructuredParcelable() == nullptr;
+
+    if (is_unstructured_parcelable && $1 != AidlAnnotatable::AnnotationNone) {
+      std::cerr << ps->FileName() << ":" << @1 << ": unstructured parcelables cannot be annotated"
+                << std::endl;
+      ps->AddError();
+    }
+
+    $$->Annotate($1);
+   }
+ ;
+
+unannotated_decl
+ : parcelable_decl
+  { $$ = $1; }
+ | interface_decl
+  { $$ = $1; }
+ ;
 
 parcelable_decl
  : PARCELABLE qualified_name ';' {
@@ -168,37 +191,35 @@ variable_decl
  }
 
 interface_decl
- : annotation_list INTERFACE identifier '{' members '}' {
-    $$ = new AidlInterface($3->GetText(), @2.begin.line, $2->GetComments(),
-                           false, $5, ps->Package());
-    $$->Annotate($1);
+ : INTERFACE identifier '{' interface_members '}' {
+    $$ = new AidlInterface($2->GetText(), @1.begin.line, $1->GetComments(),
+                           false, $4, ps->Package());
+    delete $1;
+    delete $2;
+  }
+ | ONEWAY INTERFACE identifier '{' interface_members '}' {
+    $$ = new AidlInterface($3->GetText(), @2.begin.line, $1->GetComments(),
+                           true, $5, ps->Package());
+    delete $1;
     delete $2;
     delete $3;
   }
- | annotation_list ONEWAY INTERFACE identifier '{' members '}' {
-    $$ = new AidlInterface($4->GetText(), @4.begin.line, $2->GetComments(),
-                           true, $6, ps->Package());
-    $$->Annotate($1);
-    delete $2;
-    delete $3;
-    delete $4;
-  }
- | annotation_list INTERFACE error '{' members '}' {
+ | INTERFACE error '{' interface_members '}' {
     ps->AddError();
-    $$ = NULL;
+    $$ = nullptr;
+    delete $1;
     delete $2;
-    delete $3;
-    delete $5;
+    delete $4;
   };
 
-members
+interface_members
  :
   { $$ = new std::vector<std::unique_ptr<AidlMember>>(); }
- | members method_decl
+ | interface_members method_decl
   { $1->push_back(std::unique_ptr<AidlMember>($2)); }
- | members constant_decl
+ | interface_members constant_decl
   { $1->push_back(std::unique_ptr<AidlMember>($2)); }
- | members error ';' {
+ | interface_members error ';' {
     ps->AddError();
     $$ = $1;
   };
