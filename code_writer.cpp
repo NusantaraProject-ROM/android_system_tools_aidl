@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "code_writer.h"
 
+#include <stdarg.h>
 #include <fstream>
 #include <iostream>
-#include <stdarg.h>
+#include <sstream>
 #include <vector>
 
 #include <android-base/stringprintf.h>
 
 namespace android {
 namespace aidl {
+
+CodeWriter::CodeWriter(std::unique_ptr<std::ostream> ostream) : ostream_(std::move(ostream)) {}
 
 std::string CodeWriter::ApplyIndent(const std::string& str) {
   std::string output;
@@ -62,72 +64,51 @@ bool CodeWriter::Write(const char* format, ...) {
   for (auto line : lines) {
     indented.append(ApplyIndent(line));
   }
-  return Output(indented);
+
+  (*ostream_) << indented;
+  return !ostream_->fail();
 }
 
-class StringCodeWriter : public CodeWriter {
- public:
-  explicit StringCodeWriter(std::string* output_buffer) : output_(output_buffer) {}
-  virtual ~StringCodeWriter() = default;
-
-  bool Output(const std::string& str) override {
-    output_->append(str);
-    return true;
+bool CodeWriter::Close() {
+  if (ostream_.get()->rdbuf() != std::cout.rdbuf()) {
+    // if the steam is for file (not stdout), do the close.
+    static_cast<std::fstream*>(ostream_.get())->close();
+    return !ostream_->fail();
   }
-
-  bool Close() override { return true; }
-
- private:
-  std::string* output_;
-};  // class StringCodeWriter
-
-class FileCodeWriter : public CodeWriter {
- public:
-  explicit FileCodeWriter(const std::string& filename) : cout_(std::cout) {
-    if (filename == "-") {
-      to_stdout_ = true;
-    } else {
-      to_stdout_ = false;
-      fileout_.open(filename, std::ofstream::out |
-                    std::ofstream::binary);
-      if (fileout_.fail()) {
-        std::cerr << "unable to open " << filename << " for write" << std::endl;
-      }
-    }
-  }
-
-  bool Output(const std::string& str) override {
-    if (to_stdout_) {
-      cout_ << str;
-    } else {
-      fileout_ << str;
-    }
-    return TestSuccess();
-  }
-
-  bool Close() override {
-    if (!to_stdout_) {
-      fileout_.close();
-    }
-    return TestSuccess();
-  }
-
-  bool TestSuccess() const {
-    return to_stdout_ ? true : !fileout_.fail();
-  }
-
- private:
-  std::ostream& cout_;
-  std::ofstream fileout_;
-  bool to_stdout_;
-};  // class StringCodeWriter
-
-CodeWriterPtr GetFileWriter(const std::string& output_file) {
-  return CodeWriterPtr(new FileCodeWriter(output_file));
+  return true;
 }
 
-CodeWriterPtr GetStringWriter(std::string* output_buffer) {
-  return CodeWriterPtr(new StringCodeWriter(output_buffer));
+CodeWriterPtr CodeWriter::ForFile(const std::string& filename) {
+  std::unique_ptr<std::ostream> stream;
+  if (filename == "-") {
+    stream = std::unique_ptr<std::ostream>(new std::ostream(std::cout.rdbuf()));
+  } else {
+    stream = std::unique_ptr<std::ostream>(
+        new std::fstream(filename, std::fstream::out | std::fstream::binary));
+  }
+  return CodeWriterPtr(new CodeWriter(std::move(stream)));
+}
+
+CodeWriterPtr CodeWriter::ForString(std::string* buf) {
+  // This class is defined inside this static function of CodeWriter
+  // in order to have access to private constructor and private member
+  // ostream_.
+  class StringCodeWriter : public CodeWriter {
+   public:
+    StringCodeWriter(std::string* buf)
+        : CodeWriter(std::unique_ptr<std::ostream>(new std::stringstream())), buf_(buf) {}
+    ~StringCodeWriter() { Close(); }
+    bool Close() override {
+      // extract whats written to the stringstream to the external buffer.
+      // we are sure that ostream_ is indeed stringstream.
+      *buf_ = static_cast<std::stringstream*>(ostream_.get())->str();
+      return true;
+    }
+
+   private:
+    std::string* buf_;
+  };
+  return CodeWriterPtr(new StringCodeWriter(buf));
 }
 
 }  // namespace aidl

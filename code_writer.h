@@ -27,34 +27,34 @@
 namespace android {
 namespace aidl {
 
+class CodeWriter;
+using CodeWriterPtr = std::unique_ptr<CodeWriter>;
+
 class CodeWriter {
  public:
+  // Get a CodeWriter that writes to a file. When filename is "-",
+  // it is written to stdout.
+  static CodeWriterPtr ForFile(const std::string& filename);
+  // Get a CodeWriter that writes to a string buffer.
+  // The buffer gets updated only after Close() is called or the CodeWriter
+  // is deleted -- much like a real file.
+  static CodeWriterPtr ForString(std::string* buf);
   // Write a formatted string to this writer in the usual printf sense.
   // Returns false on error.
   virtual bool Write(const char* format, ...);
-  virtual bool Close() = 0;
-  virtual ~CodeWriter() = default;
   inline void Indent() { indent_level_++; }
   inline void Dedent() { indent_level_--; }
- protected:
-  // Actuall writes str which is formatted and properly indented
-  // to the actual medium (file, string, etc.)
-  virtual bool Output(const std::string& str) = 0;
+  virtual bool Close();
+  virtual ~CodeWriter() = default;
+  CodeWriter() = default;
+
  private:
+  CodeWriter(std::unique_ptr<std::ostream> ostream);
   std::string ApplyIndent(const std::string& str);
+  const std::unique_ptr<std::ostream> ostream_;
   int indent_level_ {0};
   bool start_of_line_ {true};
-};  // class CodeWriter
-
-using CodeWriterPtr = std::unique_ptr<CodeWriter>;
-
-// Get a CodeWriter that writes to |output_file|.
-CodeWriterPtr GetFileWriter(const std::string& output_file);
-
-// Get a CodeWriter that writes to a string buffer.
-// Caller retains ownership of the buffer.
-// The buffer must outlive the CodeWriter.
-CodeWriterPtr GetStringWriter(std::string* output_buffer);
+};
 
 }  // namespace aidl
 }  // namespace android

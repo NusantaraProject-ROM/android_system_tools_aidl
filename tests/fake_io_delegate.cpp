@@ -36,7 +36,6 @@ namespace test {
 class BrokenCodeWriter : public CodeWriter {
   bool Write(const char* /* format */, ...) override {  return true; }
   bool Close() override { return false; }
-  bool Output(const std::string& /*str*/) override { return true; }
   virtual ~BrokenCodeWriter() = default;
 };  // class BrokenCodeWriter
 
@@ -84,7 +83,7 @@ std::unique_ptr<CodeWriter> FakeIoDelegate::GetCodeWriter(
   }
   removed_files_.erase(file_path);
   written_file_contents_[file_path] = "";
-  return GetStringWriter(&written_file_contents_[file_path]);
+  return CodeWriter::ForString(&written_file_contents_[file_path]);
 }
 
 void FakeIoDelegate::RemovePath(const std::string& file_path) const {

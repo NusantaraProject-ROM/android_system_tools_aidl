@@ -175,7 +175,7 @@ bool IoDelegate::CreatePathForFile(const string& path) const {
 
 unique_ptr<CodeWriter> IoDelegate::GetCodeWriter(
     const string& file_path) const {
-  return GetFileWriter(file_path);
+  return CodeWriter::ForFile(file_path);
 }
 
 void IoDelegate::RemovePath(const std::string& file_path) const {
