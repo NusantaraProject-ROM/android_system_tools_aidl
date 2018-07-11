@@ -1314,9 +1314,7 @@ class ASTTest : public ::testing::Test {
 
   void Compare(Document* doc, const char* expected) {
     string output;
-    unique_ptr<CodeWriter> cw = GetStringWriter(&output);
-
-    doc->Write(cw.get());
+    doc->Write(CodeWriter::ForString(&output).get());
 
     if (expected == output) {
       return; // Success
