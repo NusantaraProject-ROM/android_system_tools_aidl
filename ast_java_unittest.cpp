@@ -53,8 +53,7 @@ TEST(AstJavaTests, GeneratesClass) {
   a_class.extends = &extend_type;
 
   string actual_output;
-  CodeWriterPtr writer = GetStringWriter(&actual_output);
-  a_class.Write(writer.get());
+  a_class.Write(CodeWriter::ForString(&actual_output).get());
   EXPECT_EQ(string(kExpectedClassOutput), actual_output);
 }
 
