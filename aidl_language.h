@@ -256,29 +256,26 @@ class AidlMethod : public AidlMember {
   DISALLOW_COPY_AND_ASSIGN(AidlMethod);
 };
 
+class AidlDefinedType;
+class AidlInterface;
 class AidlParcelable;
 class AidlStructuredParcelable;
-class AidlInterface;
 class AidlDocument : public AidlNode {
  public:
   AidlDocument() = default;
-  explicit AidlDocument(AidlInterface* interface);
   virtual ~AidlDocument() = default;
 
-  const AidlInterface* GetInterface() const { return interface_.get(); }
-  AidlInterface* ReleaseInterface() { return interface_.release(); }
-  AidlStructuredParcelable* ReleaseStructuredParcelable();
+  AidlDefinedType* ReleaseDefinedType();
 
-  const std::vector<std::unique_ptr<AidlParcelable>>& GetParcelables() const {
-    return parcelables_;
+  const std::vector<std::unique_ptr<AidlDefinedType>>& GetDefinedTypes() const {
+    return defined_types_;
   }
-  void AddParcelable(AidlParcelable* parcelable) {
-    parcelables_.push_back(std::unique_ptr<AidlParcelable>(parcelable));
+  void AddDefinedType(AidlDefinedType* defined_type) {
+    defined_types_.push_back(std::unique_ptr<AidlDefinedType>(defined_type));
   }
 
  private:
-  std::vector<std::unique_ptr<AidlParcelable>> parcelables_;
-  std::unique_ptr<AidlInterface> interface_;
+  std::vector<std::unique_ptr<AidlDefinedType>> defined_types_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlDocument);
 };
@@ -315,8 +312,22 @@ class AidlDefinedType : public AidlType {
   std::string GetCanonicalName() const;
   const std::vector<std::string>& GetSplitPackage() const { return package_; }
 
+  virtual std::string GetAidlDeclarationName() const = 0;
+
   virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
+  virtual const AidlParcelable* AsParcelable() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
+
+  AidlStructuredParcelable* AsStructuredParcelable() {
+    return const_cast<AidlStructuredParcelable*>(
+        const_cast<const AidlDefinedType*>(this)->AsStructuredParcelable());
+  }
+  AidlParcelable* AsParcelable() {
+    return const_cast<AidlParcelable*>(const_cast<const AidlDefinedType*>(this)->AsParcelable());
+  }
+  AidlInterface* AsInterface() {
+    return const_cast<AidlInterface*>(const_cast<const AidlDefinedType*>(this)->AsInterface());
+  }
 
  private:
   const std::vector<std::string> package_;
@@ -337,6 +348,9 @@ class AidlParcelable : public AidlDefinedType {
   void SetCppHeader(const std::string& cpp_header) { cpp_header_ = cpp_header; }
   std::string GetCppHeader() const { return cpp_header_; }
 
+  const AidlParcelable* AsParcelable() const override { return this; }
+  std::string GetAidlDeclarationName() const override { return "parcelable"; }
+
  private:
   std::unique_ptr<AidlQualifiedName> name_;
   std::string cpp_header_;
@@ -354,7 +368,7 @@ class AidlStructuredParcelable : public AidlParcelable {
     return variables_;
   }
 
-  virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return this; }
+  const AidlStructuredParcelable* AsStructuredParcelable() const override { return this; }
 
  private:
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
@@ -386,7 +400,8 @@ class AidlInterface : public AidlDefinedType {
     return generate_traces_;
   }
 
-  virtual const AidlInterface* AsInterface() const { return this; }
+  const AidlInterface* AsInterface() const override { return this; }
+  std::string GetAidlDeclarationName() const override { return "interface"; }
 
  private:
   bool oneway_;
