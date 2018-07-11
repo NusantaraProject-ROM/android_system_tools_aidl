@@ -26,6 +26,12 @@ namespace android {
 namespace aidl {
 namespace java {
 
+std::string AstNode::ToString() {
+  std::string str;
+  Write(CodeWriter::ForString(&str).get());
+  return str;
+}
+
 void WriteModifiers(CodeWriter* to, int mod, int mask) {
   int m = mod & mask;
 
@@ -121,6 +127,12 @@ void FieldVariable::Write(CodeWriter* to) const {
     to->Write("%s", this->clazz->JavaType().c_str());
   }
   to->Write(".%s", name.c_str());
+}
+
+LiteralStatement::LiteralStatement(const std::string& value) : value_(value) {}
+
+void LiteralStatement::Write(CodeWriter* to) const {
+  to->Write("%s", value_.c_str());
 }
 
 void StatementBlock::Write(CodeWriter* to) const {
