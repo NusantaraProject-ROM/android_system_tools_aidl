@@ -240,6 +240,16 @@ TEST_F(AstCppTests, GeneratesMethodImpl) {
   CompareGeneratedCode(m, kExpectedMethodImplOutput);
 }
 
+TEST_F(AstCppTests, ToString) {
+  std::string literal = "void foo() {}";
+  LiteralDecl decl(literal);
+  std::string actual = decl.ToString();
+  EXPECT_EQ(literal, actual);
+  std::string written;
+  decl.Write(CodeWriter::ForString(&written).get());
+  EXPECT_EQ(literal, written);
+}
+
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
