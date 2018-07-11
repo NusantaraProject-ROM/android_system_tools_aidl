@@ -288,6 +288,28 @@ TEST_F(AidlTest, FailOnDuplicateConstantNames) {
   EXPECT_EQ(AidlError::BAD_CONSTANTS, reported_error);
 }
 
+TEST_F(AidlTest, FailOnManyDefinedTypes) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
+                           R"(package p;
+                      interface IFoo {}
+                      parcelable Bar;
+                      parcelable IBar {}
+                      parcelable StructuredParcelable {}
+                      interface IBaz {}
+                   )",
+                           &cpp_types_, &reported_error));
+  // Parse success is important for clear error handling even if the cases aren't
+  // actually supported in code generation.
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
+TEST_F(AidlTest, FailOnNoDefinedTypes) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl", R"(package p;)", &cpp_types_, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
 TEST_F(AidlTest, FailOnMalformedConstHexValue) {
   AidlError reported_error;
   EXPECT_EQ(nullptr,

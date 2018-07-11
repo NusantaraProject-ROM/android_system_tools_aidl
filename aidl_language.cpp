@@ -220,27 +220,17 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
   delete members;
 }
 
-AidlDocument::AidlDocument(AidlInterface* interface)
-    : interface_(interface) {}
-
-AidlStructuredParcelable* AidlDocument::ReleaseStructuredParcelable() {
-  if (parcelables_.size() == 0) {
+AidlDefinedType* AidlDocument::ReleaseDefinedType() {
+  if (defined_types_.size() == 0) {
     return nullptr;
   }
 
-  AidlStructuredParcelable* ret = nullptr;
-  for (auto& p : parcelables_) {
-    if (p->AsStructuredParcelable() == nullptr) continue;
-
-    if (ret != nullptr) {
-      LOG(ERROR) << "AIDL only supports one structured parcelable per file.";
-      return nullptr;
-    }
-
-    ret = static_cast<AidlStructuredParcelable*>(p.release());
+  if (defined_types_.size() > 1) {
+    LOG(ERROR) << "AIDL only supports compiling one defined type per file.";
+    return nullptr;
   }
 
-  return ret;
+  return defined_types_[0].release();
 }
 
 AidlQualifiedName::AidlQualifiedName(std::string term,
