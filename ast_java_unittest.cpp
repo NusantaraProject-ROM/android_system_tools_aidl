@@ -57,6 +57,17 @@ TEST(AstJavaTests, GeneratesClass) {
   EXPECT_EQ(string(kExpectedClassOutput), actual_output);
 }
 
+TEST(AstJavaTests, ToString) {
+  std::string literal = "public void foo() {}";
+  LiteralClassElement ce(literal);
+  std::string actual = ce.ToString();
+  EXPECT_EQ(literal, actual);
+
+  std::string written;
+  ce.Write(CodeWriter::ForString(&written).get());
+  EXPECT_EQ(literal, written);
+}
+
 }  // namespace java
 }  // namespace aidl
 }  // namespace android

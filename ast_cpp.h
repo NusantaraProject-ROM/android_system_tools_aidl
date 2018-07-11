@@ -38,6 +38,7 @@ class AstNode {
   AstNode() = default;
   virtual ~AstNode() = default;
   virtual void Write(CodeWriter* to) const = 0;
+  std::string ToString();
 };  // class AstNode
 
 class Declaration : public AstNode {

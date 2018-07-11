@@ -29,6 +29,12 @@ namespace android {
 namespace aidl {
 namespace cpp {
 
+std::string AstNode::ToString() {
+  std::string str;
+  Write(CodeWriter::ForString(&str).get());
+  return str;
+}
+
 LiteralDecl::LiteralDecl(const std::string& expression) : expression_(expression) {}
 
 void LiteralDecl::Write(CodeWriter* to) const {
