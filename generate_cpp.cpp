@@ -796,11 +796,11 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
   }
 
   unique_ptr<MethodDecl> read(new MethodDecl(kAndroidStatusLiteral, "readFromParcel",
-                                             ArgList("const Parcel* _aidl_parcel"),
+                                             ArgList("const ::android::Parcel* _aidl_parcel"),
                                              MethodDecl::IS_OVERRIDE));
   parcel_class->AddPublic(std::move(read));
   unique_ptr<MethodDecl> write(new MethodDecl(kAndroidStatusLiteral, "writeToParcel",
-                                              ArgList("Parcel* _aidl_parcel"),
+                                              ArgList("::android::Parcel* _aidl_parcel"),
                                               MethodDecl::IS_OVERRIDE | MethodDecl::IS_CONST));
   parcel_class->AddPublic(std::move(write));
 
@@ -812,7 +812,7 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
                                             const AidlStructuredParcelable& parcel) {
   unique_ptr<MethodImpl> read{new MethodImpl{kAndroidStatusLiteral, parcel.GetName(),
                                              "readFromParcel",
-                                             ArgList("const Parcel* _aidl_parcel")}};
+                                             ArgList("const ::android::Parcel* _aidl_parcel")}};
   StatementBlock* read_block = read->GetStatementBlock();
   read_block->AddLiteral(
       StringPrintf("%s %s = %s", kAndroidStatusLiteral, kAndroidStatusVarName, kAndroidStatusOk));
@@ -826,9 +826,9 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
   }
   read_block->AddLiteral(StringPrintf("return %s", kAndroidStatusVarName));
 
-  unique_ptr<MethodImpl> write{new MethodImpl{kAndroidStatusLiteral, parcel.GetName(),
-                                              "writeToParcel", ArgList("Parcel* _aidl_parcel"),
-                                              true /*const*/}};
+  unique_ptr<MethodImpl> write{
+      new MethodImpl{kAndroidStatusLiteral, parcel.GetName(), "writeToParcel",
+                     ArgList("::android::Parcel* _aidl_parcel"), true /*const*/}};
   StatementBlock* write_block = write->GetStatementBlock();
   write_block->AddLiteral(
       StringPrintf("%s %s = %s", kAndroidStatusLiteral, kAndroidStatusVarName, kAndroidStatusOk));
