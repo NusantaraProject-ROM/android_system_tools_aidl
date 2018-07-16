@@ -44,6 +44,7 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlParcelable* parcelable;
     AidlDefinedType* declaration;
     AidlDocument* declaration_list;
+    std::vector<std::unique_ptr<AidlType>>* type_args;
 }
 
 %token<token> ANNOTATION "annotation"
@@ -84,7 +85,7 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 %type<arg_list> arg_list
 %type<arg> arg
 %type<direction> direction
-%type<str> generic_list
+%type<type_args> type_args
 %type<qname> qualified_name
 
 %type<token> identifier error
@@ -312,11 +313,10 @@ unannotated_type
                       true);
     delete $1;
   }
- | qualified_name '<' generic_list '>' {
-    $$ = new AidlType($1->GetDotName() + "<" + *$3 + ">", @1.begin.line,
-                      $1->GetComments(), false);
+ | qualified_name '<' type_args '>' {
+    $$ = new AidlType($1->GetDotName(), @1.begin.line,
+                      $1->GetComments(), false, $3);
     delete $1;
-    delete $3;
   };
 
 type
@@ -325,15 +325,13 @@ type
     $2->Annotate($1);
   };
 
-generic_list
- : qualified_name {
-    $$ = new std::string($1->GetDotName());
-    delete $1;
+type_args
+ : unannotated_type {
+    $$ = new std::vector<std::unique_ptr<AidlType>>();
+    $$->emplace_back($1);
   }
- | generic_list ',' qualified_name {
-    $$ = new std::string(*$1 + "," + $3->GetDotName());
-    delete $1;
-    delete $3;
+ | type_args ',' unannotated_type {
+    $1->emplace_back($3);
   };
 
 annotation_list

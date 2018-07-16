@@ -78,11 +78,16 @@ class AidlAnnotatable : public AidlNode {
 
 class AidlType : public AidlAnnotatable {
  public:
-  AidlType(const std::string& name, unsigned line,
-           const std::string& comments, bool is_array);
+  AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
+           bool is_array);
+  AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
+           bool is_array, std::vector<std::unique_ptr<AidlType>>* type_params);
   virtual ~AidlType() = default;
 
-  const std::string& GetName() const { return name_; }
+  // Name without the generic type parameters (e.g. List)
+  const std::string& GetSimpleName() const { return simple_name_; }
+  // Name with the generic type parameters if any (e.g. List<String>)
+  const std::string& GetName() const { return name_; };
   unsigned GetLine() const { return line_; }
   bool IsArray() const { return is_array_; }
   const std::string& GetComments() const { return comments_; }
@@ -98,12 +103,16 @@ class AidlType : public AidlAnnotatable {
     return reinterpret_cast<const T*>(language_type_);
   }
 
+  const std::vector<std::unique_ptr<AidlType>>& GetTypeParameters() const { return type_params_; }
+
  private:
+  std::string simple_name_;
   std::string name_;
   unsigned line_;
   bool is_array_;
   std::string comments_;
   const android::aidl::ValidatableType* language_type_ = nullptr;
+  const std::vector<std::unique_ptr<AidlType>> type_params_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlType);
 };

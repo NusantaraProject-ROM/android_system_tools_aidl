@@ -462,5 +462,18 @@ TEST_F(AidlTest, WritesTrivialDependencyFileForParcelable) {
   EXPECT_EQ(actual_dep_file_contents, kExpectedParcelableDepFileContents);
 }
 
+/* not working until type_namespace.h is fixed
+TEST_F(AidlTest, AcceptsNestedContainerType) {
+  string nested_in_iface = "package a; interface IFoo {\n"
+                           "  List<int, List<String, bool>> foo(); }";
+  string nested_in_parcelable = "package a; parcelable IData {\n"
+                                "  List<int, List<String, bool>> foo;}";
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", nested_in_iface, &java_types_));
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", nested_in_iface, &cpp_types_));
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", nested_in_parcelable, &java_types_));
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", nested_in_parcelable, &cpp_types_));
+}
+*/
+
 }  // namespace aidl
 }  // namespace android
