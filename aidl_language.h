@@ -1,6 +1,10 @@
 #ifndef AIDL_AIDL_LANGUAGE_H_
 #define AIDL_AIDL_LANGUAGE_H_
 
+#include "aidl_typenames.h"
+#include "io_delegate.h"
+
+#include <cassert>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,10 +12,12 @@
 #include <android-base/macros.h>
 #include <android-base/strings.h>
 
-#include <io_delegate.h>
-
 struct yy_buffer_state;
 typedef yy_buffer_state* YY_BUFFER_STATE;
+
+using std::string;
+using std::unique_ptr;
+using std::vector;
 
 class AidlToken {
  public:
@@ -40,6 +46,7 @@ namespace android {
 namespace aidl {
 
 class ValidatableType;
+class AidlTypenames;
 
 }  // namespace aidl
 }  // namespace android
@@ -76,23 +83,51 @@ class AidlAnnotatable : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlAnnotatable);
 };
 
-class AidlTypeSpecifier : public AidlAnnotatable {
+class AidlQualifiedName;
+
+// AidlTypeSpecifier represents a reference to either a built-in type,
+// a defined type, or a variant (e.g., array of generic) of a type.
+class AidlTypeSpecifier final : public AidlAnnotatable {
  public:
-  AidlTypeSpecifier(const std::string& simple_name, unsigned line, const std::string& comments,
-                    bool is_array);
-  AidlTypeSpecifier(const std::string& simple_name, unsigned line, const std::string& comments,
-                    bool is_array, std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_params);
+  AidlTypeSpecifier(const string& unresolved_name, bool is_array,
+                    vector<unique_ptr<AidlTypeSpecifier>>* type_params, unsigned line,
+                    const string& comments);
   virtual ~AidlTypeSpecifier() = default;
 
-  // Name without the generic type parameters (e.g. List)
-  const std::string& GetSimpleName() const { return simple_name_; }
-  // Name with the generic type parameters if any (e.g. List<String>)
-  const std::string& GetName() const { return name_; };
-  unsigned GetLine() const { return line_; }
-  bool IsArray() const { return is_array_; }
-  const std::string& GetComments() const { return comments_; }
+  // Returns the full-qualified name of the base type.
+  // int -> int
+  // int[] -> int
+  // List<String> -> List
+  // IFoo -> foo.bar.IFoo (if IFoo is in package foo.bar)
+  const string& GetName() const {
+    if (IsResolved()) {
+      return fully_qualified_name_;
+    } else {
+      return GetUnresolvedName();
+    }
+  }
 
-  std::string ToString() const;
+  // Returns string representation of this type specifier.
+  // This is GetBaseTypeName() + array modifieir or generic type parameters
+  string ToString() const;
+
+  const string& GetUnresolvedName() const { return unresolved_name_; }
+
+  const string& GetComments() const { return comments_; }
+
+  bool IsResolved() const { return fully_qualified_name_ != ""; }
+
+  bool IsArray() const { return is_array_; }
+
+  bool IsGeneric() const { return type_params_ != nullptr; }
+
+  unsigned GetLine() const { return line_; }
+
+  const vector<unique_ptr<AidlTypeSpecifier>>& GetTypeParameters() const { return *type_params_; }
+
+  // Resolve the base type name to a fully-qualified name. Return false if the
+  // resolution fails.
+  bool Resolve(android::aidl::AidlTypenames& typenames);
 
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
@@ -102,19 +137,14 @@ class AidlTypeSpecifier : public AidlAnnotatable {
   const T* GetLanguageType() const {
     return reinterpret_cast<const T*>(language_type_);
   }
-
-  const std::vector<std::unique_ptr<AidlTypeSpecifier>>& GetTypeParameters() const {
-    return type_params_;
-  }
-
  private:
-  std::string simple_name_;
-  std::string name_;
-  unsigned line_;
-  bool is_array_;
-  std::string comments_;
+  const string unresolved_name_;
+  string fully_qualified_name_;
+  const bool is_array_;
+  const unique_ptr<vector<unique_ptr<AidlTypeSpecifier>>> type_params_;
+  const unsigned line_;
+  const string comments_;
   const android::aidl::ValidatableType* language_type_ = nullptr;
-  const std::vector<std::unique_ptr<AidlTypeSpecifier>> type_params_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlTypeSpecifier);
 };
@@ -310,12 +340,18 @@ class AidlQualifiedName : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlQualifiedName);
 };
 
-class AidlDefinedType : public AidlTypeSpecifier {
+// AidlDefinedType represents either an interface or a parcelable that is
+// defined in the source file.
+class AidlDefinedType : public AidlAnnotatable {
  public:
   AidlDefinedType(std::string name, unsigned line,
                   const std::string& comments,
                   const std::vector<std::string>& package);
   virtual ~AidlDefinedType() = default;
+
+  const std::string& GetName() const { return name_; };
+  unsigned GetLine() const { return line_; }
+  const std::string& GetComments() const { return comments_; }
 
   /* dot joined package, example: "android.package.foo" */
   std::string GetPackage() const;
@@ -340,7 +376,20 @@ class AidlDefinedType : public AidlTypeSpecifier {
     return const_cast<AidlInterface*>(const_cast<const AidlDefinedType*>(this)->AsInterface());
   }
 
+  void SetLanguageType(const android::aidl::ValidatableType* language_type) {
+    language_type_ = language_type;
+  }
+
+  template <typename T>
+  const T* GetLanguageType() const {
+    return reinterpret_cast<const T*>(language_type_);
+  }
+
  private:
+  std::string name_;
+  unsigned line_;
+  std::string comments_;
+  const android::aidl::ValidatableType* language_type_ = nullptr;
   const std::vector<std::string> package_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlDefinedType);
@@ -388,7 +437,7 @@ class AidlStructuredParcelable : public AidlParcelable {
   DISALLOW_COPY_AND_ASSIGN(AidlStructuredParcelable);
 };
 
-class AidlInterface : public AidlDefinedType {
+class AidlInterface final : public AidlDefinedType {
  public:
   AidlInterface(const std::string& name, unsigned line,
                 const std::string& comments, bool oneway_,
@@ -450,7 +499,8 @@ class AidlImport : public AidlNode {
 
 class Parser {
  public:
-  explicit Parser(const android::aidl::IoDelegate& io_delegate);
+  explicit Parser(const android::aidl::IoDelegate& io_delegate,
+                  android::aidl::AidlTypenames* typenames);
   ~Parser();
 
   // Parse contents of file |filename|.
@@ -479,6 +529,14 @@ class Parser {
       imports_.clear();
   }
 
+  android::aidl::AidlTypenames& GetTypenames() { return *typenames_; }
+
+  void DeferResolution(AidlTypeSpecifier* typespec) {
+    unresolved_typespecs_.emplace_back(typespec);
+  }
+
+  bool Resolve();
+
  private:
   const android::aidl::IoDelegate& io_delegate_;
   int error_ = 0;
@@ -489,6 +547,8 @@ class Parser {
   std::vector<std::unique_ptr<AidlImport>> imports_;
   std::unique_ptr<std::string> raw_buffer_;
   YY_BUFFER_STATE buffer_;
+  android::aidl::AidlTypenames* typenames_;
+  vector<AidlTypeSpecifier*> unresolved_typespecs_;
 
   DISALLOW_COPY_AND_ASSIGN(Parser);
 };

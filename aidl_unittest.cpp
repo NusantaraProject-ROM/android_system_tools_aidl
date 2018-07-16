@@ -93,6 +93,7 @@ class AidlTest : public ::testing::Test {
   vector<string> preprocessed_files_;
   vector<string> import_paths_;
   java::JavaTypeNamespace java_types_;
+  AidlTypenames typenames_;
   cpp::TypeNamespace cpp_types_;
 };
 
@@ -185,7 +186,7 @@ TEST_F(AidlTest, ParsesPreprocessedFile) {
   string simple_content = "parcelable a.Foo;\ninterface b.IBar;";
   io_delegate_.SetFileContents("path", simple_content);
   EXPECT_FALSE(java_types_.HasTypeByCanonicalName("a.Foo"));
-  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_));
+  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, typenames_));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("a.Foo"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("b.IBar"));
 }
@@ -194,7 +195,7 @@ TEST_F(AidlTest, ParsesPreprocessedFileWithWhitespace) {
   string simple_content = "parcelable    a.Foo;\n  interface b.IBar  ;\t";
   io_delegate_.SetFileContents("path", simple_content);
   EXPECT_FALSE(java_types_.HasTypeByCanonicalName("a.Foo"));
-  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_));
+  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, typenames_));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("a.Foo"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("b.IBar"));
 }
@@ -213,7 +214,7 @@ TEST_F(AidlTest, PreferImportToPreprocessed) {
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("one.IBar"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("another.IBar"));
   // But if we request just "IBar" we should get our imported one.
-  AidlTypeSpecifier ambiguous_type("IBar", 0, "", false /* not an array */);
+  AidlTypeSpecifier ambiguous_type("IBar", false, nullptr, 0, "");
   const java::Type* type = java_types_.Find(ambiguous_type);
   ASSERT_TRUE(type);
   EXPECT_EQ("one.IBar", type->CanonicalName());
