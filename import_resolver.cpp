@@ -16,6 +16,7 @@
 
 #include "import_resolver.h"
 
+#include <android-base/strings.h>
 #include <unistd.h>
 
 #ifdef _WIN32
@@ -30,9 +31,9 @@ using std::vector;
 namespace android {
 namespace aidl {
 
-ImportResolver::ImportResolver(const IoDelegate& io_delegate,
-                               const vector<string>& import_paths)
-    : io_delegate_(io_delegate) {
+ImportResolver::ImportResolver(const IoDelegate& io_delegate, const vector<string>& import_paths,
+                               const vector<string>& input_files)
+    : io_delegate_(io_delegate), input_files_(input_files) {
   for (string path : import_paths) {
     if (path.empty()) {
       path = ".";
@@ -44,7 +45,6 @@ ImportResolver::ImportResolver(const IoDelegate& io_delegate,
   }
 }
 
-
 string ImportResolver::FindImportFile(const string& canonical_name) const {
   // Convert the canonical name to a relative file path.
   string relative_path = canonical_name;
@@ -54,6 +54,12 @@ string ImportResolver::FindImportFile(const string& canonical_name) const {
     }
   }
   relative_path += ".aidl";
+
+  for (string input_file : input_files_) {
+    if (android::base::EndsWith(input_file, relative_path)) {
+      return input_file;
+    }
+  }
 
   // Look for that relative path at each of our import roots.
   for (string path : import_paths_) {
