@@ -46,13 +46,26 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlDocument* declaration_list;
 }
 
-%token<token> IDENTIFIER INTERFACE ONEWAY C_STR HEXVALUE
 %token<token> ANNOTATION "annotation"
-%token<integer> INTVALUE
+%token<token> C_STR "string literal"
+%token<token> HEXVALUE "hex literal"
+%token<token> IDENTIFIER "identifier"
+%token<token> INTERFACE "interface"
+%token<token> ONEWAY "oneway"
+%token<integer> INTVALUE "int literal"
 
 %token '(' ')' ',' '=' '[' ']' '<' '>' '.' '{' '}' ';'
+%token CONST "const"
 %token UNKNOWN "unrecognized character"
-%token IN OUT INOUT PACKAGE IMPORT PARCELABLE CPP_HEADER CONST INT STRING
+%token CPP_HEADER "cpp_header"
+%token IMPORT "import"
+%token IN "in"
+%token INOUT "inout"
+%token INT "int"
+%token OUT "out"
+%token PACKAGE "package"
+%token PARCELABLE "parcelable"
+%token STRING "string"
 
 %type<declaration_list> decls
 %type<declaration> decl
