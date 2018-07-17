@@ -969,6 +969,18 @@ bool GenerateCppParcel(const CppOptions& options, const cpp::TypeNamespace& type
   header->Write(header_writer.get());
   CHECK(header_writer->Close());
 
+  // TODO(b/111362593): no unecessary files just to have consistent output with interfaces
+  const string bp_header =
+      options.OutputHeaderDir() + OS_PATH_SEPARATOR + HeaderFile(parcelable, ClassNames::CLIENT);
+  unique_ptr<CodeWriter> bp_writer(io_delegate.GetCodeWriter(bp_header));
+  bp_writer->Write("#error TODO(b/111362593) parcelables do not have bp classes");
+  CHECK(bp_writer->Close());
+  const string bn_header =
+      options.OutputHeaderDir() + OS_PATH_SEPARATOR + HeaderFile(parcelable, ClassNames::SERVER);
+  unique_ptr<CodeWriter> bn_writer(io_delegate.GetCodeWriter(bn_header));
+  bn_writer->Write("#error TODO(b/111362593) parcelables do not have bn classes");
+  CHECK(bn_writer->Close());
+
   unique_ptr<CodeWriter> source_writer = io_delegate.GetCodeWriter(options.OutputCppFilePath());
   source->Write(source_writer.get());
   CHECK(source_writer->Close());
