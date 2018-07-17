@@ -312,7 +312,7 @@ class AidlDefinedType : public AidlType {
   std::string GetCanonicalName() const;
   const std::vector<std::string>& GetSplitPackage() const { return package_; }
 
-  virtual std::string GetAidlDeclarationName() const = 0;
+  virtual std::string GetPreprocessDeclarationName() const = 0;
 
   virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
@@ -349,7 +349,7 @@ class AidlParcelable : public AidlDefinedType {
   std::string GetCppHeader() const { return cpp_header_; }
 
   const AidlParcelable* AsParcelable() const override { return this; }
-  std::string GetAidlDeclarationName() const override { return "parcelable"; }
+  std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
 
  private:
   std::unique_ptr<AidlQualifiedName> name_;
@@ -369,6 +369,7 @@ class AidlStructuredParcelable : public AidlParcelable {
   }
 
   const AidlStructuredParcelable* AsStructuredParcelable() const override { return this; }
+  std::string GetPreprocessDeclarationName() const override { return "structured_parcelable"; }
 
  private:
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
@@ -401,7 +402,7 @@ class AidlInterface : public AidlDefinedType {
   }
 
   const AidlInterface* AsInterface() const override { return this; }
-  std::string GetAidlDeclarationName() const override { return "interface"; }
+  std::string GetPreprocessDeclarationName() const override { return "interface"; }
 
  private:
   bool oneway_;

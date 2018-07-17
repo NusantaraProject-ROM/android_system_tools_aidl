@@ -538,6 +538,10 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate,
       AidlParcelable doc(new AidlQualifiedName(class_name, ""),
                          lineno, package);
       types->AddParcelableType(doc, filename);
+    } else if (decl == "structured_parcelable") {
+      auto temp = new std::vector<std::unique_ptr<AidlVariableDeclaration>>();
+      AidlStructuredParcelable doc(new AidlQualifiedName(class_name, ""), lineno, package, temp);
+      types->AddParcelableType(doc, filename);
     } else if (decl == "interface") {
       auto temp = new std::vector<std::unique_ptr<AidlMember>>();
       AidlInterface doc(class_name, lineno, "", false, temp, package);
@@ -791,7 +795,7 @@ bool preprocess_aidl(const JavaOptions& options,
     string line;
 
     for (const auto& defined_type : doc->GetDefinedTypes()) {
-      if (!writer->Write("%s %s;\n", defined_type->GetAidlDeclarationName().c_str(),
+      if (!writer->Write("%s %s;\n", defined_type->GetPreprocessDeclarationName().c_str(),
                          defined_type->GetCanonicalName().c_str())) {
         return false;
       }
