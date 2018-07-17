@@ -721,9 +721,8 @@ int compile_aidl_to_cpp(const CppOptions& options,
   unique_ptr<cpp::TypeNamespace> types(new cpp::TypeNamespace());
   types->Init();
   AidlError err = internals::load_and_validate_aidl(
-      std::vector<std::string>{},  // no preprocessed files
-      options.ImportPaths(), options.InputFileName(), options.ShouldGenTraces(), io_delegate,
-      types.get(), &defined_type, &imports);
+      options.preprocessed_files_, options.ImportPaths(), options.InputFileName(),
+      options.ShouldGenTraces(), io_delegate, types.get(), &defined_type, &imports);
   if (err != AidlError::OK) {
     return 1;
   }
