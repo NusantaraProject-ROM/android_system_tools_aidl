@@ -53,9 +53,10 @@ TEST_F(JavaTypeNamespaceTest, ContainerTypeCreation) {
   EXPECT_TRUE(types_.HasTypeByCanonicalName("a.goog.Foo"));
   EXPECT_FALSE(types_.HasTypeByCanonicalName("java.util.List<a.goog.Foo>"));
   // But after we add the list explicitly...
-  std::vector<std::unique_ptr<AidlType>>* type_args = new std::vector<std::unique_ptr<AidlType>>();
-  type_args->emplace_back(new AidlType("Foo", 0, "", false));
-  AidlType container_type("List", 0, "", false /* not array */, type_args);
+  std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_args =
+      new std::vector<std::unique_ptr<AidlTypeSpecifier>>();
+  type_args->emplace_back(new AidlTypeSpecifier("Foo", 0, "", false));
+  AidlTypeSpecifier container_type("List", 0, "", false /* not array */, type_args);
   EXPECT_TRUE(types_.MaybeAddContainerType(container_type));
   // This should work.
   EXPECT_TRUE(types_.HasTypeByCanonicalName("java.util.List<a.goog.Foo>"));

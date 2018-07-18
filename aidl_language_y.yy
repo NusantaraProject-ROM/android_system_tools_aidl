@@ -27,10 +27,10 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlToken* token;
     int integer;
     std::string *str;
-    AidlType::Annotation annotation;
-    AidlType::Annotation annotation_list;
-    AidlType* type;
-    AidlType* unannotated_type;
+    AidlTypeSpecifier::Annotation annotation;
+    AidlTypeSpecifier::Annotation annotation_list;
+    AidlTypeSpecifier* type;
+    AidlTypeSpecifier* unannotated_type;
     AidlArgument* arg;
     AidlArgument::Direction direction;
     std::vector<std::unique_ptr<AidlArgument>>* arg_list;
@@ -44,7 +44,7 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlParcelable* parcelable;
     AidlDefinedType* declaration;
     AidlDocument* declaration_list;
-    std::vector<std::unique_ptr<AidlType>>* type_args;
+    std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_args;
 }
 
 %token<token> ANNOTATION "annotation"
@@ -305,16 +305,16 @@ arg
 
 unannotated_type
  : qualified_name {
-    $$ = new AidlType($1->GetDotName(), @1.begin.line, $1->GetComments(), false);
+    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line, $1->GetComments(), false);
     delete $1;
   }
  | qualified_name '[' ']' {
-    $$ = new AidlType($1->GetDotName(), @1.begin.line, $1->GetComments(),
+    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line, $1->GetComments(),
                       true);
     delete $1;
   }
  | qualified_name '<' type_args '>' {
-    $$ = new AidlType($1->GetDotName(), @1.begin.line,
+    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line,
                       $1->GetComments(), false, $3);
     delete $1;
   };
@@ -327,7 +327,7 @@ type
 
 type_args
  : unannotated_type {
-    $$ = new std::vector<std::unique_ptr<AidlType>>();
+    $$ = new std::vector<std::unique_ptr<AidlTypeSpecifier>>();
     $$->emplace_back($1);
   }
  | type_args ',' unannotated_type {
