@@ -26,15 +26,41 @@
 namespace android {
 namespace aidl {
 
+class Options {
+ public:
+  virtual ~Options() = default;
+
+  // flag arguments
+  std::vector<std::string> import_paths_;
+  std::string dep_file_name_;
+  bool gen_traces_{false};
+  bool dep_file_ninja_{false};
+
+  // positional arguments
+  std::string input_file_name_;
+  std::string output_file_name_;
+
+ protected:
+  enum class Result {
+    CONSUMED,
+    UNHANDLED,
+    ERROR,
+  };
+
+  // parses all flag arguments
+  virtual Result ParseFlag(int index, const std::string& arg);
+
+  // print all flag arguments
+  virtual void FlagUsage();
+};
+
 // This object represents the parsed options to the Java generating aidl.
-class JavaOptions final {
+class JavaOptions final : public Options {
  public:
   enum {
       COMPILE_AIDL_TO_JAVA,
       PREPROCESS_AIDL,
   };
-
-  ~JavaOptions() = default;
 
   // Parses the command line and returns a non-null pointer to an JavaOptions
   // object on success.
@@ -45,23 +71,21 @@ class JavaOptions final {
   bool DependencyFileNinja() const { return dep_file_ninja_; }
   bool ShouldGenGetTransactionName() const { return gen_transaction_names_; }
 
+  Result ParseFlag(int index, const std::string& arg) override;
+  void FlagUsage() override;
+
+  // flag arguments
   int task{COMPILE_AIDL_TO_JAVA};
   bool fail_on_parcelable_{false};
-  std::vector<std::string> import_paths_;
   std::vector<std::string> preprocessed_files_;
-  std::string input_file_name_;
-  std::string output_file_name_;
-  std::string output_base_folder_;
-  std::string dep_file_name_;
   bool auto_dep_file_{false};
-  bool dep_file_ninja_{false};
-  // If enabled, the Binder#getTransactionName method will be generated.
-  bool gen_transaction_names_{false};
-  bool gen_traces_{false};
+  bool gen_transaction_names_{false};  // for Binder#getTransactionName
   std::vector<std::string> files_to_preprocess_;
 
-  // The following are for testability, but cannot be influenced on the command line.
+  // positional arguments
+  std::string output_base_folder_;
 
+  // The following are for testability, but cannot be influenced on the command line.
   // Threshold of interface methods to enable outlining of onTransact cases.
   size_t onTransact_outline_threshold_{275u};
   // Number of cases to _not_ outline, if outlining is enabled.
@@ -69,6 +93,8 @@ class JavaOptions final {
 
  private:
   JavaOptions() = default;
+
+  std::unique_ptr<JavaOptions> Usage();
 
   FRIEND_TEST(EndToEndTest, IExampleInterface);
   FRIEND_TEST(EndToEndTest, IExampleInterface_WithTransactionNames);
@@ -83,11 +109,8 @@ class JavaOptions final {
   DISALLOW_COPY_AND_ASSIGN(JavaOptions);
 };
 
-class CppOptions final {
+class CppOptions final : public Options {
  public:
-
-  ~CppOptions() = default;
-
   // Parses the command line and returns a non-null pointer to an CppOptions
   // object on success.
   // Prints the usage statement on failure.
@@ -105,13 +128,9 @@ class CppOptions final {
  private:
   CppOptions() = default;
 
-  std::string input_file_name_;
-  std::vector<std::string> import_paths_;
+  std::unique_ptr<CppOptions> Usage();
+
   std::string output_header_dir_;
-  std::string output_file_name_;
-  std::string dep_file_name_;
-  bool gen_traces_{false};
-  bool dep_file_ninja_{false};
 
   FRIEND_TEST(CppOptionsTests, ParsesCompileCpp);
   FRIEND_TEST(CppOptionsTests, ParsesCompileCppNinja);
