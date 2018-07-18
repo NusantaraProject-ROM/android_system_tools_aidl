@@ -32,6 +32,7 @@ class Options {
 
   // flag arguments
   std::vector<std::string> import_paths_;
+  std::vector<std::string> preprocessed_files_;
   std::string dep_file_name_;
   bool gen_traces_{false};
   bool dep_file_ninja_{false};
@@ -77,7 +78,6 @@ class JavaOptions final : public Options {
   // flag arguments
   int task{COMPILE_AIDL_TO_JAVA};
   bool fail_on_parcelable_{false};
-  std::vector<std::string> preprocessed_files_;
   bool auto_dep_file_{false};
   bool gen_transaction_names_{false};  // for Binder#getTransactionName
   std::vector<std::string> files_to_preprocess_;
