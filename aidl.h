@@ -61,8 +61,8 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
                                  std::unique_ptr<AidlDefinedType>* returned_type,
                                  std::vector<std::unique_ptr<AidlImport>>* returned_imports);
 
-bool parse_preprocessed_file(const IoDelegate& io_delegate,
-                             const std::string& filename, TypeNamespace* types);
+bool parse_preprocessed_file(const IoDelegate& io_delegate, const std::string& filename,
+                             TypeNamespace* types, AidlTypenames& typenames);
 
 } // namespace internals
 
