@@ -39,15 +39,15 @@ AidlToken::AidlToken(const std::string& text, const std::string& comments)
     : text_(text),
       comments_(comments) {}
 
-AidlType::AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
-                   bool is_array)
+AidlTypeSpecifier::AidlTypeSpecifier(const std::string& simple_name, unsigned line,
+                                     const std::string& comments, bool is_array)
     : simple_name_(simple_name),
       name_(simple_name),
       line_(line),
       is_array_(is_array),
       comments_(comments) {}
 
-static std::string PrintTypeArgs(vector<unique_ptr<AidlType>>* type_params) {
+static std::string PrintTypeArgs(vector<unique_ptr<AidlTypeSpecifier>>* type_params) {
   if (type_params != nullptr) {
     std::vector<std::string> arg_names;
     for (const auto& ta : *type_params) {
@@ -59,8 +59,9 @@ static std::string PrintTypeArgs(vector<unique_ptr<AidlType>>* type_params) {
   }
 }
 
-AidlType::AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
-                   bool is_array, std::vector<std::unique_ptr<AidlType>>* type_params)
+AidlTypeSpecifier::AidlTypeSpecifier(const std::string& simple_name, unsigned line,
+                                     const std::string& comments, bool is_array,
+                                     std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_params)
     : simple_name_(simple_name),
       name_(simple_name + PrintTypeArgs(type_params)),
       line_(line),
@@ -68,7 +69,7 @@ AidlType::AidlType(const std::string& simple_name, unsigned line, const std::str
       comments_(comments),
       type_params_(std::move(*type_params)) {}
 
-string AidlType::ToString() const {
+string AidlTypeSpecifier::ToString() const {
   if (is_array_) {
     return GetName() + "[]";
   } else {
@@ -76,20 +77,21 @@ string AidlType::ToString() const {
   }
 }
 
-AidlVariableDeclaration::AidlVariableDeclaration(AidlType* type, std::string name, unsigned line)
+AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
+                                                 unsigned line)
     : type_(type), name_(name), line_(line) {}
 
 string AidlVariableDeclaration::ToString() const {
   return type_->ToString() + " " + name_;
 }
 
-AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlType* type, std::string name,
-                           unsigned line)
+AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlTypeSpecifier* type,
+                           std::string name, unsigned line)
     : AidlVariableDeclaration(type, name, line),
       direction_(direction),
       direction_specified_(true) {}
 
-AidlArgument::AidlArgument(AidlType* type, std::string name, unsigned line)
+AidlArgument::AidlArgument(AidlTypeSpecifier* type, std::string name, unsigned line)
     : AidlVariableDeclaration(type, name, line),
       direction_(AidlArgument::IN_DIR),
       direction_specified_(false) {}
@@ -157,9 +159,9 @@ AidlStringConstant::AidlStringConstant(std::string name,
   }
 }
 
-AidlMethod::AidlMethod(bool oneway, AidlType* type, std::string name,
-                       std::vector<std::unique_ptr<AidlArgument>>* args,
-                       unsigned line, const std::string& comments, int id)
+AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
+                       std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+                       const std::string& comments, int id)
     : oneway_(oneway),
       comments_(comments),
       type_(type),
@@ -175,9 +177,9 @@ AidlMethod::AidlMethod(bool oneway, AidlType* type, std::string name,
   }
 }
 
-AidlMethod::AidlMethod(bool oneway, AidlType* type, std::string name,
-                       std::vector<std::unique_ptr<AidlArgument>>* args,
-                       unsigned line, const std::string& comments)
+AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
+                       std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+                       const std::string& comments)
     : AidlMethod(oneway, type, name, args, line, comments, 0) {
   has_id_ = false;
 }
@@ -187,11 +189,9 @@ Parser::Parser(const IoDelegate& io_delegate)
   yylex_init(&scanner_);
 }
 
-AidlDefinedType::AidlDefinedType(std::string name, unsigned line,
-                                 const std::string& comments,
+AidlDefinedType::AidlDefinedType(std::string name, unsigned line, const std::string& comments,
                                  const std::vector<std::string>& package)
-    : AidlType(name, line, comments, false /*is_array*/),
-      package_(package) {}
+    : AidlTypeSpecifier(name, line, comments, false /*is_array*/), package_(package) {}
 
 std::string AidlDefinedType::GetPackage() const {
   return Join(package_, '.');

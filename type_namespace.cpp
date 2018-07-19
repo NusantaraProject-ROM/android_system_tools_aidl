@@ -97,7 +97,7 @@ bool TypeNamespace::IsValidPackage(const string& /* package */) const {
   return true;
 }
 
-const ValidatableType* TypeNamespace::GetReturnType(const AidlType& raw_type,
+const ValidatableType* TypeNamespace::GetReturnType(const AidlTypeSpecifier& raw_type,
                                                     const string& filename,
                                                     const AidlDefinedType& context) const {
   string error_msg;

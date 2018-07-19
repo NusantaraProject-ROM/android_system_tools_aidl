@@ -76,13 +76,13 @@ class AidlAnnotatable : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlAnnotatable);
 };
 
-class AidlType : public AidlAnnotatable {
+class AidlTypeSpecifier : public AidlAnnotatable {
  public:
-  AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
-           bool is_array);
-  AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
-           bool is_array, std::vector<std::unique_ptr<AidlType>>* type_params);
-  virtual ~AidlType() = default;
+  AidlTypeSpecifier(const std::string& simple_name, unsigned line, const std::string& comments,
+                    bool is_array);
+  AidlTypeSpecifier(const std::string& simple_name, unsigned line, const std::string& comments,
+                    bool is_array, std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_params);
+  virtual ~AidlTypeSpecifier() = default;
 
   // Name without the generic type parameters (e.g. List)
   const std::string& GetSimpleName() const { return simple_name_; }
@@ -103,7 +103,9 @@ class AidlType : public AidlAnnotatable {
     return reinterpret_cast<const T*>(language_type_);
   }
 
-  const std::vector<std::unique_ptr<AidlType>>& GetTypeParameters() const { return type_params_; }
+  const std::vector<std::unique_ptr<AidlTypeSpecifier>>& GetTypeParameters() const {
+    return type_params_;
+  }
 
  private:
   std::string simple_name_;
@@ -112,25 +114,25 @@ class AidlType : public AidlAnnotatable {
   bool is_array_;
   std::string comments_;
   const android::aidl::ValidatableType* language_type_ = nullptr;
-  const std::vector<std::unique_ptr<AidlType>> type_params_;
+  const std::vector<std::unique_ptr<AidlTypeSpecifier>> type_params_;
 
-  DISALLOW_COPY_AND_ASSIGN(AidlType);
+  DISALLOW_COPY_AND_ASSIGN(AidlTypeSpecifier);
 };
 
 class AidlVariableDeclaration : public AidlNode {
  public:
-  AidlVariableDeclaration(AidlType* type, std::string name, unsigned line);
+  AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name, unsigned line);
   virtual ~AidlVariableDeclaration() = default;
 
   std::string GetName() const { return name_; }
   int GetLine() const { return line_; }
-  const AidlType& GetType() const { return *type_; }
-  AidlType* GetMutableType() { return type_.get(); }
+  const AidlTypeSpecifier& GetType() const { return *type_; }
+  AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
   std::string ToString() const;
 
  private:
-  std::unique_ptr<AidlType> type_;
+  std::unique_ptr<AidlTypeSpecifier> type_;
   std::string name_;
   unsigned line_;
 
@@ -141,9 +143,9 @@ class AidlArgument : public AidlVariableDeclaration {
  public:
   enum Direction { IN_DIR = 1, OUT_DIR = 2, INOUT_DIR = 3 };
 
-  AidlArgument(AidlArgument::Direction direction, AidlType* type,
-               std::string name, unsigned line);
-  AidlArgument(AidlType* type, std::string name, unsigned line);
+  AidlArgument(AidlArgument::Direction direction, AidlTypeSpecifier* type, std::string name,
+               unsigned line);
+  AidlArgument(AidlTypeSpecifier* type, std::string name, unsigned line);
   virtual ~AidlArgument() = default;
 
   Direction GetDirection() const { return direction_; }
@@ -217,19 +219,19 @@ class AidlStringConstant : public AidlMember {
 
 class AidlMethod : public AidlMember {
  public:
-  AidlMethod(bool oneway, AidlType* type, std::string name,
-             std::vector<std::unique_ptr<AidlArgument>>* args,
-             unsigned line, const std::string& comments);
-  AidlMethod(bool oneway, AidlType* type, std::string name,
-             std::vector<std::unique_ptr<AidlArgument>>* args,
-             unsigned line, const std::string& comments, int id);
+  AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
+             std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+             const std::string& comments);
+  AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
+             std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+             const std::string& comments, int id);
   virtual ~AidlMethod() = default;
 
   AidlMethod* AsMethod() override { return this; }
 
   const std::string& GetComments() const { return comments_; }
-  const AidlType& GetType() const { return *type_; }
-  AidlType* GetMutableType() { return type_.get(); }
+  const AidlTypeSpecifier& GetType() const { return *type_; }
+  AidlTypeSpecifier* GetMutableType() { return type_.get(); }
   bool IsOneway() const { return oneway_; }
   const std::string& GetName() const { return name_; }
   unsigned GetLine() const { return line_; }
@@ -253,7 +255,7 @@ class AidlMethod : public AidlMember {
  private:
   bool oneway_;
   std::string comments_;
-  std::unique_ptr<AidlType> type_;
+  std::unique_ptr<AidlTypeSpecifier> type_;
   std::string name_;
   unsigned line_;
   const std::vector<std::unique_ptr<AidlArgument>> arguments_;
@@ -308,7 +310,7 @@ class AidlQualifiedName : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlQualifiedName);
 };
 
-class AidlDefinedType : public AidlType {
+class AidlDefinedType : public AidlTypeSpecifier {
  public:
   AidlDefinedType(std::string name, unsigned line,
                   const std::string& comments,
