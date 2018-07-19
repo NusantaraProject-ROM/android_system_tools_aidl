@@ -172,13 +172,16 @@ unannotated_decl
 parcelable_decl
  : PARCELABLE qualified_name ';' {
     $$ = new AidlParcelable($2, @2.begin.line, ps->Package());
+    ps->GetTypenames().AddDefinedType($$);
   }
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
     $$ = new AidlParcelable($2, @2.begin.line, ps->Package(), $4->GetText());
+    ps->GetTypenames().AddDefinedType($$);
   }
  | PARCELABLE identifier '{' variable_decls '}' {
     AidlQualifiedName* name = new AidlQualifiedName($2->GetText(), $2->GetComments());
     $$ = new AidlStructuredParcelable(name, @2.begin.line, ps->Package(), $4);
+    ps->GetTypenames().AddDefinedType($$);
  }
  | PARCELABLE error ';' {
     ps->AddError();
@@ -208,12 +211,14 @@ interface_decl
  : INTERFACE identifier '{' interface_members '}' {
     $$ = new AidlInterface($2->GetText(), @1.begin.line, $1->GetComments(),
                            false, $4, ps->Package());
+    ps->GetTypenames().AddDefinedType($$);
     delete $1;
     delete $2;
   }
  | ONEWAY INTERFACE identifier '{' interface_members '}' {
     $$ = new AidlInterface($3->GetText(), @2.begin.line, $1->GetComments(),
                            true, $5, ps->Package());
+    ps->GetTypenames().AddDefinedType($$);
     delete $1;
     delete $2;
     delete $3;
@@ -305,17 +310,21 @@ arg
 
 unannotated_type
  : qualified_name {
-    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line, $1->GetComments(), false);
+    $$ = new AidlTypeSpecifier($1->GetDotName(), false, nullptr, @1.begin.line,
+                               $1->GetComments());
+    ps->DeferResolution($$);
     delete $1;
   }
  | qualified_name '[' ']' {
-    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line, $1->GetComments(),
-                      true);
+    $$ = new AidlTypeSpecifier($1->GetDotName(), true, nullptr, @1.begin.line,
+                               $1->GetComments());
+    ps->DeferResolution($$);
     delete $1;
   }
  | qualified_name '<' type_args '>' {
-    $$ = new AidlTypeSpecifier($1->GetDotName(), @1.begin.line,
-                      $1->GetComments(), false, $3);
+    $$ = new AidlTypeSpecifier($1->GetDotName(), false, $3, @1.begin.line,
+                               $1->GetComments());
+    ps->DeferResolution($$);
     delete $1;
   };
 

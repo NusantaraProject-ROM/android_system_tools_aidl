@@ -223,7 +223,7 @@ const T* LanguageTypeNamespace<T>::Find(const AidlTypeSpecifier& aidl_type) cons
   using android::base::Join;
   using android::base::Trim;
 
-  string name = Trim(aidl_type.GetName());
+  string name = Trim(aidl_type.IsArray() ? aidl_type.GetName() : aidl_type.ToString());
   if (IsContainerType(name)) {
     vector<string> container_class;
     vector<string> contained_type_names;
@@ -265,7 +265,7 @@ template <typename T>
 bool LanguageTypeNamespace<T>::MaybeAddContainerType(const AidlTypeSpecifier& aidl_type) {
   using android::base::Join;
 
-  const std::string& type_name = aidl_type.GetName();
+  const std::string& type_name = aidl_type.ToString();
   if (!IsContainerType(type_name)) {
     return true;
   }
@@ -314,15 +314,15 @@ template <typename T>
 bool LanguageTypeNamespace<T>::CanonicalizeContainerType(
     const AidlTypeSpecifier& aidl_type, std::vector<std::string>* container_class,
     std::vector<std::string>* contained_type_names) const {
-  std::string container = aidl_type.GetSimpleName();
+  std::string container = aidl_type.GetName();
   std::vector<std::string> args;
   for (auto& type_arg : aidl_type.GetTypeParameters()) {
-    if (!type_arg->GetTypeParameters().empty()) {
+    if (type_arg->IsGeneric()) {
       // nesting is not allowed yet.
       LOG(ERROR) << "Nested template type '" << aidl_type.ToString() << "'";
     }
 
-    std::string type_name = type_arg->GetSimpleName();
+    std::string type_name = type_arg->ToString();
     // Here, we are relying on FindTypeByCanonicalName to do its best when
     // given a non-canonical name for non-compound type (i.e. not another
     // container).
