@@ -17,14 +17,15 @@
 #include "aidl.h"
 
 #include <fcntl.h>
-#include <iostream>
-#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <iostream>
+#include <map>
+#include <memory>
 
 #ifdef _WIN32
 #include <io.h>
@@ -508,8 +509,8 @@ bool ParsePreprocessedLine(const string& line, string* decl,
 
 namespace internals {
 
-bool parse_preprocessed_file(const IoDelegate& io_delegate,
-                             const string& filename, TypeNamespace* types) {
+bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filename,
+                             TypeNamespace* types, AidlTypenames& typenames) {
   bool success = true;
   unique_ptr<LineReader> line_reader = io_delegate.GetLineReader(filename);
   if (!line_reader) {
@@ -535,17 +536,21 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate,
     }
 
     if (decl == "parcelable") {
-      AidlParcelable doc(new AidlQualifiedName(class_name, ""),
-                         lineno, package);
-      types->AddParcelableType(doc, filename);
+      AidlParcelable* doc =
+          new AidlParcelable(new AidlQualifiedName(class_name, ""), lineno, package);
+      types->AddParcelableType(*doc, filename);
+      typenames.AddPreprocessedType(unique_ptr<AidlParcelable>(doc));
     } else if (decl == "structured_parcelable") {
       auto temp = new std::vector<std::unique_ptr<AidlVariableDeclaration>>();
-      AidlStructuredParcelable doc(new AidlQualifiedName(class_name, ""), lineno, package, temp);
-      types->AddParcelableType(doc, filename);
+      AidlStructuredParcelable* doc = new AidlStructuredParcelable(
+          new AidlQualifiedName(class_name, ""), lineno, package, temp);
+      types->AddParcelableType(*doc, filename);
+      typenames.AddPreprocessedType(unique_ptr<AidlStructuredParcelable>(doc));
     } else if (decl == "interface") {
       auto temp = new std::vector<std::unique_ptr<AidlMember>>();
-      AidlInterface doc(class_name, lineno, "", false, temp, package);
-      types->AddBinderType(doc, filename);
+      AidlInterface* doc = new AidlInterface(class_name, lineno, "", false, temp, package);
+      types->AddBinderType(*doc, filename);
+      typenames.AddPreprocessedType(unique_ptr<AidlInterface>(doc));
     } else {
       success = false;
       break;
@@ -569,9 +574,11 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
 
   std::map<AidlImport*,std::unique_ptr<AidlDocument>> docs;
 
+  AidlTypenames typenames;
+
   // import the preprocessed file
   for (const string& s : preprocessed_files) {
-    if (!parse_preprocessed_file(io_delegate, s, types)) {
+    if (!parse_preprocessed_file(io_delegate, s, types, typenames)) {
       err = AidlError::BAD_PRE_PROCESSED_FILE;
     }
   }
@@ -580,7 +587,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   }
 
   // parse the input file
-  Parser p{io_delegate};
+  Parser p{io_delegate, &typenames};
   if (!p.ParseFile(input_file_name)) {
     return AidlError::PARSE_ERROR;
   }
@@ -642,7 +649,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     }
     import->SetFilename(import_path);
 
-    Parser p{io_delegate};
+    Parser p{io_delegate, &typenames};
     if (!p.ParseFile(import->GetFilename())) {
       cerr << "error while parsing import for class "
            << import->GetNeededClass() << endl;
@@ -656,6 +663,10 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   }
   if (err != AidlError::OK) {
     return err;
+  }
+
+  if (!p.Resolve()) {
+    return AidlError::BAD_TYPE;
   }
 
   if (interface) {
@@ -788,7 +799,8 @@ bool preprocess_aidl(const JavaOptions& options,
       io_delegate.GetCodeWriter(options.output_file_name_);
 
   for (const auto& file : options.files_to_preprocess_) {
-    Parser p{io_delegate};
+    AidlTypenames typenames;
+    Parser p{io_delegate, &typenames};
     if (!p.ParseFile(file))
       return false;
     AidlDocument* doc = p.GetDocument();

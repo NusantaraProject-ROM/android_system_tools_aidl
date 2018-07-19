@@ -1,10 +1,13 @@
 #include "aidl_language.h"
+#include "aidl_typenames.h"
 
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
+#include <iostream>
 #include <string>
+#include <utility>
 
 #include <android-base/parseint.h>
 #include <android-base/strings.h>
@@ -24,6 +27,7 @@ using android::base::Join;
 using android::base::Split;
 using std::cerr;
 using std::endl;
+using std::pair;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -39,42 +43,37 @@ AidlToken::AidlToken(const std::string& text, const std::string& comments)
     : text_(text),
       comments_(comments) {}
 
-AidlTypeSpecifier::AidlTypeSpecifier(const std::string& simple_name, unsigned line,
-                                     const std::string& comments, bool is_array)
-    : simple_name_(simple_name),
-      name_(simple_name),
-      line_(line),
+AidlTypeSpecifier::AidlTypeSpecifier(const string& unresolved_name, bool is_array,
+                                     vector<unique_ptr<AidlTypeSpecifier>>* type_params,
+                                     unsigned line, const string& comments)
+    : unresolved_name_(unresolved_name),
       is_array_(is_array),
+      type_params_(type_params),
+      line_(line),
       comments_(comments) {}
 
-static std::string PrintTypeArgs(vector<unique_ptr<AidlTypeSpecifier>>* type_params) {
-  if (type_params != nullptr) {
-    std::vector<std::string> arg_names;
-    for (const auto& ta : *type_params) {
+string AidlTypeSpecifier::ToString() const {
+  string ret = GetName();
+  if (IsGeneric()) {
+    vector<string> arg_names;
+    for (const auto& ta : GetTypeParameters()) {
       arg_names.emplace_back(ta->ToString());
     }
-    return "<" + android::base::Join(arg_names, ",") + ">";
-  } else {
-    return "";
+    ret += "<" + Join(arg_names, ",") + ">";
   }
+  if (IsArray()) {
+    ret += "[]";
+  }
+  return ret;
 }
 
-AidlTypeSpecifier::AidlTypeSpecifier(const std::string& simple_name, unsigned line,
-                                     const std::string& comments, bool is_array,
-                                     std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_params)
-    : simple_name_(simple_name),
-      name_(simple_name + PrintTypeArgs(type_params)),
-      line_(line),
-      is_array_(is_array),
-      comments_(comments),
-      type_params_(std::move(*type_params)) {}
-
-string AidlTypeSpecifier::ToString() const {
-  if (is_array_) {
-    return GetName() + "[]";
-  } else {
-    return GetName();
+bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
+  assert(!IsResolved());
+  pair<string, bool> result = typenames.ResolveTypename(unresolved_name_);
+  if (result.second) {
+    fully_qualified_name_ = result.first;
   }
+  return result.second;
 }
 
 AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
@@ -184,14 +183,14 @@ AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
   has_id_ = false;
 }
 
-Parser::Parser(const IoDelegate& io_delegate)
-    : io_delegate_(io_delegate) {
+Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames* typenames)
+    : io_delegate_(io_delegate), typenames_(typenames) {
   yylex_init(&scanner_);
 }
 
 AidlDefinedType::AidlDefinedType(std::string name, unsigned line, const std::string& comments,
                                  const std::vector<std::string>& package)
-    : AidlTypeSpecifier(name, line, comments, false /*is_array*/), package_(package) {}
+    : name_(name), line_(line), comments_(comments), package_(package) {}
 
 std::string AidlDefinedType::GetPackage() const {
   return Join(package_, '.');
@@ -320,11 +319,11 @@ bool Parser::ParseFile(const string& filename) {
   if (yy::parser(this).parse() != 0 || error_ != 0)
     return false;
 
-  if (document_.get() != nullptr)
-    return true;
-
-  LOG(ERROR) << "Parser succeeded but yielded no document!";
-  return false;
+  if (document_.get() == nullptr) {
+    LOG(ERROR) << "Parser succeeded but yielded no document!";
+    return false;
+  }
+  return true;
 }
 
 std::vector<std::string> Parser::Package() const {
@@ -338,4 +337,17 @@ void Parser::AddImport(AidlQualifiedName* name, unsigned line) {
   imports_.emplace_back(new AidlImport(this->FileName(),
                                        name->GetDotName(), line));
   delete name;
+}
+
+bool Parser::Resolve() {
+  bool success = true;
+  for (AidlTypeSpecifier* typespec : unresolved_typespecs_) {
+    if (!typespec->Resolve(*typenames_)) {
+      LOG(ERROR) << "Failed to resolve '" << typespec->GetUnresolvedName() << "' at "
+                 << this->FileName() << ":" << typespec->GetLine();
+      success = false;
+      // don't stop to show more errors if any
+    }
+  }
+  return success;
 }
