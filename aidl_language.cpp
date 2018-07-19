@@ -26,6 +26,7 @@ using std::cerr;
 using std::endl;
 using std::string;
 using std::unique_ptr;
+using std::vector;
 
 void yylex_init(void **);
 void yylex_destroy(void *);
@@ -38,15 +39,41 @@ AidlToken::AidlToken(const std::string& text, const std::string& comments)
     : text_(text),
       comments_(comments) {}
 
-AidlType::AidlType(const std::string& name, unsigned line,
-                   const std::string& comments, bool is_array)
-    : name_(name),
+AidlType::AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
+                   bool is_array)
+    : simple_name_(simple_name),
+      name_(simple_name),
       line_(line),
       is_array_(is_array),
       comments_(comments) {}
 
+static std::string PrintTypeArgs(vector<unique_ptr<AidlType>>* type_params) {
+  if (type_params != nullptr) {
+    std::vector<std::string> arg_names;
+    for (const auto& ta : *type_params) {
+      arg_names.emplace_back(ta->ToString());
+    }
+    return "<" + android::base::Join(arg_names, ",") + ">";
+  } else {
+    return "";
+  }
+}
+
+AidlType::AidlType(const std::string& simple_name, unsigned line, const std::string& comments,
+                   bool is_array, std::vector<std::unique_ptr<AidlType>>* type_params)
+    : simple_name_(simple_name),
+      name_(simple_name + PrintTypeArgs(type_params)),
+      line_(line),
+      is_array_(is_array),
+      comments_(comments),
+      type_params_(std::move(*type_params)) {}
+
 string AidlType::ToString() const {
-  return name_ + (is_array_ ? "[]" : "");
+  if (is_array_) {
+    return GetName() + "[]";
+  } else {
+    return GetName();
+  }
 }
 
 AidlVariableDeclaration::AidlVariableDeclaration(AidlType* type, std::string name, unsigned line)

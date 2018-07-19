@@ -316,30 +316,15 @@ bool LanguageTypeNamespace<T>::CanonicalizeContainerType(
     const AidlType& aidl_type,
     std::vector<std::string>* container_class,
     std::vector<std::string>* contained_type_names) const {
-  using android::base::Trim;
-  using android::base::Split;
+  std::string container = aidl_type.GetSimpleName();
+  std::vector<std::string> args;
+  for (auto& type_arg : aidl_type.GetTypeParameters()) {
+    if (!type_arg->GetTypeParameters().empty()) {
+      // nesting is not allowed yet.
+      LOG(ERROR) << "Nested template type '" << aidl_type.ToString() << "'";
+    }
 
-  std::string name = Trim(aidl_type.GetName());
-  const size_t opening_brace = name.find('<');
-  const size_t closing_brace = name.find('>');
-  if (opening_brace == std::string::npos ||
-      closing_brace == std::string::npos) {
-    return false;
-  }
-
-  if (opening_brace != name.rfind('<') ||
-      closing_brace != name.rfind('>') ||
-      closing_brace != name.length() - 1) {
-    // Nested/invalid templates are forbidden.
-    LOG(ERROR) << "Invalid template type '" << name << "'";
-    return false;
-  }
-
-  std::string container = Trim(name.substr(0, opening_brace));
-  std::string remainder = name.substr(opening_brace + 1,
-                                 (closing_brace - opening_brace) - 1);
-  std::vector<std::string> args = Split(remainder, ",");
-  for (auto& type_name: args) {
+    std::string type_name = type_arg->GetSimpleName();
     // Here, we are relying on FindTypeByCanonicalName to do its best when
     // given a non-canonical name for non-compound type (i.e. not another
     // container).
@@ -356,6 +341,7 @@ bool LanguageTypeNamespace<T>::CanonicalizeContainerType(
     } else if (aidl_type.IsUtf8InCpp() && type_name == "java.lang.String") {
       type_name = kUtf8InCppStringCanonicalName;
     }
+    args.emplace_back(type_name);
   }
 
   // Map the container name to its canonical form for supported containers.
@@ -372,8 +358,8 @@ bool LanguageTypeNamespace<T>::CanonicalizeContainerType(
     return true;
   }
 
-  LOG(ERROR) << "Unknown find container with name " << container
-             << " and " << args.size() << "contained types.";
+  LOG(ERROR) << "Unknown find container with name " << container << " and " << args.size()
+             << " contained types.";
   return false;
 }
 
