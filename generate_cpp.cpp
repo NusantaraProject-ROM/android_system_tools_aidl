@@ -865,9 +865,16 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
 
   for (const auto& variable : parcel.GetFields()) {
     const Type* type = variable->GetType().GetLanguageType<Type>();
+    const AidlConstantValue* default_value = variable->GetDefaultValue();
 
-    parcel_class->AddPublic(std::unique_ptr<LiteralDecl>(new LiteralDecl(
-        StringPrintf("%s %s;\n", type->CppType().c_str(), variable->GetName().c_str()))));
+    std::ostringstream out;
+    out << type->CppType().c_str() << " " << variable->GetName().c_str();
+    if (default_value) {
+      out << " = " << type->CppType().c_str() << "(" << default_value->ToString() << ")";
+    }
+    out << ";\n";
+
+    parcel_class->AddPublic(std::unique_ptr<LiteralDecl>(new LiteralDecl(out.str())));
   }
 
   unique_ptr<MethodDecl> read(new MethodDecl(kAndroidStatusLiteral, "readFromParcel",
