@@ -404,8 +404,6 @@ class AidlParcelable : public AidlDefinedType {
 
   // C++ uses "::" instead of "." to refer to a inner class.
   std::string GetCppName() const { return name_->GetColonName(); }
-
-  void SetCppHeader(const std::string& cpp_header) { cpp_header_ = cpp_header; }
   std::string GetCppHeader() const { return cpp_header_; }
 
   const AidlParcelable* AsParcelable() const override { return this; }
