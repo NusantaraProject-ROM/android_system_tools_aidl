@@ -189,45 +189,72 @@ std::string AidlArgument::Signature() const {
   return GetDirectionSpecifier() + AidlVariableDeclaration::Signature();
 }
 
-AidlIntConstant::AidlIntConstant(std::string name, int32_t value)
-    : name_(name),
-      value_(value),
-      is_valid_(true) {}
-
-AidlIntConstant::AidlIntConstant(std::string name,
-                                 std::string value,
-                                 unsigned line_number)
-    : name_(name) {
-  uint32_t unsigned_val;
-  if (!android::base::ParseUint(value.c_str(), &unsigned_val)) {
-    is_valid_ = false;
-    LOG(ERROR) << "Found invalid int value '" << value
-               << "' on line " << line_number;
-  } else {
-    // Converting from unsigned to signed integer.
-    value_ = unsigned_val;
-    is_valid_ = true;
+string AidlConstantValue::ToString(Type type) {
+  switch (type) {
+    case Type::INTEGER:
+      return "int";
+    case Type::STRING:
+      return "String";
+    case Type::ERROR:
+      LOG(FATAL) << "aidl internal error: error type failed to halt program";
+    default:
+      LOG(FATAL) << "aidl internal error: unknown constant type: " << static_cast<int>(type);
+      return "";  // not reached
   }
 }
 
-AidlStringConstant::AidlStringConstant(std::string name,
-                                       std::string value,
-                                       unsigned line_number)
-    : name_(name),
-      value_(value) {
-  is_valid_ = true;
-  for (size_t i = 0; i < value_.length(); ++i) {
-    const char& c = value_[i];
+AidlConstantValue::AidlConstantValue(Type type, const std::string& checked_value)
+    : type_(type), value_(checked_value) {}
+
+AidlConstantValue* AidlConstantValue::LiteralInt(int32_t value) {
+  return new AidlConstantValue(Type::INTEGER, std::to_string(value));
+}
+
+AidlConstantValue* AidlConstantValue::ParseHex(const std::string& value, unsigned line) {
+  uint32_t unsigned_value;
+  if (!android::base::ParseUint<uint32_t>(value.c_str(), &unsigned_value)) {
+    cerr << "Found invalid int value '" << value << "' on line " << line << endl;
+    return new AidlConstantValue(Type::ERROR, "");
+  }
+
+  return LiteralInt(unsigned_value);
+}
+
+AidlConstantValue* AidlConstantValue::ParseString(const std::string& value, unsigned line) {
+  for (size_t i = 0; i < value.length(); ++i) {
+    const char& c = value[i];
     if (c <= 0x1f || // control characters are < 0x20
         c >= 0x7f || // DEL is 0x7f
         c == '\\') { // Disallow backslashes for future proofing.
-      LOG(ERROR) << "Found invalid character at index " << i
-                 << " in string constant '" << value_
-                 << "' beginning on line " << line_number;
-      is_valid_ = false;
-      break;
+      cerr << "Found invalid character at index " << i << " in string constant '" << value
+           << "' beginning on line " << line << endl;
+      return new AidlConstantValue(Type::ERROR, "");
     }
   }
+
+  return new AidlConstantValue(Type::STRING, value);
+}
+
+string AidlConstantValue::ToString() const {
+  CHECK(type_ != Type::ERROR) << "aidl internal error: error should be checked " << value_;
+  return value_;
+}
+
+AidlConstantDeclaration::AidlConstantDeclaration(AidlTypeSpecifier* type, std::string name,
+                                                 AidlConstantValue* value, unsigned line)
+    : type_(type), name_(name), value_(value), line_(line) {}
+
+bool AidlConstantDeclaration::CheckValid() const {
+  // Error message logged above
+  if (value_->GetType() == AidlConstantValue::Type::ERROR) return false;
+
+  if (type_->ToString() != AidlConstantValue::ToString(value_->GetType())) {
+    cerr << "Constant " << name_ << " is of type " << type_->ToString() << " but value is of type "
+         << AidlConstantValue::ToString(value_->GetType()) << " on line " << line_ << endl;
+    return false;
+  }
+
+  return true;
 }
 
 AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
@@ -323,15 +350,14 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
   for (auto& member : *members) {
     AidlMember* local = member.release();
     AidlMethod* method = local->AsMethod();
-    AidlIntConstant* int_constant = local->AsIntConstant();
-    AidlStringConstant* string_constant = local->AsStringConstant();
+    AidlConstantDeclaration* constant = local->AsConstantDeclaration();
+
+    CHECK(method == nullptr || constant == nullptr);
 
     if (method) {
       methods_.emplace_back(method);
-    } else if (int_constant) {
-      int_constants_.emplace_back(int_constant);
-    } else if (string_constant) {
-      string_constants_.emplace_back(string_constant);
+    } else if (constant) {
+      constants_.emplace_back(constant);
     } else {
       LOG(FATAL) << "Member is neither method nor constant!";
     }
