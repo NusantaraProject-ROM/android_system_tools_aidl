@@ -34,10 +34,11 @@ bool GenerateCpp(const CppOptions& options, const cpp::TypeNamespace& types,
 
 // These roughly correspond to the various class names in the C++ hierarchy:
 enum class ClassNames {
-  BASE,       // Foo (not a real class, but useful in some circumstances).
-  CLIENT,     // BpFoo
-  SERVER,     // BnFoo
-  INTERFACE,  // IFoo
+  BASE,          // Foo (not a real class, but useful in some circumstances).
+  CLIENT,        // BpFoo
+  SERVER,        // BnFoo
+  INTERFACE,     // IFoo
+  DEFAULT_IMPL,  // IFooDefault
 };
 
 // Generate the relative path to a header file.  If |use_os_sep| we'll use the
