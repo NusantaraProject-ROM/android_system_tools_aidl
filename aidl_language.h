@@ -2,6 +2,7 @@
 #define AIDL_AIDL_LANGUAGE_H_
 
 #include "aidl_typenames.h"
+#include "code_writer.h"
 #include "io_delegate.h"
 
 #include <cassert>
@@ -15,6 +16,7 @@
 struct yy_buffer_state;
 typedef yy_buffer_state* YY_BUFFER_STATE;
 
+using android::aidl::CodeWriter;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -109,6 +111,8 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   // This is GetBaseTypeName() + array modifieir or generic type parameters
   string ToString() const;
 
+  std::string Signature() const;
+
   const string& GetUnresolvedName() const { return unresolved_name_; }
 
   const string& GetComments() const { return comments_; }
@@ -158,6 +162,7 @@ class AidlVariableDeclaration : public AidlNode {
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
   std::string ToString() const;
+  std::string Signature() const;
 
  private:
   std::unique_ptr<AidlTypeSpecifier> type_;
@@ -182,8 +187,10 @@ class AidlArgument : public AidlVariableDeclaration {
   bool DirectionWasSpecified() const { return direction_specified_; }
 
   std::string ToString() const;
+  std::string Signature() const;
 
  private:
+  string GetDirectionSpecifier() const;
   Direction direction_;
   bool direction_specified_;
 
@@ -279,6 +286,8 @@ class AidlMethod : public AidlMember {
   const std::vector<const AidlArgument*>& GetOutArguments() const {
     return out_arguments_;
   }
+
+  std::string Signature() const;
 
  private:
   bool oneway_;
@@ -383,6 +392,8 @@ class AidlDefinedType : public AidlAnnotatable {
     return reinterpret_cast<const T*>(language_type_);
   }
 
+  virtual void Write(CodeWriter* writer) const = 0;
+
  private:
   std::string name_;
   unsigned line_;
@@ -407,6 +418,8 @@ class AidlParcelable : public AidlDefinedType {
   const AidlParcelable* AsParcelable() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
 
+  void Write(CodeWriter* writer) const override;
+
  private:
   std::unique_ptr<AidlQualifiedName> name_;
   std::string cpp_header_;
@@ -426,6 +439,8 @@ class AidlStructuredParcelable : public AidlParcelable {
 
   const AidlStructuredParcelable* AsStructuredParcelable() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "structured_parcelable"; }
+
+  void Write(CodeWriter* writer) const override;
 
  private:
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
@@ -459,6 +474,8 @@ class AidlInterface final : public AidlDefinedType {
 
   const AidlInterface* AsInterface() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "interface"; }
+
+  void Write(CodeWriter* writer) const override;
 
  private:
   bool oneway_;

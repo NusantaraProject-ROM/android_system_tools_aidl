@@ -29,8 +29,8 @@ namespace aidl {
 
 class ImportResolver {
  public:
-  ImportResolver(const IoDelegate& io_delegate,
-                 const std::vector<std::string>& import_paths);
+  ImportResolver(const IoDelegate& io_delegate, const std::vector<std::string>& import_paths,
+                 const std::vector<std::string>& input_files);
   virtual ~ImportResolver() = default;
 
   // Resolve the canonical name for a class to a file that exists
@@ -40,6 +40,7 @@ class ImportResolver {
  private:
   const IoDelegate& io_delegate_;
   std::vector<std::string> import_paths_;
+  std::vector<std::string> input_files_;
 
   DISALLOW_COPY_AND_ASSIGN(ImportResolver);
 };

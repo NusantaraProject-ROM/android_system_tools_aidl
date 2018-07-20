@@ -93,6 +93,7 @@ unique_ptr<JavaOptions> JavaOptions::Usage() {
   fprintf(stderr,
           "usage: aidl OPTIONS INPUT [OUTPUT]\n"
           "       aidl --preprocess OUTPUT INPUT...\n"
+          "       aidl --dumpapi OUTPUT INPUT...\n"
           "\n"
           "OPTIONS:\n");
   this->FlagUsage();
@@ -161,16 +162,21 @@ unique_ptr<JavaOptions> JavaOptions::Parse(int argc, const char* const* argv) {
   unique_ptr<JavaOptions> options(new JavaOptions());
   int i = 1;
 
-  if (argc >= 2 && 0 == strcmp(argv[1], "--preprocess")) {
+  if (argc >= 2) {
     if (argc < 4) {
       return options->Usage();
     }
     options->output_file_name_ = argv[2];
     for (int i = 3; i < argc; i++) {
-      options->files_to_preprocess_.push_back(argv[i]);
+      options->input_file_names_.push_back(argv[i]);
     }
-    options->task = PREPROCESS_AIDL;
-    return options;
+    if (0 == strcmp(argv[1], "--preprocess")) {
+      options->task = PREPROCESS_AIDL;
+      return options;
+    } else if (0 == strcmp(argv[1], "--dumpapi")) {
+      options->task = DUMP_API;
+      return options;
+    }
   }
 
   options->task = COMPILE_AIDL_TO_JAVA;

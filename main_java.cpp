@@ -45,6 +45,8 @@ int main(int argc, char** argv) {
       if (android::aidl::preprocess_aidl(*options, io_delegate))
         return 0;
       return 1;
+    case JavaOptions::DUMP_API:
+      return android::aidl::dump_api(*options, io_delegate);
   }
   std::cerr << "aidl: internal error" << std::endl;
   return 1;

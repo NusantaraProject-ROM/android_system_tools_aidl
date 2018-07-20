@@ -17,6 +17,8 @@
 
 #include "aidl_language_y.h"
 #include "logging.h"
+#include "type_java.h"
+#include "type_namespace.h"
 
 #ifdef _WIN32
 int isatty(int  fd)
@@ -120,6 +122,15 @@ string AidlTypeSpecifier::ToString() const {
   return ret;
 }
 
+string AidlTypeSpecifier::Signature() const {
+  string ret = ToString();
+  string annotations = AidlAnnotatable::ToString();
+  if (annotations != "") {
+    ret = annotations + " " + ret;
+  }
+  return ret;
+}
+
 bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
   assert(!IsResolved());
   pair<string, bool> result = typenames.ResolveTypename(unresolved_name_);
@@ -137,6 +148,10 @@ string AidlVariableDeclaration::ToString() const {
   return type_->ToString() + " " + name_;
 }
 
+string AidlVariableDeclaration::Signature() const {
+  return type_->Signature() + " " + name_;
+}
+
 AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlTypeSpecifier* type,
                            std::string name, unsigned line)
     : AidlVariableDeclaration(type, name, line),
@@ -148,9 +163,8 @@ AidlArgument::AidlArgument(AidlTypeSpecifier* type, std::string name, unsigned l
       direction_(AidlArgument::IN_DIR),
       direction_specified_(false) {}
 
-string AidlArgument::ToString() const {
+string AidlArgument::GetDirectionSpecifier() const {
   string ret;
-
   if (direction_specified_) {
     switch(direction_) {
     case AidlArgument::IN_DIR:
@@ -164,10 +178,15 @@ string AidlArgument::ToString() const {
       break;
     }
   }
-
-  ret += AidlVariableDeclaration::ToString();
-
   return ret;
+}
+
+string AidlArgument::ToString() const {
+  return GetDirectionSpecifier() + AidlVariableDeclaration::ToString();
+}
+
+std::string AidlArgument::Signature() const {
+  return GetDirectionSpecifier() + AidlVariableDeclaration::Signature();
 }
 
 AidlIntConstant::AidlIntConstant(std::string name, int32_t value)
@@ -236,6 +255,14 @@ AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
   has_id_ = false;
 }
 
+string AidlMethod::Signature() const {
+  vector<string> arg_signatures;
+  for (const auto& arg : GetArguments()) {
+    arg_signatures.emplace_back(arg->Signature());
+  }
+  return GetType().Signature() + " " + GetName() + "(" + Join(arg_signatures, ", ") + ")";
+}
+
 Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames* typenames)
     : io_delegate_(io_delegate), typenames_(typenames) {
   yylex_init(&scanner_);
@@ -268,10 +295,24 @@ AidlParcelable::AidlParcelable(AidlQualifiedName* name, unsigned line,
   }
 }
 
+void AidlParcelable::Write(CodeWriter* writer) const {
+  writer->Write("parcelable %s ;\n", GetName().c_str());
+}
+
 AidlStructuredParcelable::AidlStructuredParcelable(
     AidlQualifiedName* name, unsigned line, const std::vector<std::string>& package,
     std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables)
     : AidlParcelable(name, line, package, "" /*cpp_header*/), variables_(std::move(*variables)) {}
+
+void AidlStructuredParcelable::Write(CodeWriter* writer) const {
+  writer->Write("parcelable %s {\n", GetName().c_str());
+  writer->Indent();
+  for (const auto& field : GetFields()) {
+    writer->Write("%s;\n", field->Signature().c_str());
+  }
+  writer->Dedent();
+  writer->Write("}\n");
+}
 
 AidlInterface::AidlInterface(const std::string& name, unsigned line,
                              const std::string& comments, bool oneway,
@@ -297,6 +338,16 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
   }
 
   delete members;
+}
+
+void AidlInterface::Write(CodeWriter* writer) const {
+  writer->Write("interface %s {\n", GetName().c_str());
+  writer->Indent();
+  for (const auto& method : GetMethods()) {
+    writer->Write("%s;\n", method->Signature().c_str());
+  }
+  writer->Dedent();
+  writer->Write("}\n");
 }
 
 AidlDefinedType* AidlDocument::ReleaseDefinedType() {
