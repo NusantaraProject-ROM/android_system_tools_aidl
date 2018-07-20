@@ -75,7 +75,7 @@ some/path/android/os/BpPingResponder.h \
 )";
 
 const char kExpectedCppOutput[] =
-R"(#include <android/os/IPingResponder.h>
+    R"(#include <android/os/IPingResponder.h>
 #include <android/os/BpPingResponder.h>
 
 namespace android {
@@ -84,11 +84,32 @@ namespace os {
 
 IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
 
+::android::IBinder* IPingResponderDefault::onAsBinder() {
+  return nullptr;
+}
+
+::android::binder::Status IPingResponderDefault::Ping(const ::android::String16&, ::android::String16* ) {
+  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+}
+
+::android::binder::Status IPingResponderDefault::NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) {
+  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+}
+
+::android::binder::Status IPingResponderDefault::Utf8Ping(const ::std::string&, ::std::string* ) {
+  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+}
+
+::android::binder::Status IPingResponderDefault::NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) {
+  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+}
+
 }  // namespace os
 
 }  // namespace android
 #include <android/os/BpPingResponder.h>
 #include <binder/Parcel.h>
+#include <android-base/macros.h>
 
 namespace android {
 
@@ -112,6 +133,9 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
     goto _aidl_error;
   }
   _aidl_ret_status = remote()->transact(IPingResponder::PING, _aidl_data, &_aidl_reply);
+  if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
+     return IPingResponder::getDefaultImpl()->Ping(input, _aidl_return);
+  }
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
@@ -145,6 +169,9 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
     goto _aidl_error;
   }
   _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEPING, _aidl_data, &_aidl_reply);
+  if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
+     return IPingResponder::getDefaultImpl()->NullablePing(input, _aidl_return);
+  }
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
@@ -178,6 +205,9 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
     goto _aidl_error;
   }
   _aidl_ret_status = remote()->transact(IPingResponder::UTF8PING, _aidl_data, &_aidl_reply);
+  if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
+     return IPingResponder::getDefaultImpl()->Utf8Ping(input, _aidl_return);
+  }
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
@@ -211,6 +241,9 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
     goto _aidl_error;
   }
   _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEUTF8PING, _aidl_data, &_aidl_reply);
+  if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
+     return IPingResponder::getDefaultImpl()->NullableUtf8Ping(input, _aidl_return);
+  }
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
@@ -365,7 +398,7 @@ namespace os {
 )";
 
 const char kExpectedIHeaderOutput[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 
 #include <binder/IBinder.h>
@@ -394,6 +427,16 @@ public:
     NULLABLEUTF8PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 3,
   };
 };  // class IPingResponder
+
+class IPingResponderDefault : public IPingResponder {
+public:
+  ::android::IBinder* onAsBinder() override;
+  ::android::binder::Status Ping(const ::android::String16& input, ::android::String16* _aidl_return) override;
+  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>& input, ::std::unique_ptr<::android::String16>* _aidl_return) override;
+  ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) override;
+  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) override;
+
+};
 
 }  // namespace os
 

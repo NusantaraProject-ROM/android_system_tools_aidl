@@ -40,19 +40,19 @@ Expression* FALSE_VALUE;
 
 // ================================================================
 
-Type::Type(const JavaTypeNamespace* types, const string& name, int kind,
-           bool canWriteToParcel, bool canBeOut)
-    : Type(types, "", name, kind, canWriteToParcel, canBeOut, "", -1) {}
+Type::Type(const JavaTypeNamespace* types, const string& name, int kind, bool canWriteToParcel,
+           bool canBeOut, const string& defaultValue)
+    : Type(types, "", name, kind, canWriteToParcel, canBeOut, "", -1, defaultValue) {}
 
-Type::Type(const JavaTypeNamespace* types, const string& package,
-           const string& name, int kind, bool canWriteToParcel,
-           bool canBeOut, const string& declFile, int declLine)
+Type::Type(const JavaTypeNamespace* types, const string& package, const string& name, int kind,
+           bool canWriteToParcel, bool canBeOut, const string& declFile, int declLine,
+           const string& defaultValue)
     : ValidatableType(kind, package, name, declFile, declLine),
       m_types(types),
       m_javaType((package.empty()) ? name : package + "." + name),
       m_canWriteToParcel(canWriteToParcel),
-      m_canBeOut(canBeOut) {
-}
+      m_canBeOut(canBeOut),
+      m_defaultValue(defaultValue) {}
 
 string Type::CreatorName() const { return ""; }
 
@@ -87,12 +87,10 @@ Expression* Type::BuildWriteToParcelFlags(int flags) const {
 // ================================================================
 
 BasicType::BasicType(const JavaTypeNamespace* types, const string& name,
-                     const string& marshallParcel,
-                     const string& unmarshallParcel,
-                     const string& writeArrayParcel,
-                     const string& createArrayParcel,
-                     const string& readArrayParcel)
-    : Type(types, name, ValidatableType::KIND_BUILT_IN, true, false),
+                     const string& marshallParcel, const string& unmarshallParcel,
+                     const string& writeArrayParcel, const string& createArrayParcel,
+                     const string& readArrayParcel, const string& defaultValue)
+    : Type(types, name, ValidatableType::KIND_BUILT_IN, true, false, defaultValue),
       m_marshallParcel(marshallParcel),
       m_unmarshallParcel(unmarshallParcel) {
   m_array_type.reset(new BasicArrayType(types, name, writeArrayParcel,
@@ -174,8 +172,8 @@ void FileDescriptorArrayType::ReadFromParcel(StatementBlock* addTo, Variable* v,
 // ================================================================
 
 BooleanType::BooleanType(const JavaTypeNamespace* types)
-    : Type(types, "boolean", ValidatableType::KIND_BUILT_IN, true, false) {
-    m_array_type.reset(new BooleanArrayType(types));
+    : Type(types, "boolean", ValidatableType::KIND_BUILT_IN, true, false, "false") {
+  m_array_type.reset(new BooleanArrayType(types));
 }
 
 void BooleanType::WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
@@ -213,8 +211,8 @@ void BooleanArrayType::ReadFromParcel(StatementBlock* addTo, Variable* v,
 // ================================================================
 
 CharType::CharType(const JavaTypeNamespace* types)
-    : Type(types, "char", ValidatableType::KIND_BUILT_IN, true, false) {
-    m_array_type.reset(new CharArrayType(types));
+    : Type(types, "char", ValidatableType::KIND_BUILT_IN, true, false, R"('\u0000')") {
+  m_array_type.reset(new CharArrayType(types));
 }
 
 void CharType::WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
@@ -597,16 +595,17 @@ void UserDataArrayType::ReadFromParcel(StatementBlock* addTo, Variable* v,
 
 // ================================================================
 
-InterfaceType::InterfaceType(const JavaTypeNamespace* types,
-                             const string& package, const string& name,
-                             bool builtIn, bool oneway, const string& declFile,
-                             int declLine, const Type* stub, const Type* proxy)
-    : Type(types, package, name, builtIn ? ValidatableType::KIND_BUILT_IN
-                                         : ValidatableType::KIND_INTERFACE,
-           true, false, declFile, declLine),
+InterfaceType::InterfaceType(const JavaTypeNamespace* types, const string& package,
+                             const string& name, bool builtIn, bool oneway, const string& declFile,
+                             int declLine, const Type* stub, const Type* proxy,
+                             const Type* defaultImpl)
+    : Type(types, package, name,
+           builtIn ? ValidatableType::KIND_BUILT_IN : ValidatableType::KIND_INTERFACE, true, false,
+           declFile, declLine),
       m_oneway(oneway),
       stub_(stub),
-      proxy_(proxy) {}
+      proxy_(proxy),
+      defaultImpl_(defaultImpl) {}
 
 bool InterfaceType::OneWay() const { return m_oneway; }
 
@@ -694,29 +693,28 @@ ClassLoaderType::ClassLoaderType(const JavaTypeNamespace* types)
 // ================================================================
 
 void JavaTypeNamespace::Init() {
-  Add(new BasicType(this, "void", "XXX", "XXX", "XXX", "XXX", "XXX"));
+  Add(new BasicType(this, "void", "XXX", "XXX", "XXX", "XXX", "XXX", "XXX"));
 
   m_bool_type = new BooleanType(this);
   Add(m_bool_type);
 
-  Add(new BasicType(this, "byte", "writeByte", "readByte", "writeByteArray",
-                    "createByteArray", "readByteArray"));
+  Add(new BasicType(this, "byte", "writeByte", "readByte", "writeByteArray", "createByteArray",
+                    "readByteArray", "0"));
 
   Add(new CharType(this));
 
-  m_int_type = new BasicType(this, "int", "writeInt", "readInt",
-                             "writeIntArray", "createIntArray", "readIntArray");
+  m_int_type = new BasicType(this, "int", "writeInt", "readInt", "writeIntArray", "createIntArray",
+                             "readIntArray", "0");
   Add(m_int_type);
 
-  Add(new BasicType(this, "long", "writeLong", "readLong", "writeLongArray",
-                    "createLongArray", "readLongArray"));
+  Add(new BasicType(this, "long", "writeLong", "readLong", "writeLongArray", "createLongArray",
+                    "readLongArray", "0L"));
 
-  Add(new BasicType(this, "float", "writeFloat", "readFloat", "writeFloatArray",
-                    "createFloatArray", "readFloatArray"));
+  Add(new BasicType(this, "float", "writeFloat", "readFloat", "writeFloatArray", "createFloatArray",
+                    "readFloatArray", "0.0f"));
 
-  Add(new BasicType(this, "double", "writeDouble", "readDouble",
-                    "writeDoubleArray", "createDoubleArray",
-                    "readDoubleArray"));
+  Add(new BasicType(this, "double", "writeDouble", "readDouble", "writeDoubleArray",
+                    "createDoubleArray", "readDoubleArray", "0.0d"));
 
   m_string_type = new class StringType(this, "java.lang", "String");
   Add(m_string_type);
@@ -795,14 +793,17 @@ bool JavaTypeNamespace::AddBinderType(const AidlInterface& b,
                          b.GetName() + ".Stub.Proxy",
                          ValidatableType::KIND_GENERATED,
                          false, false, filename, b.GetLine());
-  Type* type =
-      new InterfaceType(this, b.GetPackage(), b.GetName(), false,
-                        b.IsOneway(), filename, b.GetLine(), stub, proxy);
+  Type* defaultImpl =
+      new Type(this, b.GetPackage(), b.GetName() + ".Default", ValidatableType::KIND_GENERATED,
+               false, false, filename, b.GetLine());
+  Type* type = new InterfaceType(this, b.GetPackage(), b.GetName(), false, b.IsOneway(), filename,
+                                 b.GetLine(), stub, proxy, defaultImpl);
 
   bool success = true;
   success &= Add(type);
   success &= Add(stub);
   success &= Add(proxy);
+  success &= Add(defaultImpl);
   return success;
 }
 
