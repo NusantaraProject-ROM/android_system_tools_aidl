@@ -731,6 +731,36 @@ public class TestServiceClient extends Activity {
       }
     }
 
+    private void checkDefaultImpl(ITestService service) throws TestFailException {
+      final int expectedArg = 100;
+      final int expectedReturnValue = 200;
+
+      boolean success = ITestService.Stub.setDefaultImpl(new ITestService.Default() {
+        @Override
+        public int UnimplementedMethod(int arg) throws RemoteException {
+          if (arg != expectedArg) {
+            throw new RemoteException("Argument for UnimplementedMethod is expected "
+                + " to be " + expectedArg + ", but got " + arg);
+          }
+          return expectedReturnValue;
+        }
+      });
+      if (!success) {
+        mLog.logAndThrow("Failed to set default impl for ITestService");
+      }
+
+      try {
+        int ret = service.UnimplementedMethod(expectedArg);
+        if (ret != expectedReturnValue) {
+          mLog.logAndThrow("Return value from UnimplementedMethod is expected "
+              + " to be " + expectedReturnValue + ", but got " + ret);
+        }
+      } catch (RemoteException ex) {
+        mLog.log(ex.toString());
+        mLog.logAndThrow("Failed to call UnimplementedMethod");
+      }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -749,6 +779,7 @@ public class TestServiceClient extends Activity {
           checkUtf8Strings(service);
           checkStructuredParcelable(service);
           new NullableTests(service, mLog).runTests();
+          checkDefaultImpl(service);
 
           mLog.log(mSuccessSentinel);
         } catch (TestFailException e) {

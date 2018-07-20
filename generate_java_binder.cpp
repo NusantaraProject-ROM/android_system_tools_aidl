@@ -29,9 +29,11 @@
 #include "options.h"
 #include "type_java.h"
 
-using std::string;
-
+using android::base::Join;
 using android::base::StringPrintf;
+using std::string;
+using std::unique_ptr;
+using std::vector;
 
 namespace android {
 namespace aidl {
@@ -648,12 +650,29 @@ static std::unique_ptr<Method> generate_proxy_method(
   }
 
   // the transact call
-  MethodCall* call = new MethodCall(
-      proxyClass->mRemote, "transact", 4,
-      new LiteralExpression("Stub." + transactCodeName), _data,
+  unique_ptr<MethodCall> call(new MethodCall(
+      proxyClass->mRemote, "transact", 4, new LiteralExpression("Stub." + transactCodeName), _data,
       _reply ? _reply : NULL_VALUE,
-          new LiteralExpression(oneway ? "android.os.IBinder.FLAG_ONEWAY" : "0"));
-  tryStatement->statements->Add(call);
+      new LiteralExpression(oneway ? "android.os.IBinder.FLAG_ONEWAY" : "0")));
+  unique_ptr<Variable> _status(new Variable(types->BoolType(), "_status"));
+  tryStatement->statements->Add(new VariableDeclaration(_status.release(), call.release()));
+
+  // If the transaction returns false, which means UNKNOWN_TRANSACTION, fall
+  // back to the local method in the default impl, if set before.
+  vector<string> arg_names;
+  for (const auto& arg : method.GetArguments()) {
+    arg_names.emplace_back(arg->GetName());
+  }
+  bool has_return_type = method.GetType().GetName() != "void";
+  tryStatement->statements->Add(new LiteralStatement(
+      android::base::StringPrintf(has_return_type ? "if (!_status && getDefaultImpl() != null) {\n"
+                                                    "  return getDefaultImpl().%s(%s);\n"
+                                                    "}\n"
+                                                  : "if (!_status && getDefaultImpl() != null) {\n"
+                                                    "  getDefaultImpl().%s(%s);\n"
+                                                    "  return;\n"
+                                                    "}\n",
+                                  method.GetName().c_str(), Join(arg_names, ", ").c_str())));
 
   // throw back exceptions.
   if (_reply) {
@@ -811,6 +830,50 @@ static void compute_outline_methods(const AidlInterface* iface,
   }
 }
 
+static unique_ptr<ClassElement> generate_default_impl_method(const AidlMethod& method) {
+  unique_ptr<Method> default_method(new Method);
+  default_method->comment = method.GetComments();
+  default_method->modifiers = PUBLIC | OVERRIDE;
+  default_method->returnType = method.GetType().GetLanguageType<Type>();
+  default_method->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
+  default_method->name = method.GetName();
+  default_method->statements = new StatementBlock;
+  for (const auto& arg : method.GetArguments()) {
+    default_method->parameters.push_back(new Variable(
+        arg->GetType().GetLanguageType<Type>(), arg->GetName(), arg->GetType().IsArray() ? 1 : 0));
+  }
+  default_method->exceptions.push_back(
+      method.GetType().GetLanguageType<Type>()->GetTypeNamespace()->RemoteExceptionType());
+
+  if (method.GetType().GetName() != "void") {
+    const string& defaultValue = method.GetType().GetLanguageType<Type>()->DefaultValue();
+    default_method->statements->Add(
+        new LiteralStatement(StringPrintf("return %s;\n", defaultValue.c_str())));
+  }
+  return default_method;
+}
+
+static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface) {
+  unique_ptr<Class> default_class(new Class);
+  default_class->comment = "/** Default implementation for " + iface.GetName() + ". */";
+  default_class->modifiers = PUBLIC | STATIC;
+  default_class->what = Class::CLASS;
+  default_class->type = iface.GetLanguageType<InterfaceType>()->GetDefaultImpl();
+  default_class->interfaces.emplace_back(iface.GetLanguageType<InterfaceType>());
+
+  for (const auto& m : iface.GetMethods()) {
+    default_class->elements.emplace_back(generate_default_impl_method(*(m.get())).release());
+  }
+
+  default_class->elements.emplace_back(
+      new LiteralClassElement("@Override\n"
+                              "public android.os.IBinder asBinder() {\n"
+                              "  return null;\n"
+                              "}\n"));
+
+  return default_class;
+}
+
 Class* generate_binder_interface_class(const AidlInterface* iface,
                                        JavaTypeNamespace* types,
                                        const JavaOptions& options) {
@@ -823,6 +886,9 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   interface->what = Class::INTERFACE;
   interface->type = interfaceType;
   interface->interfaces.push_back(types->IInterfaceType());
+
+  // the default impl class
+  interface->elements.emplace_back(generate_default_impl_class(*iface).release());
 
   // the stub inner class
   StubClass* stub =
@@ -862,6 +928,34 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
                      types,
                      options);
   }
+
+  // additional static methods for the default impl set/get to the
+  // stub class. Can't add them to the interface as the generated java files
+  // may be compiled with Java < 1.7 where static interface method isn't
+  // supported.
+  // TODO(b/111417145) make this conditional depending on the Java language
+  // version requested
+  const string i_name = interfaceType->JavaType();
+  stub->elements.emplace_back(new LiteralClassElement(
+      StringPrintf("public static boolean setDefaultImpl(%s impl) {\n"
+                   "  if (Stub.Proxy.sDefaultImpl == null && impl != null) {\n"
+                   "    Stub.Proxy.sDefaultImpl = impl;\n"
+                   "    return true;\n"
+                   "  }\n"
+                   "  return false;\n"
+                   "}\n",
+                   i_name.c_str())));
+  stub->elements.emplace_back(
+      new LiteralClassElement(StringPrintf("public static %s getDefaultImpl() {\n"
+                                           "  return Stub.Proxy.sDefaultImpl;\n"
+                                           "}\n",
+                                           i_name.c_str())));
+
+  // the static field is defined in the proxy class, not in the interface class
+  // because all fields in an interface class are by default final.
+  proxy->elements.emplace_back(new LiteralClassElement(
+      StringPrintf("public static %s sDefaultImpl = null;\n", i_name.c_str())));
+
   stub->finish();
 
   return interface;

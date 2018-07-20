@@ -117,4 +117,12 @@ interface ITestService {
 
   // This is not a well designed API and should not be taken as an example
   void FillOutStructuredParcelable(inout StructuredParcelable parcel);
+
+  // This is to emulate a method that is added after the service is implemented.
+  // So the client cannot assume that call to this method will be successful
+  // or not. However, inside the test environment, we can't build client and
+  // the server with different version of this AIDL file. So, we let the server
+  // to actually implement this, but intercept the dispatch to the method
+  // inside onTransact().
+  int UnimplementedMethod(int arg);
 }
