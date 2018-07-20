@@ -40,6 +40,8 @@ class Options {
   // positional arguments
   std::string input_file_name_;
   std::string output_file_name_;
+  // currently, this is only for --dumpapi
+  std::vector<std::string> input_file_names_;
 
  protected:
   enum class Result {
@@ -59,8 +61,9 @@ class Options {
 class JavaOptions final : public Options {
  public:
   enum {
-      COMPILE_AIDL_TO_JAVA,
-      PREPROCESS_AIDL,
+    COMPILE_AIDL_TO_JAVA,
+    PREPROCESS_AIDL,
+    DUMP_API,
   };
 
   // Parses the command line and returns a non-null pointer to an JavaOptions
@@ -80,7 +83,6 @@ class JavaOptions final : public Options {
   bool fail_on_parcelable_{false};
   bool auto_dep_file_{false};
   bool gen_transaction_names_{false};  // for Binder#getTransactionName
-  std::vector<std::string> files_to_preprocess_;
 
   // positional arguments
   std::string output_base_folder_;
@@ -105,6 +107,7 @@ class JavaOptions final : public Options {
   FRIEND_TEST(AidlTest, WritesCorrectDependencyFile);
   FRIEND_TEST(AidlTest, WritesCorrectDependencyFileNinja);
   FRIEND_TEST(AidlTest, WritesTrivialDependencyFileForParcelable);
+  FRIEND_TEST(AidlTest, ApiDump);
 
   DISALLOW_COPY_AND_ASSIGN(JavaOptions);
 };

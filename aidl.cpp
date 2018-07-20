@@ -23,6 +23,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -565,7 +566,7 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
 }
 
 AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_files,
-                                 const std::vector<std::string>& import_paths,
+                                 const ImportResolver& import_resolver,
                                  const std::string& input_file_name, const bool generate_traces,
                                  const IoDelegate& io_delegate, TypeNamespace* types,
                                  std::unique_ptr<AidlDefinedType>* returned_type,
@@ -631,7 +632,6 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   }
 
   // parse the imports of the input file
-  ImportResolver import_resolver{io_delegate, import_paths};
   for (auto& import : p.GetImports()) {
     if (types->HasImportType(*import)) {
       // There are places in the Android tree where an import doesn't resolve,
@@ -674,7 +674,6 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     if (!types->AddBinderType(*interface, input_file_name)) {
       err = AidlError::BAD_TYPE;
     }
-
     interface->SetGenerateTraces(generate_traces);
   }
 
@@ -735,8 +734,9 @@ int compile_aidl_to_cpp(const CppOptions& options,
   std::vector<std::unique_ptr<AidlImport>> imports;
   unique_ptr<cpp::TypeNamespace> types(new cpp::TypeNamespace());
   types->Init();
+  ImportResolver import_resolver{io_delegate, options.ImportPaths(), {}};
   AidlError err = internals::load_and_validate_aidl(
-      options.preprocessed_files_, options.ImportPaths(), options.InputFileName(),
+      options.preprocessed_files_, import_resolver, options.InputFileName(),
       options.ShouldGenTraces(), io_delegate, types.get(), &defined_type, &imports);
   if (err != AidlError::OK) {
     return 1;
@@ -757,9 +757,10 @@ int compile_aidl_to_java(const JavaOptions& options,
   std::vector<std::unique_ptr<AidlImport>> imports;
   unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
   types->Init();
+  ImportResolver import_resolver{io_delegate, options.import_paths_, {}};
   AidlError aidl_err = internals::load_and_validate_aidl(
-      options.preprocessed_files_, options.import_paths_, options.input_file_name_,
-      options.gen_traces_, io_delegate, types.get(), &defined_type, &imports);
+      options.preprocessed_files_, import_resolver, options.input_file_name_, options.gen_traces_,
+      io_delegate, types.get(), &defined_type, &imports);
   if (aidl_err == AidlError::FOUND_PARCELABLE && !options.fail_on_parcelable_) {
     // We aborted code generation because this file contains parcelables.
     // However, we were not told to complain if we find parcelables.
@@ -798,7 +799,7 @@ bool preprocess_aidl(const JavaOptions& options,
   unique_ptr<CodeWriter> writer =
       io_delegate.GetCodeWriter(options.output_file_name_);
 
-  for (const auto& file : options.files_to_preprocess_) {
+  for (const auto& file : options.input_file_names_) {
     AidlTypenames typenames;
     Parser p{io_delegate, &typenames};
     if (!p.ParseFile(file))
@@ -812,6 +813,49 @@ bool preprocess_aidl(const JavaOptions& options,
         return false;
       }
     }
+  }
+
+  return writer->Close();
+}
+
+bool dump_api(const JavaOptions& options, const IoDelegate& io_delegate) {
+  ImportResolver import_resolver{io_delegate, options.import_paths_, options.input_file_names_};
+
+  map<string, vector<unique_ptr<AidlDefinedType>>> types_by_package;
+  for (const auto& file : options.input_file_names_) {
+    unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
+    types->Init();
+    unique_ptr<AidlDefinedType> t;
+    if (internals::load_and_validate_aidl(options.preprocessed_files_, import_resolver, file,
+                                          options.gen_traces_, io_delegate, types.get(), &t,
+                                          nullptr) == AidlError::OK) {
+      // group them by package name
+      string package = t->GetPackage();
+      types_by_package[package].emplace_back(std::move(t));
+    } else {
+      return false;
+    }
+  }
+
+  // sort types within a package by their name. packages are already sorted.
+  for (auto it = types_by_package.begin(); it != types_by_package.end(); it++) {
+    auto& list = it->second;
+    std::sort(list.begin(), list.end(), [](const auto& lhs, const auto& rhs) {
+      return lhs->GetName().compare(rhs->GetName());
+    });
+  }
+
+  // print
+  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(options.output_file_name_);
+  for (auto it = types_by_package.begin(); it != types_by_package.end(); it++) {
+    writer->Write("package %s {\n", it->first.c_str());
+    writer->Indent();
+    for (const auto& type : it->second) {
+      type->Write(writer.get());
+      writer->Write("\n");
+    }
+    writer->Dedent();
+    writer->Write("}\n");
   }
 
   return writer->Close();

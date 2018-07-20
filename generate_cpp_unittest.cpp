@@ -1391,15 +1391,12 @@ class ASTTest : public ::testing::Test {
 
     unique_ptr<AidlDefinedType> ret;
     std::vector<std::unique_ptr<AidlImport>> imports;
-    AidlError err = ::android::aidl::internals::load_and_validate_aidl(
-        {},  // no preprocessed files
-        {"."},
-        file_path_,
-        false, // generate_traces
-        io_delegate_,
-        &types_,
-        &ret,
-        &imports);
+    ImportResolver import_resolver{io_delegate_, {"."}, {}};
+    AidlError err =
+        ::android::aidl::internals::load_and_validate_aidl({},  // no preprocessed files
+                                                           import_resolver, file_path_,
+                                                           false,  // generate_traces
+                                                           io_delegate_, &types_, &ret, &imports);
 
     if (err != AidlError::OK) {
       return nullptr;
