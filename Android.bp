@@ -183,6 +183,7 @@ cc_binary {
         "tests/aidl_test_client_primitives.cpp",
         "tests/aidl_test_client_utf8_strings.cpp",
         "tests/aidl_test_client_service_exceptions.cpp",
+        "tests/aidl_test_client_defaultimpl.cpp",
     ],
 }
 

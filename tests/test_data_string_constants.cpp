@@ -32,13 +32,21 @@ interface IStringConstants {
 
 const char kJavaOutputPath[] = "some/path/to/output.java";
 const char kExpectedJavaOutput[] =
-R"(/*
+    R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
  * Original file: android/os/IStringConstants.aidl
  */
 package android.os;
 public interface IStringConstants extends android.os.IInterface
 {
+  /** Default implementation for IStringConstants. */
+  public static class Default implements android.os.IStringConstants
+  {
+    @Override
+    public android.os.IBinder asBinder() {
+      return null;
+    }
+  }
   /** Local-side IPC implementation stub class. */
   public static abstract class Stub extends android.os.Binder implements android.os.IStringConstants
   {
@@ -98,6 +106,17 @@ public interface IStringConstants extends android.os.IInterface
       {
         return DESCRIPTOR;
       }
+      public static android.os.IStringConstants sDefaultImpl = null;
+    }
+    public static boolean setDefaultImpl(android.os.IStringConstants impl) {
+      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+        Stub.Proxy.sDefaultImpl = impl;
+        return true;
+      }
+      return false;
+    }
+    public static android.os.IStringConstants getDefaultImpl() {
+      return Stub.Proxy.sDefaultImpl;
     }
   }
   public static final String EXAMPLE_CONSTANT = "foo";
@@ -108,7 +127,7 @@ const char kCppOutputPath[] = "some/path/to/output.cpp";
 const char kGenHeaderDir[] = "output";
 const char kGenInterfaceHeaderPath[] = "output/android/os/IStringConstants.h";
 const char kExpectedIHeaderOutput[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 #define AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 
 #include <binder/IBinder.h>
@@ -127,6 +146,12 @@ public:
   static const ::android::String16& EXAMPLE_CONSTANT();
 };  // class IStringConstants
 
+class IStringConstantsDefault : public IStringConstants {
+public:
+  ::android::IBinder* onAsBinder() override;
+  
+};
+
 }  // namespace os
 
 }  // namespace android
@@ -135,7 +160,7 @@ public:
 )";
 
 const char kExpectedCppOutput[] =
-R"(#include <android/os/IStringConstants.h>
+    R"(#include <android/os/IStringConstants.h>
 #include <android/os/BpStringConstants.h>
 
 namespace android {
@@ -149,11 +174,16 @@ const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
   return value;
 }
 
+::android::IBinder* IStringConstantsDefault::onAsBinder() {
+  return nullptr;
+}
+
 }  // namespace os
 
 }  // namespace android
 #include <android/os/BpStringConstants.h>
 #include <binder/Parcel.h>
+#include <android-base/macros.h>
 
 namespace android {
 

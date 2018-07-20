@@ -34,11 +34,14 @@ class Type : public ValidatableType {
   // WriteToParcel flags
   enum { PARCELABLE_WRITE_RETURN_VALUE = 0x0001 };
 
-  Type(const JavaTypeNamespace* types, const std::string& name, int kind,
-       bool canWriteToParcel, bool canBeOut);
-  Type(const JavaTypeNamespace* types, const std::string& package,
-       const std::string& name, int kind, bool canWriteToParcel, bool canBeOut,
-       const std::string& declFile = "", int declLine = -1);
+  // defaultValue is by default set to "null" because that is the default value
+  // for most of the types like class and array. default values for built-in
+  // types like int, double, boolean, etc. are explicitly set via BasicType
+  Type(const JavaTypeNamespace* types, const std::string& name, int kind, bool canWriteToParcel,
+       bool canBeOut, const std::string& defaultValue = "null");
+  Type(const JavaTypeNamespace* types, const std::string& package, const std::string& name,
+       int kind, bool canWriteToParcel, bool canBeOut, const std::string& declFile = "",
+       int declLine = -1, const std::string& defaultValue = "null");
   virtual ~Type() = default;
 
   bool CanBeOutParameter() const override { return m_canBeOut; }
@@ -57,6 +60,11 @@ class Type : public ValidatableType {
   virtual void ReadFromParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
                               Variable** cl) const;
 
+  // The namespace where this type is defined in
+  const JavaTypeNamespace* GetTypeNamespace() const { return m_types; }
+
+  const std::string& DefaultValue() const { return m_defaultValue; }
+
  protected:
   Expression* BuildWriteToParcelFlags(int flags) const;
 
@@ -72,6 +80,7 @@ class Type : public ValidatableType {
   std::string m_declFile;
   bool m_canWriteToParcel;
   bool m_canBeOut;
+  const std::string m_defaultValue;
 };
 
 class BasicArrayType : public Type {
@@ -98,11 +107,9 @@ class BasicArrayType : public Type {
 class BasicType : public Type {
  public:
   BasicType(const JavaTypeNamespace* types, const std::string& name,
-            const std::string& marshallParcel,
-            const std::string& unmarshallParcel,
-            const std::string& writeArrayParcel,
-            const std::string& createArrayParcel,
-            const std::string& readArrayParcel);
+            const std::string& marshallParcel, const std::string& unmarshallParcel,
+            const std::string& writeArrayParcel, const std::string& createArrayParcel,
+            const std::string& readArrayParcel, const std::string& defaultValue);
 
   void WriteToParcel(StatementBlock* addTo, Variable* v, Variable* parcel,
                      int flags) const override;
@@ -350,10 +357,9 @@ class UserDataType : public Type {
 
 class InterfaceType : public Type {
  public:
-  InterfaceType(const JavaTypeNamespace* types, const std::string& package,
-                const std::string& name, bool builtIn, bool oneway,
-                const std::string& declFile, int declLine, const Type* stub,
-                const Type* proxy);
+  InterfaceType(const JavaTypeNamespace* types, const std::string& package, const std::string& name,
+                bool builtIn, bool oneway, const std::string& declFile, int declLine,
+                const Type* stub, const Type* proxy, const Type* defaultImpl);
 
   bool OneWay() const;
 
@@ -364,11 +370,13 @@ class InterfaceType : public Type {
   const ValidatableType* NullableType() const override { return this; }
   const Type* GetStub() const { return stub_; }
   const Type* GetProxy() const { return proxy_; }
+  const Type* GetDefaultImpl() const { return defaultImpl_; }
 
  private:
   bool m_oneway;
   const Type* stub_;
   const Type* proxy_;
+  const Type* defaultImpl_;
 };
 
 class ClassLoaderType : public Type {
