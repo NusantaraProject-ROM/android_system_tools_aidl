@@ -74,15 +74,10 @@ class AidlTest : public ::testing::Test {
     io_delegate_.SetFileContents(path, contents);
     unique_ptr<AidlDefinedType> ret;
     std::vector<std::unique_ptr<AidlImport>> imports;
+    ImportResolver import_resolver{io_delegate_, import_paths_, {}};
     AidlError actual_error = ::android::aidl::internals::load_and_validate_aidl(
-        preprocessed_files_,
-        import_paths_,
-        path,
-        false, /* generate_traces */
-        io_delegate_,
-        types,
-        &ret,
-        &imports);
+        preprocessed_files_, import_resolver, path, false, /* generate_traces */
+        io_delegate_, types, &ret, &imports);
     if (error != nullptr) {
       *error = actual_error;
     }
@@ -228,9 +223,9 @@ TEST_F(AidlTest, WritePreprocessedFile) {
 
   JavaOptions options;
   options.output_file_name_ = "preprocessed";
-  options.files_to_preprocess_.resize(2);
-  options.files_to_preprocess_[0] = "p/Outer.aidl";
-  options.files_to_preprocess_[1] = "one/IBar.aidl";
+  options.input_file_names_.resize(2);
+  options.input_file_names_[0] = "p/Outer.aidl";
+  options.input_file_names_[1] = "one/IBar.aidl";
   EXPECT_TRUE(::android::aidl::preprocess_aidl(options, io_delegate_));
 
   string output;
@@ -475,6 +470,55 @@ TEST_F(AidlTest, AcceptsNestedContainerType) {
   EXPECT_NE(nullptr, Parse("a/IFoo.aidl", nested_in_parcelable, &cpp_types_));
 }
 */
+
+TEST_F(AidlTest, ApiDump) {
+  io_delegate_.SetFileContents(
+      "foo/bar/IFoo.aidl",
+      "package foo.bar;\n"
+      "import foo.bar.Data;\n"
+      "interface IFoo {\n"
+      "    int foo(out int[] a, String b, boolean c, inout List<String>  d);\n"
+      "    int foo2(@utf8InCpp String x, inout List<String>  y);\n"
+      "    IFoo foo3(IFoo foo);\n"
+      "    Data getData();\n"
+      "}\n");
+  io_delegate_.SetFileContents("foo/bar/Data.aidl",
+                               "package foo.bar;\n"
+                               "import foo.bar.IFoo;\n"
+                               "parcelable Data {\n"
+                               "   int x;\n"
+                               "   int y;\n"
+                               "   IFoo foo;\n"
+                               "   List<IFoo> a;\n"
+                               "   List<foo.bar.IFoo> b;\n"
+                               "}\n");
+  io_delegate_.SetFileContents("api.aidl", "");
+  JavaOptions options;
+  options.input_file_names_ = {"foo/bar/IFoo.aidl", "foo/bar/Data.aidl"};
+  options.output_file_name_ = "api.aidl";
+  bool result = dump_api(options, io_delegate_);
+  ASSERT_TRUE(result);
+  string actual;
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("api.aidl", &actual));
+  EXPECT_EQ(actual, R"(package foo.bar {
+  parcelable Data {
+    int x;
+    int y;
+    foo.bar.IFoo foo;
+    List<foo.bar.IFoo> a;
+    List<foo.bar.IFoo> b;
+  }
+
+  interface IFoo {
+    int foo(out int[] a, String b, boolean c, inout List<String> d);
+    int foo2(@utf8InCpp String x, inout List<String> y);
+    foo.bar.IFoo foo3(foo.bar.IFoo foo);
+    foo.bar.Data getData();
+  }
+
+}
+)");
+}
 
 }  // namespace aidl
 }  // namespace android
