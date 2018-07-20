@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "aidl_language.h"
+#include "import_resolver.h"
 #include "io_delegate.h"
 #include "options.h"
 #include "type_namespace.h"
@@ -51,11 +52,12 @@ int compile_aidl_to_java(const JavaOptions& options,
                          const IoDelegate& io_delegate);
 bool preprocess_aidl(const JavaOptions& options,
                      const IoDelegate& io_delegate);
+bool dump_api(const JavaOptions& options, const IoDelegate& io_delegate);
 
 namespace internals {
 
 AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_files,
-                                 const std::vector<std::string>& import_paths,
+                                 const ImportResolver& import_resolver,
                                  const std::string& input_file_name, const bool generate_traces,
                                  const IoDelegate& io_delegate, TypeNamespace* types,
                                  std::unique_ptr<AidlDefinedType>* returned_type,
