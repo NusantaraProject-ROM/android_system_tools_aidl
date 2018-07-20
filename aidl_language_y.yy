@@ -1,7 +1,7 @@
 %{
 #include "aidl_language.h"
 #include "aidl_language_y.h"
-#include <map>
+#include <set>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,8 +27,8 @@ int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
     AidlToken* token;
     int integer;
     std::string *str;
-    AidlTypeSpecifier::Annotation annotation;
-    AidlTypeSpecifier::Annotation annotation_list;
+    AidlAnnotation* annotation;
+    std::set<std::unique_ptr<AidlAnnotation>>* annotation_list;
     AidlTypeSpecifier* type;
     AidlTypeSpecifier* unannotated_type;
     AidlArgument* arg;
@@ -152,13 +152,14 @@ decl
     bool is_unstructured_parcelable =
       $$->AsParcelable() != nullptr && $$->AsStructuredParcelable() == nullptr;
 
-    if (is_unstructured_parcelable && $1 != AidlAnnotatable::AnnotationNone) {
+    if (is_unstructured_parcelable && !$1->empty()) {
       std::cerr << ps->FileName() << ":" << @1 << ": unstructured parcelables cannot be annotated"
                 << std::endl;
       ps->AddError();
     }
 
-    $$->Annotate($1);
+    $$->Annotate(std::move(*$1));
+    delete $1;
    }
  ;
 
@@ -331,7 +332,8 @@ unannotated_type
 type
  : annotation_list unannotated_type {
     $$ = $2;
-    $2->Annotate($1);
+    $2->Annotate(std::move(*$1));
+    delete $1;
   };
 
 type_args
@@ -345,33 +347,27 @@ type_args
 
 annotation_list
  :
-  { $$ = AidlAnnotatable::AnnotationNone; }
+  { $$ = new std::set<unique_ptr<AidlAnnotation>>(); }
  | annotation_list annotation
-  { $$ = static_cast<AidlAnnotatable::Annotation>($1 | $2); };
+  {
+    if ($2 != nullptr) {
+      $1->insert(std::unique_ptr<AidlAnnotation>($2));
+    }
+  };
 
 annotation
  : ANNOTATION
-  { static const std::map<std::string, AidlAnnotatable::Annotation> kAnnotations = {
-      { "nullable", AidlAnnotatable::AnnotationNullable },
-      { "utf8", AidlAnnotatable::AnnotationUtf8 },
-      { "utf8InCpp", AidlAnnotatable::AnnotationUtf8InCpp },
-    };
-
-    auto it = kAnnotations.find($1->GetText());
-    if (it == kAnnotations.end()) {
-      std::cerr << ps->FileName() << ":" << @1 << ": '" << $1->GetText()
-                << "' is not a recognized annotation. It must be one of:";
-      for (const auto& kv : kAnnotations) {
-        std::cerr << " " << kv.first;
-      }
-      std::cerr << "." << std::endl;
-
+  {
+    std::string error;
+    AidlAnnotation* annot = new AidlAnnotation($1->GetText(), error);
+    if (error != "") {
+      std::cerr << ps->FileName() << ":" << @1 << ": ";
+      std::cerr << error << std::endl;
       ps->AddError();
-      $$ = AidlAnnotatable::AnnotationNone;
+      $$ = nullptr;
     } else {
-      $$ = it->second;
+      $$ = annot;
     }
-
   };
 
 direction

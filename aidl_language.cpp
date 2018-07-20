@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -28,6 +31,7 @@ using android::base::Split;
 using std::cerr;
 using std::endl;
 using std::pair;
+using std::set;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -42,6 +46,55 @@ void yy_delete_buffer(YY_BUFFER_STATE, void *);
 AidlToken::AidlToken(const std::string& text, const std::string& comments)
     : text_(text),
       comments_(comments) {}
+
+static const string kNullable("nullable");
+static const string kUtf8("utf8");
+static const string kUtf8InCpp("utf8InCpp");
+
+static const set<string> kAnnotationNames{kNullable, kUtf8, kUtf8InCpp};
+
+AidlAnnotation::AidlAnnotation(const string& name, string& error) : name_(name) {
+  if (kAnnotationNames.find(name_) == kAnnotationNames.end()) {
+    std::ostringstream stream;
+    stream << "'" << name_ << "' is not a recognized annotation. ";
+    stream << "It must be one of:";
+    for (const string& kv : kAnnotationNames) {
+      stream << " " << kv;
+    }
+    stream << ".";
+    error = stream.str();
+  }
+}
+
+static bool HasAnnotation(const set<unique_ptr<AidlAnnotation>>& annotations, const string& name) {
+  for (const auto& a : annotations) {
+    if (a->GetName() == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool AidlAnnotatable::IsNullable() const {
+  return HasAnnotation(annotations_, kNullable);
+}
+
+bool AidlAnnotatable::IsUtf8() const {
+  return HasAnnotation(annotations_, kUtf8);
+}
+
+bool AidlAnnotatable::IsUtf8InCpp() const {
+  return HasAnnotation(annotations_, kUtf8InCpp);
+}
+
+string AidlAnnotatable::ToString() const {
+  vector<string> ret;
+  for (const auto& a : annotations_) {
+    ret.emplace_back(a->ToString());
+  }
+  std::sort(ret.begin(), ret.end());
+  return Join(ret, " ");
+}
 
 AidlTypeSpecifier::AidlTypeSpecifier(const string& unresolved_name, bool is_array,
                                      vector<unique_ptr<AidlTypeSpecifier>>* type_params,
