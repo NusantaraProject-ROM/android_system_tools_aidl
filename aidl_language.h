@@ -51,34 +51,32 @@ class AidlTypenames;
 }  // namespace aidl
 }  // namespace android
 
+class AidlAnnotation : public AidlNode {
+ public:
+  AidlAnnotation(const string& name, string& error);
+  virtual ~AidlAnnotation() = default;
+  const string& GetName() const { return name_; }
+  string ToString() const { return "@" + name_; }
+
+ private:
+  const string name_;
+};
+
 class AidlAnnotatable : public AidlNode {
  public:
-  enum Annotation {
-    AnnotationNone = 0,
-    AnnotationNullable = 1 << 0,
-    AnnotationUtf8 = 1 << 1,
-    AnnotationUtf8InCpp = 1 << 2,
-  };
-
   AidlAnnotatable() = default;
   virtual ~AidlAnnotatable() = default;
 
-  void Annotate(AidlAnnotatable::Annotation annotation) {
-    annotations_ =
-        static_cast<AidlAnnotatable::Annotation>(annotations_ | annotation);
+  void Annotate(set<unique_ptr<AidlAnnotation>>&& annotations) {
+    annotations_ = std::move(annotations);
   }
-  bool IsNullable() const {
-    return annotations_ & AnnotationNullable;
-  }
-  bool IsUtf8() const {
-    return annotations_ & AnnotationUtf8;
-  }
-  bool IsUtf8InCpp() const {
-    return annotations_ & AnnotationUtf8InCpp;
-  }
+  bool IsNullable() const;
+  bool IsUtf8() const;
+  bool IsUtf8InCpp() const;
+  std::string ToString() const;
 
  private:
-  Annotation annotations_ = AnnotationNone;
+  set<unique_ptr<AidlAnnotation>> annotations_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlAnnotatable);
 };
