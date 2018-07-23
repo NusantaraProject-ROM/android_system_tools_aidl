@@ -16,6 +16,7 @@
 
 #include "aidl_typenames.h"
 #include "aidl_language.h"
+#include "logging.h"
 
 #include <android-base/strings.h>
 
@@ -124,6 +125,17 @@ pair<string, bool> AidlTypenames::ResolveTypename(const string& type_name) const
   } else {
     return make_pair(type_name, false);
   }
+}
+
+// Only T[], List, Map, and Parcelable can be an out parameter.
+bool AidlTypenames::CanBeOutParameter(const AidlTypeSpecifier& type) const {
+  const string& name = type.GetName();
+  if (IsBuiltinTypename(name)) {
+    return type.IsArray() || type.GetName() == "List" || type.GetName() == "Map";
+  }
+  const AidlDefinedType* t = TryGetDefinedType(type.GetName());
+  CHECK(t != nullptr) << "Unrecognized type: '" << type.GetName() << "'";
+  return t->AsParcelable() != nullptr;
 }
 
 }  // namespace aidl

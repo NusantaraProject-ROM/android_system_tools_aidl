@@ -46,7 +46,6 @@ class Type : public ValidatableType {
   virtual ~Type() = default;
 
   // overrides of ValidatableType
-  bool CanBeOutParameter() const override { return false; }
   bool CanWriteToParcel() const override;
 
   const Type* ArrayType() const override { return array_type_.get(); }

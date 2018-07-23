@@ -131,6 +131,8 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   // resolution fails.
   bool Resolve(android::aidl::AidlTypenames& typenames);
 
+  bool CheckValid() const;
+
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
   }
@@ -531,7 +533,7 @@ class AidlImport : public AidlNode {
 class Parser {
  public:
   explicit Parser(const android::aidl::IoDelegate& io_delegate,
-                  android::aidl::AidlTypenames* typenames);
+                  android::aidl::AidlTypenames& typenames);
   ~Parser();
 
   // Parse contents of file |filename|.
@@ -560,7 +562,7 @@ class Parser {
       imports_.clear();
   }
 
-  android::aidl::AidlTypenames& GetTypenames() { return *typenames_; }
+  android::aidl::AidlTypenames& GetTypenames() { return typenames_; }
 
   void DeferResolution(AidlTypeSpecifier* typespec) {
     unresolved_typespecs_.emplace_back(typespec);
@@ -578,7 +580,7 @@ class Parser {
   std::vector<std::unique_ptr<AidlImport>> imports_;
   std::unique_ptr<std::string> raw_buffer_;
   YY_BUFFER_STATE buffer_;
-  android::aidl::AidlTypenames* typenames_;
+  android::aidl::AidlTypenames& typenames_;
   vector<AidlTypeSpecifier*> unresolved_typespecs_;
 
   DISALLOW_COPY_AND_ASSIGN(Parser);

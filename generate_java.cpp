@@ -24,6 +24,7 @@
 
 #include <android-base/stringprintf.h>
 
+#include "aidl_to_java.h"
 #include "code_writer.h"
 #include "type_java.h"
 
@@ -140,36 +141,58 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   out << "};\n";
   parcel_class->elements.push_back(new LiteralClassElement(out.str()));
 
-  Variable* flag_variable = new Variable(new Type(types, "int", 0, false, false), "_aidl_flag");
+  Variable* flag_variable = new Variable(new Type(types, "int", 0, false), "_aidl_flag");
   Variable* parcel_variable =
-      new Variable(new Type(types, "android.os.Parcel", 0, false, false), "_aidl_parcel");
+      new Variable(new Type(types, "android.os.Parcel", 0, false), "_aidl_parcel");
 
   Method* write_method = new Method;
   write_method->modifiers = PUBLIC;
-  write_method->returnType = new Type(types, "void", 0, false, false);
+  write_method->returnType = new Type(types, "void", 0, false);
   write_method->name = "writeToParcel";
   write_method->parameters.push_back(parcel_variable);
   write_method->parameters.push_back(flag_variable);
   write_method->statements = new StatementBlock();
-  for (const auto& variable : parcel->GetFields()) {
-    const Type* type = variable->GetType().GetLanguageType<Type>();
-    Variable* variable_element =
-        new Variable(type, variable->GetName(), variable->GetType().IsArray() ? 1 : 0);
-    type->WriteToParcel(write_method->statements, variable_element, parcel_variable, 0 /*flags*/);
+  for (const auto& field : parcel->GetFields()) {
+    string code;
+    CodeWriterPtr writer = CodeWriter::ForString(&code);
+    CodeGeneratorContext context{
+        .writer = *(writer.get()),
+        .typenames = types->typenames_,
+        .type = field->GetType(),
+        .var = field->GetName(),
+        .parcel = parcel_variable->name,
+        .is_return_value = false,
+    };
+    WriteToParcelFor(context);
+    writer->Close();
+    write_method->statements->Add(new LiteralStatement(code));
   }
   parcel_class->elements.push_back(write_method);
 
   Method* read_method = new Method;
   read_method->modifiers = PUBLIC;
-  read_method->returnType = new Type(types, "void", 0, false, false);
+  read_method->returnType = new Type(types, "void", 0, false);
   read_method->name = "readFromParcel";
   read_method->parameters.push_back(parcel_variable);
   read_method->statements = new StatementBlock();
-  for (const auto& variable : parcel->GetFields()) {
-    const Type* type = variable->GetType().GetLanguageType<Type>();
-    Variable* variable_element =
-        new Variable(type, variable->GetName(), variable->GetType().IsArray() ? 1 : 0);
-    type->CreateFromParcel(read_method->statements, variable_element, parcel_variable, nullptr /*flags*/);
+
+  // keep this across different fields in order to create the classloader
+  // at most once.
+  bool is_classloader_created = false;
+  for (const auto& field : parcel->GetFields()) {
+    string code;
+    CodeWriterPtr writer = CodeWriter::ForString(&code);
+    CodeGeneratorContext context{
+        .writer = *(writer.get()),
+        .typenames = types->typenames_,
+        .type = field->GetType(),
+        .var = field->GetName(),
+        .parcel = parcel_variable->name,
+        .is_classloader_created = &is_classloader_created,
+    };
+    CreateFromParcelFor(context);
+    writer->Close();
+    read_method->statements->Add(new LiteralStatement(code));
   }
   parcel_class->elements.push_back(read_method);
 

@@ -128,7 +128,8 @@ const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_
     return nullptr;
   }
 
-  if (!a.DirectionWasSpecified() && t->CanBeOutParameter()) {
+  const bool can_be_out = typenames_.CanBeOutParameter(a.GetType());
+  if (!a.DirectionWasSpecified() && can_be_out) {
     LOG(ERROR) << error_prefix << StringPrintf(
         "'%s' can be an out type, so you must declare it as in,"
         " out or inout.",
@@ -136,8 +137,7 @@ const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_
     return nullptr;
   }
 
-  if (a.GetDirection() != AidlArgument::IN_DIR &&
-      !t->CanBeOutParameter()) {
+  if (a.GetDirection() != AidlArgument::IN_DIR && !can_be_out) {
     LOG(ERROR) << error_prefix << StringPrintf(
         "'%s' can only be an in parameter.",
         a.ToString().c_str());
