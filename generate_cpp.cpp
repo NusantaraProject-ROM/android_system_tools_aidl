@@ -936,11 +936,8 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
                     NestInNamespaces(std::move(file_decls), parcel.GetSplitPackage())}};
 }
 
-bool WriteHeader(const CppOptions& options,
-                 const TypeNamespace& types,
-                 const AidlInterface& interface,
-                 const IoDelegate& io_delegate,
-                 ClassNames header_type) {
+bool WriteHeader(const Options& options, const TypeNamespace& types, const AidlInterface& interface,
+                 const IoDelegate& io_delegate, ClassNames header_type) {
   unique_ptr<Document> header;
   switch (header_type) {
     case ClassNames::INTERFACE:
@@ -993,8 +990,9 @@ string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_type, bo
   return file_path;
 }
 
-bool GenerateCppInterface(const CppOptions& options, const TypeNamespace& types,
-                          const AidlInterface& interface, const IoDelegate& io_delegate) {
+bool GenerateCppInterface(const string& output_file, const Options& options,
+                          const TypeNamespace& types, const AidlInterface& interface,
+                          const IoDelegate& io_delegate) {
   auto interface_src = BuildInterfaceSource(types, interface);
   auto client_src = BuildClientSource(types, interface);
   auto server_src = BuildServerSource(types, interface);
@@ -1018,22 +1016,22 @@ bool GenerateCppInterface(const CppOptions& options, const TypeNamespace& types,
     return false;
   }
 
-  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(
-      options.OutputCppFilePath());
+  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(output_file);
   interface_src->Write(writer.get());
   client_src->Write(writer.get());
   server_src->Write(writer.get());
 
   const bool success = writer->Close();
   if (!success) {
-    io_delegate.RemovePath(options.OutputCppFilePath());
+    io_delegate.RemovePath(options.OutputFile());
   }
 
   return success;
 }
 
-bool GenerateCppParcel(const CppOptions& options, const cpp::TypeNamespace& types,
-                       const AidlStructuredParcelable& parcelable, const IoDelegate& io_delegate) {
+bool GenerateCppParcel(const string& output_file, const Options& options,
+                       const cpp::TypeNamespace& types, const AidlStructuredParcelable& parcelable,
+                       const IoDelegate& io_delegate) {
   auto header = BuildParcelHeader(types, parcelable);
   auto source = BuildParcelSource(types, parcelable);
 
@@ -1063,23 +1061,23 @@ bool GenerateCppParcel(const CppOptions& options, const cpp::TypeNamespace& type
   bn_writer->Write("#error TODO(b/111362593) parcelables do not have bn classes");
   CHECK(bn_writer->Close());
 
-  unique_ptr<CodeWriter> source_writer = io_delegate.GetCodeWriter(options.OutputCppFilePath());
+  unique_ptr<CodeWriter> source_writer = io_delegate.GetCodeWriter(output_file);
   source->Write(source_writer.get());
   CHECK(source_writer->Close());
 
   return true;
 }
 
-bool GenerateCpp(const CppOptions& options, const TypeNamespace& types,
+bool GenerateCpp(const string& output_file, const Options& options, const TypeNamespace& types,
                  const AidlDefinedType& defined_type, const IoDelegate& io_delegate) {
   const AidlStructuredParcelable* parcelable = defined_type.AsStructuredParcelable();
   if (parcelable != nullptr) {
-    return GenerateCppParcel(options, types, *parcelable, io_delegate);
+    return GenerateCppParcel(output_file, options, types, *parcelable, io_delegate);
   }
 
   const AidlInterface* interface = defined_type.AsInterface();
   if (interface != nullptr) {
-    return GenerateCppInterface(options, types, *interface, io_delegate);
+    return GenerateCppInterface(output_file, options, types, *interface, io_delegate);
   }
 
   CHECK(false) << "Unrecognized type sent for cpp generation.";

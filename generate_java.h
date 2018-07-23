@@ -26,23 +26,23 @@
 namespace android {
 namespace aidl {
 
-class JavaOptions;
+class Options;
 
 namespace java {
 
 class JavaTypeNamespace;
 
-int generate_java(const std::string& filename, const std::string& original_src,
-                  const AidlDefinedType* iface, java::JavaTypeNamespace* types,
-                  const IoDelegate& io_delegate, const JavaOptions& options);
+bool generate_java(const std::string& filename, const std::string& original_src,
+                   const AidlDefinedType* iface, java::JavaTypeNamespace* types,
+                   const IoDelegate& io_delegate, const Options& options);
 
-android::aidl::java::Class* generate_binder_interface_class(
-    const AidlInterface* iface, java::JavaTypeNamespace* types,
-    const JavaOptions& options);
+android::aidl::java::Class* generate_binder_interface_class(const AidlInterface* iface,
+                                                            java::JavaTypeNamespace* types,
+                                                            const Options& options);
 
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
                                                   java::JavaTypeNamespace* types,
-                                                  const JavaOptions& options);
+                                                  const Options& options);
 
 }  // namespace java
 
