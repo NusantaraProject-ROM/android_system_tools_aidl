@@ -78,6 +78,16 @@ bool CodeWriter::Close() {
   return true;
 }
 
+CodeWriter& CodeWriter::operator<<(const char* s) {
+  Write(s);
+  return *this;
+}
+
+CodeWriter& CodeWriter::operator<<(const std::string& str) {
+  Write(str.c_str());
+  return *this;
+}
+
 CodeWriterPtr CodeWriter::ForFile(const std::string& filename) {
   std::unique_ptr<std::ostream> stream;
   if (filename == "-") {
