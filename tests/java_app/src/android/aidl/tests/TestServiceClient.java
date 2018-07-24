@@ -708,6 +708,14 @@ public class TestServiceClient extends Activity {
       parcelable.f = kDesiredFValue;
       parcelable.shouldBeJerry = "";
 
+      if (!parcelable.stringDefaultsToFoo.equals("foo")) {
+        mLog.logAndThrow(
+            "stringDefaultsToFoo should be 'foo' but is " + parcelable.stringDefaultsToFoo);
+      }
+      if (parcelable.intDefaultsToFive != 5) {
+        mLog.logAndThrow("intDefaultsToFive should be 5 but is " + parcelable.intDefaultsToFive);
+      }
+
       try {
         service.FillOutStructuredParcelable(parcelable);
       } catch (RemoteException ex) {

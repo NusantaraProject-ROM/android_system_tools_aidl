@@ -199,6 +199,9 @@ variable_decl
  : type identifier ';' {
    $$ = new AidlVariableDeclaration($1, $2->GetText(), @2.begin.line);
  }
+ | type identifier '=' constant_value ';' {
+   $$ = new AidlVariableDeclaration($1, $2->GetText(), @2.begin.line, $4);
+ }
  | error ';' {
    ps->AddError();
    $$ = nullptr;

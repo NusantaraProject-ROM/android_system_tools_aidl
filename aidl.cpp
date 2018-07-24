@@ -171,6 +171,10 @@ int check_types(const string& filename, const AidlStructuredParcelable* parcel,
                 TypeNamespace* types) {
   int err = 0;
   for (const auto& v : parcel->GetFields()) {
+    if (!v->CheckValid()) {
+      err = 1;
+    }
+
     if (!types->MaybeAddContainerType(v->GetType())) {
       err = 1;  // return type is invalid
     }

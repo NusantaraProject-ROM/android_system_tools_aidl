@@ -151,16 +151,22 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   DISALLOW_COPY_AND_ASSIGN(AidlTypeSpecifier);
 };
 
+class AidlConstantValue;
 class AidlVariableDeclaration : public AidlNode {
  public:
   AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name, unsigned line);
+  AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name, unsigned line,
+                          AidlConstantValue* default_value);
   virtual ~AidlVariableDeclaration() = default;
 
   std::string GetName() const { return name_; }
   int GetLine() const { return line_; }
   const AidlTypeSpecifier& GetType() const { return *type_; }
+  const AidlConstantValue* GetDefaultValue() const { return default_value_.get(); }
+
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
+  bool CheckValid() const;
   std::string ToString() const;
   std::string Signature() const;
 
@@ -168,6 +174,7 @@ class AidlVariableDeclaration : public AidlNode {
   std::unique_ptr<AidlTypeSpecifier> type_;
   std::string name_;
   unsigned line_;
+  std::unique_ptr<AidlConstantValue> default_value_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlVariableDeclaration);
 };
