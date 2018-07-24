@@ -48,6 +48,9 @@ class CodeWriter {
   virtual ~CodeWriter() = default;
   CodeWriter() = default;
 
+  CodeWriter& operator<<(const char* s);
+  CodeWriter& operator<<(const std::string& str);
+
  private:
   CodeWriter(std::unique_ptr<std::ostream> ostream);
   std::string ApplyIndent(const std::string& str);
