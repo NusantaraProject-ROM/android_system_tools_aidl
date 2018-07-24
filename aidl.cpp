@@ -436,27 +436,14 @@ int check_and_assign_method_ids(const char * filename,
 bool validate_constants(const AidlInterface& interface) {
   bool success = true;
   set<string> names;
-  for (const std::unique_ptr<AidlIntConstant>& int_constant :
-       interface.GetIntConstants()) {
-    if (names.count(int_constant->GetName()) > 0) {
-      LOG(ERROR) << "Found duplicate constant name '" << int_constant->GetName()
-                 << "'";
+  for (const std::unique_ptr<AidlConstantDeclaration>& constant :
+       interface.GetConstantDeclarations()) {
+    if (names.count(constant->GetName()) > 0) {
+      LOG(ERROR) << "Found duplicate constant name '" << constant->GetName() << "'";
       success = false;
     }
-    names.insert(int_constant->GetName());
-    // We've logged an error message for this on object construction.
-    success = success && int_constant->IsValid();
-  }
-  for (const std::unique_ptr<AidlStringConstant>& string_constant :
-       interface.GetStringConstants()) {
-    if (names.count(string_constant->GetName()) > 0) {
-      LOG(ERROR) << "Found duplicate constant name '" << string_constant->GetName()
-                 << "'";
-      success = false;
-    }
-    names.insert(string_constant->GetName());
-    // We've logged an error message for this on object construction.
-    success = success && string_constant->IsValid();
+    names.insert(constant->GetName());
+    success = success && constant->CheckValid();
   }
   return success;
 }
