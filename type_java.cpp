@@ -439,7 +439,7 @@ static void EnsureClassLoader(StatementBlock* addTo, Variable** cl,
                               const JavaTypeNamespace* types) {
   // We don't want to look up the class loader once for every
   // collection argument, so ensure we do it at most once per method.
-  if (*cl == NULL) {
+  if (*cl == nullptr) {
     *cl = new Variable(types->ClassLoaderType(), "cl");
     addTo->Add(new VariableDeclaration(
         *cl, new LiteralExpression("this.getClass().getClassLoader()"),
