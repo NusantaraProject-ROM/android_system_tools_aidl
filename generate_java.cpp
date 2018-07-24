@@ -162,7 +162,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     const Type* type = variable->GetType().GetLanguageType<Type>();
     Variable* variable_element =
         new Variable(type, variable->GetName(), variable->GetType().IsArray() ? 1 : 0);
-    type->CreateFromParcel(read_method->statements, variable_element, parcel_variable, 0 /*flags*/);
+    type->CreateFromParcel(read_method->statements, variable_element, parcel_variable, nullptr /*flags*/);
   }
   parcel_class->elements.push_back(read_method);
 
