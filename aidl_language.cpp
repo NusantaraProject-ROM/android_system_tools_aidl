@@ -142,10 +142,32 @@ bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
 
 AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
                                                  unsigned line)
-    : type_(type), name_(name), line_(line) {}
+    : AidlVariableDeclaration(type, name, line, nullptr /*default_value*/) {}
+
+AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
+                                                 unsigned line, AidlConstantValue* default_value)
+    : type_(type), name_(name), line_(line), default_value_(default_value) {}
+
+bool AidlVariableDeclaration::CheckValid() const {
+  if (default_value_ == nullptr) return true;
+
+  const string given_type = type_->GetName();
+  const string value_type = AidlConstantValue::ToString(default_value_->GetType());
+
+  if (given_type != value_type) {
+    cerr << "Declaration " << name_ << " is of type " << given_type << " but value is of type "
+         << value_type << " on line " << line_ << endl;
+    return false;
+  }
+  return true;
+}
 
 string AidlVariableDeclaration::ToString() const {
-  return type_->ToString() + " " + name_;
+  string ret = type_->ToString() + " " + name_;
+  if (default_value_ != nullptr) {
+    ret += " = " + default_value_->ToString();
+  }
+  return ret;
 }
 
 string AidlVariableDeclaration::Signature() const {
