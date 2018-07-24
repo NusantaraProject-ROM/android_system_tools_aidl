@@ -250,7 +250,7 @@ struct VariableDeclaration : public Statement {
 
   explicit VariableDeclaration(Variable* lvalue);
   VariableDeclaration(Variable* lvalue, Expression* rvalue,
-                      const Type* cast = NULL);
+                      const Type* cast = nullptr);
   virtual ~VariableDeclaration() = default;
   void Write(CodeWriter* to) const override;
 };

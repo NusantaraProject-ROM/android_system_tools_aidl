@@ -238,7 +238,7 @@ void StubClass::make_as_interface(const InterfaceType* interfaceType,
   IInterfaceType* iinType = new IInterfaceType(types);
   Variable* iin = new Variable(iinType, "iin");
   VariableDeclaration* iinVd =
-      new VariableDeclaration(iin, queryLocalInterface, NULL);
+      new VariableDeclaration(iin, queryLocalInterface, nullptr);
   m->statements->Add(iinVd);
 
   // Ensure the instance type of the local object is as expected.
@@ -390,7 +390,7 @@ static void generate_stub_code(const AidlInterface& iface,
   // args
   VariableFactory stubArgs("_arg");
   {
-    Variable* cl = NULL;
+    Variable* cl = nullptr;
     for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
       const Type* t = arg->GetType().GetLanguageType<Type>();
       Variable* v = stubArgs.Get(t);
@@ -592,7 +592,7 @@ static std::unique_ptr<Method> generate_proxy_method(
   Variable* _data = new Variable(types->ParcelType(), "_data");
   proxy->statements->Add(new VariableDeclaration(
       _data, new MethodCall(types->ParcelType(), "obtain")));
-  Variable* _reply = NULL;
+  Variable* _reply = nullptr;
   if (!oneway) {
     _reply = new Variable(types->ParcelType(), "_reply");
     proxy->statements->Add(new VariableDeclaration(
@@ -600,7 +600,7 @@ static std::unique_ptr<Method> generate_proxy_method(
   }
 
   // the return value
-  Variable* _result = NULL;
+  Variable* _result = nullptr;
   if (method.GetType().GetName() != "void") {
     _result = new Variable(proxy->returnType, "_result",
                            method.GetType().IsArray() ? 1 : 0);
@@ -680,9 +680,9 @@ static std::unique_ptr<Method> generate_proxy_method(
   }
 
   // returning and cleanup
-  if (_reply != NULL) {
+  if (_reply != nullptr) {
     Variable* cl = nullptr;
-    if (_result != NULL) {
+    if (_result != nullptr) {
       generate_create_from_parcel(proxy->returnType, tryStatement->statements,
                                   _result, _reply, &cl);
     }
@@ -707,7 +707,7 @@ static std::unique_ptr<Method> generate_proxy_method(
         new LiteralExpression("android.os.Trace.TRACE_TAG_AIDL")));
   }
 
-  if (_result != NULL) {
+  if (_result != nullptr) {
     proxy->statements->Add(new ReturnStatement(_result));
   }
 
