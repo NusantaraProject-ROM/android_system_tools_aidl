@@ -560,8 +560,6 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
                                  std::vector<std::unique_ptr<AidlImport>>* returned_imports) {
   AidlError err = AidlError::OK;
 
-  std::map<AidlImport*,std::unique_ptr<AidlDocument>> docs;
-
   AidlTypenames typenames;
 
   // import the preprocessed file
@@ -646,7 +644,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
 
     std::unique_ptr<AidlDocument> document(p.ReleaseDocument());
     if (!check_filenames(import->GetFilename(), *document)) err = AidlError::BAD_IMPORT;
-    docs[import.get()] = std::move(document);
+    import->SetAidlDocument(std::move(document));
   }
   if (err != AidlError::OK) {
     return err;
@@ -675,12 +673,12 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   for (const auto& import : p.GetImports()) {
     // If we skipped an unresolved import above (see comment there) we'll have
     // an empty bucket here.
-    const auto import_itr = docs.find(import.get());
-    if (import_itr == docs.cend()) {
+    const AidlDocument* doc = import->GetAidlDocument();
+    if (doc == nullptr) {
       continue;
     }
 
-    if (!gather_types(import->GetFilename(), *import_itr->second, types)) {
+    if (!gather_types(import->GetFilename(), *doc, types)) {
       err = AidlError::BAD_TYPE;
     }
   }
