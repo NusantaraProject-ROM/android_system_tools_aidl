@@ -47,25 +47,16 @@ namespace aidl {
 // to resolve type names in AidlTypeSpecifier.
 //
 // Note that nothing here is specific to either Java or C++.
-class AidlTypenames {
+class AidlTypenames final {
  public:
   AidlTypenames() = default;
   bool AddDefinedType(const AidlDefinedType* type);
   bool AddPreprocessedType(unique_ptr<AidlDefinedType> type);
-  bool IsBuiltinTypename(const string& type_name);
-  const AidlDefinedType* TryGetDefinedType(const string& type_name);
-  pair<string, bool> ResolveTypename(const string& type_name);
+  static bool IsBuiltinTypename(const string& type_name);
+  const AidlDefinedType* TryGetDefinedType(const string& type_name) const;
+  pair<string, bool> ResolveTypename(const string& type_name) const;
 
  private:
-  // The built-in AIDL types..
-  // Note: the last three types may look wrong because they look like Java
-  // types, but they have long been supported from the time when Java
-  // was the only target language of this compiler. They are added here for
-  // backwards compatibility.
-  set<string> builtin_types_{
-      "void",           "boolean",      "byte",           "char",         "int", "long",
-      "float",          "double",       "String",         "List",         "Map", "IBinder",
-      "FileDescriptor", "CharSequence", "java.util.List", "java.util.Map"};
   map<string, const AidlDefinedType*> defined_types_;
   map<string, unique_ptr<AidlDefinedType>> preprocessed_types_;
 };
