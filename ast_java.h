@@ -350,10 +350,9 @@ struct LiteralClassElement : public ClassElement {
 
 struct IntConstant : public ClassElement {
   const std::string name;
-  const int value;
+  const std::string value;
 
-  IntConstant(std::string name, int value)
-      : name(name), value(value) {}
+  IntConstant(const std::string& name, const std::string& value) : name(name), value(value) {}
   virtual ~IntConstant() = default;
 
   void Write(CodeWriter* to) const override;

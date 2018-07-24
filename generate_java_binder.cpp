@@ -337,16 +337,15 @@ static void generate_create_from_parcel(const Type* t, StatementBlock* addTo,
   t->CreateFromParcel(addTo, v, parcel, cl);
 }
 
-static void generate_int_constant(const AidlIntConstant& constant,
-                                  Class* interface) {
-  IntConstant* decl = new IntConstant(constant.GetName(), constant.GetValue());
+static void generate_int_constant(Class* interface, const std::string& name,
+                                  const std::string& value) {
+  IntConstant* decl = new IntConstant(name, value);
   interface->elements.push_back(decl);
 }
 
-static void generate_string_constant(const AidlStringConstant& constant,
-                                     Class* interface) {
-  StringConstant* decl = new StringConstant(constant.GetName(),
-                                            constant.GetValue());
+static void generate_string_constant(Class* interface, const std::string& name,
+                                     const std::string& value) {
+  StringConstant* decl = new StringConstant(name, value);
   interface->elements.push_back(decl);
 }
 
@@ -909,11 +908,22 @@ Class* generate_binder_interface_class(const AidlInterface* iface,
   generate_interface_descriptors(stub, proxy, types);
 
   // all the declared constants of the interface
-  for (const auto& item : iface->GetIntConstants()) {
-    generate_int_constant(*item, interface);
-  }
-  for (const auto& item : iface->GetStringConstants()) {
-    generate_string_constant(*item, interface);
+  for (const auto& constant : iface->GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
+
+    switch (value.GetType()) {
+      case AidlConstantValue::Type::STRING: {
+        generate_string_constant(interface, constant->GetName(), value.ToString());
+        break;
+      }
+      case AidlConstantValue::Type::INTEGER: {
+        generate_int_constant(interface, constant->GetName(), value.ToString());
+        break;
+      }
+      default: {
+        LOG(FATAL) << "Unrecognized constant type: " << static_cast<int>(value.GetType());
+      }
+    }
   }
 
   // all the declared methods of the interface

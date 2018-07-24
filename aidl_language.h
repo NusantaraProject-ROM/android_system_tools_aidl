@@ -198,58 +198,65 @@ class AidlArgument : public AidlVariableDeclaration {
 };
 
 class AidlMethod;
-class AidlIntConstant;
-class AidlStringConstant;
+class AidlConstantDeclaration;
 class AidlMember : public AidlNode {
  public:
   AidlMember() = default;
   virtual ~AidlMember() = default;
 
   virtual AidlMethod* AsMethod() { return nullptr; }
-  virtual AidlIntConstant* AsIntConstant() { return nullptr; }
-  virtual AidlStringConstant* AsStringConstant() { return nullptr; }
+  virtual AidlConstantDeclaration* AsConstantDeclaration() { return nullptr; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(AidlMember);
 };
 
-class AidlIntConstant : public AidlMember {
+class AidlConstantValue : public AidlNode {
  public:
-  AidlIntConstant(std::string name, int32_t value);
-  AidlIntConstant(std::string name, std::string value, unsigned line_number);
-  virtual ~AidlIntConstant() = default;
+  enum class Type { ERROR, INTEGER, STRING };
+  static string ToString(Type type);
 
-  const std::string& GetName() const { return name_; }
-  int GetValue() const { return value_; }
-  bool IsValid() const { return is_valid_; }
+  virtual ~AidlConstantValue() = default;
 
-  AidlIntConstant* AsIntConstant() override { return this; }
+  static AidlConstantValue* LiteralInt(const int32_t value);
+  // example: "0x4f"
+  static AidlConstantValue* ParseHex(const std::string& value, unsigned line);
+  // example: "\"asdf\""
+  static AidlConstantValue* ParseString(const std::string& value, unsigned line);
+
+  Type GetType() const { return type_; }
+  string ToString() const;
 
  private:
-  std::string name_;
-  int32_t value_;
-  bool is_valid_;
+  AidlConstantValue() = default;
+  AidlConstantValue(Type type, const std::string& checked_value);
 
-  DISALLOW_COPY_AND_ASSIGN(AidlIntConstant);
+  const Type type_ = Type::ERROR;
+  const std::string value_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlConstantValue);
 };
 
-class AidlStringConstant : public AidlMember {
+class AidlConstantDeclaration : public AidlMember {
  public:
-  AidlStringConstant(std::string name, std::string value, unsigned line_number);
-  virtual ~AidlStringConstant() = default;
+  AidlConstantDeclaration(AidlTypeSpecifier* specifier, std::string name, AidlConstantValue* value,
+                          unsigned line);
+  virtual ~AidlConstantDeclaration() = default;
 
+  const AidlTypeSpecifier& GetType() const { return *type_; }
   const std::string& GetName() const { return name_; }
-  const std::string& GetValue() const { return value_; }
-  bool IsValid() const { return is_valid_; }
+  const AidlConstantValue& GetValue() const { return *value_; }
+  bool CheckValid() const;
 
-  AidlStringConstant* AsStringConstant() override { return this; }
+  AidlConstantDeclaration* AsConstantDeclaration() override { return this; }
 
  private:
-  std::string name_;
-  std::string value_;
-  bool is_valid_;
+  const unique_ptr<AidlTypeSpecifier> type_;
+  const std::string name_;
+  const unique_ptr<AidlConstantValue> value_;
+  const unsigned line_;
 
-  DISALLOW_COPY_AND_ASSIGN(AidlStringConstant);
+  DISALLOW_COPY_AND_ASSIGN(AidlConstantDeclaration);
 };
 
 class AidlMethod : public AidlMember {
@@ -459,10 +466,9 @@ class AidlInterface final : public AidlDefinedType {
   bool IsOneway() const { return oneway_; }
   const std::vector<std::unique_ptr<AidlMethod>>& GetMethods() const
       { return methods_; }
-  const std::vector<std::unique_ptr<AidlIntConstant>>& GetIntConstants() const
-      { return int_constants_; }
-  const std::vector<std::unique_ptr<AidlStringConstant>>&
-      GetStringConstants() const { return string_constants_; }
+  const std::vector<std::unique_ptr<AidlConstantDeclaration>>& GetConstantDeclarations() const {
+    return constants_;
+  }
 
   void SetGenerateTraces(bool generate_traces) {
     generate_traces_ = generate_traces;
@@ -480,8 +486,7 @@ class AidlInterface final : public AidlDefinedType {
  private:
   bool oneway_;
   std::vector<std::unique_ptr<AidlMethod>> methods_;
-  std::vector<std::unique_ptr<AidlIntConstant>> int_constants_;
-  std::vector<std::unique_ptr<AidlStringConstant>> string_constants_;
+  std::vector<std::unique_ptr<AidlConstantDeclaration>> constants_;
 
   bool generate_traces_ = false;
 
