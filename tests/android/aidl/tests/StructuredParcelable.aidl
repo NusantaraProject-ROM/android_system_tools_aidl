@@ -20,4 +20,7 @@ parcelable StructuredParcelable {
     int[] shouldContainThreeFs;
     int f;
     @utf8InCpp String shouldBeJerry;
+
+    String stringDefaultsToFoo = "foo";
+    int intDefaultsToFive = 5;
 }
