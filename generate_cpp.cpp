@@ -646,15 +646,17 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
                              '"' + fq_name + '"'}}}};
   decls.push_back(std::move(meta_if));
 
-  for (const auto& constant: interface.GetStringConstants()) {
+  for (const auto& constant : interface.GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
+    if (value.GetType() != AidlConstantValue::Type::STRING) continue;
+
     unique_ptr<MethodImpl> getter(new MethodImpl(
         "const ::android::String16&",
         ClassName(interface, ClassNames::INTERFACE),
         constant->GetName(),
         {}));
     getter->GetStatementBlock()->AddLiteral(
-        StringPrintf("static const ::android::String16 value(%s)",
-                     constant->GetValue().c_str()));
+        StringPrintf("static const ::android::String16 value(%s)", value.ToString().c_str()));
     getter->GetStatementBlock()->AddLiteral("return value");
     decls.push_back(std::move(getter));
   }
@@ -779,28 +781,40 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
       "DECLARE_META_INTERFACE",
       ArgList{vector<string>{ClassName(interface, ClassNames::BASE)}}}});
 
-  unique_ptr<Enum> constant_enum{new Enum{"", "int32_t"}};
-  for (const auto& constant : interface.GetIntConstants()) {
-    constant_enum->AddValue(
-        constant->GetName(), std::to_string(constant->GetValue()));
-  }
-  if (constant_enum->HasValues()) {
-    if_class->AddPublic(std::move(constant_enum));
-  }
+  std::vector<std::unique_ptr<Declaration>> string_constants;
+  unique_ptr<Enum> int_constant_enum{new Enum{"", "int32_t"}};
+  for (const auto& constant : interface.GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
 
-  if (!interface.GetStringConstants().empty()) {
+    switch (value.GetType()) {
+      case AidlConstantValue::Type::STRING: {
+        unique_ptr<Declaration> getter(new MethodDecl(
+            "const ::android::String16&", constant->GetName(), {}, MethodDecl::IS_STATIC));
+        string_constants.push_back(std::move(getter));
+        break;
+      }
+      case AidlConstantValue::Type::INTEGER: {
+        int_constant_enum->AddValue(constant->GetName(), value.ToString());
+        break;
+      }
+      default: {
+        LOG(FATAL) << "Unrecognized constant type: " << static_cast<int>(value.GetType());
+      }
+    }
+  }
+  if (int_constant_enum->HasValues()) {
+    if_class->AddPublic(std::move(int_constant_enum));
+  }
+  if (!string_constants.empty()) {
     includes.insert(kString16Header);
+
+    for (auto& string_constant : string_constants) {
+      if_class->AddPublic(std::move(string_constant));
+    }
   }
 
   if (interface.ShouldGenerateTraces()) {
     includes.insert(kTraceHeader);
-  }
-
-  for (const auto& constant : interface.GetStringConstants()) {
-    unique_ptr<MethodDecl> getter(new MethodDecl(
-          "const ::android::String16&", constant->GetName(),
-          {}, MethodDecl::IS_STATIC));
-    if_class->AddPublic(std::move(getter));
   }
 
   if (!interface.GetMethods().empty()) {
