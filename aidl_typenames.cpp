@@ -42,6 +42,22 @@ using std::vector;
 namespace android {
 namespace aidl {
 
+// The built-in AIDL types..
+static const set<string> kBuiltinTypes = {
+    "void",           "boolean",      "byte",           "char",         "int", "long",
+    "float",          "double",       "String",         "List",         "Map", "IBinder",
+    "FileDescriptor", "CharSequence"};
+
+// Note: these types may look wrong because they look like Java
+// types, but they have long been supported from the time when Java
+// was the only target language of this compiler. They are added here for
+// backwards compatibility, but we internally treat them as List and Map,
+// respectively.
+static const map<string, string> kJavaLikeTypeToAidlType = {
+  {"java.util.List", "List"},
+  {"java.util.Map", "Map"},
+};
+
 bool AidlTypenames::AddDefinedType(const AidlDefinedType* type) {
   const string name = type->GetCanonicalName();
   if (defined_types_.find(name) != defined_types_.end()) {
@@ -61,17 +77,20 @@ bool AidlTypenames::AddPreprocessedType(unique_ptr<AidlDefinedType> type) {
 }
 
 bool AidlTypenames::IsBuiltinTypename(const string& type_name) {
-  return builtin_types_.find(type_name) != builtin_types_.end();
+  return kBuiltinTypes.find(type_name) != kBuiltinTypes.end() ||
+      kJavaLikeTypeToAidlType.find(type_name) != kJavaLikeTypeToAidlType.end();
 }
 
-const AidlDefinedType* AidlTypenames::TryGetDefinedType(const string& type_name) {
+const AidlDefinedType* AidlTypenames::TryGetDefinedType(const string& type_name) const {
   // Do the exact match first.
-  if (defined_types_.find(type_name) != defined_types_.end()) {
-    return defined_types_[type_name];
+  auto found_def = defined_types_.find(type_name);
+  if (found_def != defined_types_.end()) {
+    return found_def->second;
   }
 
-  if (preprocessed_types_.find(type_name) != preprocessed_types_.end()) {
-    return preprocessed_types_[type_name].get();
+  auto found_prep = preprocessed_types_.find(type_name);
+  if (found_prep != preprocessed_types_.end()) {
+    return found_prep->second.get();
   }
 
   // Then match with the class name. Defined types has higher priority than
@@ -91,8 +110,12 @@ const AidlDefinedType* AidlTypenames::TryGetDefinedType(const string& type_name)
   return nullptr;
 }
 
-pair<string, bool> AidlTypenames::ResolveTypename(const string& type_name) {
+pair<string, bool> AidlTypenames::ResolveTypename(const string& type_name) const {
   if (IsBuiltinTypename(type_name)) {
+    auto found = kJavaLikeTypeToAidlType.find(type_name);
+    if (found != kJavaLikeTypeToAidlType.end()) {
+      return make_pair(found->second, true);
+    }
     return make_pair(type_name, true);
   }
   const AidlDefinedType* defined_type = TryGetDefinedType(type_name);
