@@ -29,7 +29,7 @@ namespace android {
 namespace aidl {
 namespace cpp {
 
-bool GenerateCpp(const CppOptions& options, const cpp::TypeNamespace& types,
+bool GenerateCpp(const string& output_file, const Options& options, const cpp::TypeNamespace& types,
                  const AidlDefinedType& parsed_doc, const IoDelegate& io_delegate);
 
 // These roughly correspond to the various class names in the C++ hierarchy:

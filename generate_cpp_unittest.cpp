@@ -1511,17 +1511,17 @@ class IoErrorHandlingTest : public ASTTest {
                 "package a; interface IFoo {}"),
         options_(GetOptions()) {}
 
-  const unique_ptr<CppOptions> options_;
+  const unique_ptr<Options> options_;
 
  private:
-  static unique_ptr<CppOptions> GetOptions() {
+  static unique_ptr<Options> GetOptions() {
     using namespace test_io_handling;
 
     const int argc = 4;
     const char* cmdline[argc] = {
       "aidl-cpp", kInputPath, kHeaderDir, kOutputPath
     };
-    return CppOptions::Parse(argc, cmdline);
+    return unique_ptr<Options>(new Options(argc, cmdline, Options::Language::CPP));
   }
 };
 
@@ -1529,7 +1529,7 @@ TEST_F(IoErrorHandlingTest, GenerateCorrectlyAbsentErrors) {
   // Confirm that this is working correctly without I/O problems.
   const unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  ASSERT_TRUE(GenerateCpp(*options_, types_, *interface, io_delegate_));
+  ASSERT_TRUE(GenerateCpp(options_->OutputFile(), *options_, types_, *interface, io_delegate_));
 }
 
 TEST_F(IoErrorHandlingTest, HandlesBadHeaderWrite) {
@@ -1542,7 +1542,7 @@ TEST_F(IoErrorHandlingTest, HandlesBadHeaderWrite) {
       StringPrintf("%s%c%s", kHeaderDir, OS_PATH_SEPARATOR,
                    kInterfaceHeaderRelPath);
   io_delegate_.AddBrokenFilePath(header_path);
-  ASSERT_FALSE(GenerateCpp(*options_, types_, *interface, io_delegate_));
+  ASSERT_FALSE(GenerateCpp(options_->OutputFile(), *options_, types_, *interface, io_delegate_));
   // We should never attempt to write the C++ file if we fail writing headers.
   ASSERT_FALSE(io_delegate_.GetWrittenContents(kOutputPath, nullptr));
   // We should remove partial results.
@@ -1556,7 +1556,7 @@ TEST_F(IoErrorHandlingTest, HandlesBadCppWrite) {
 
   // Simulate issues closing the cpp file.
   io_delegate_.AddBrokenFilePath(kOutputPath);
-  ASSERT_FALSE(GenerateCpp(*options_, types_, *interface, io_delegate_));
+  ASSERT_FALSE(GenerateCpp(options_->OutputFile(), *options_, types_, *interface, io_delegate_));
   // We should remove partial results.
   ASSERT_TRUE(io_delegate_.PathWasRemoved(kOutputPath));
 }

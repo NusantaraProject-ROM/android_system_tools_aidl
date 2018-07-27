@@ -64,7 +64,7 @@ cc_library_host_static {
 cc_binary_host {
     name: "aidl",
     defaults: ["aidl_defaults"],
-    srcs: ["main_java.cpp"],
+    srcs: ["main.cpp"],
     static_libs: [
         "libaidl-common",
         "libbase",

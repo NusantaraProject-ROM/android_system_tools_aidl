@@ -46,13 +46,10 @@ enum class AidlError {
   OK = 0,
 };
 
-int compile_aidl_to_cpp(const CppOptions& options,
-                        const IoDelegate& io_delegate);
-int compile_aidl_to_java(const JavaOptions& options,
-                         const IoDelegate& io_delegate);
-bool preprocess_aidl(const JavaOptions& options,
-                     const IoDelegate& io_delegate);
-bool dump_api(const JavaOptions& options, const IoDelegate& io_delegate);
+int compile_aidl_to_cpp(const Options& options, const IoDelegate& io_delegate);
+int compile_aidl_to_java(const Options& options, const IoDelegate& io_delegate);
+bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate);
+bool dump_api(const Options& options, const IoDelegate& io_delegate);
 
 namespace internals {
 

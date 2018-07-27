@@ -42,8 +42,8 @@ namespace java {
 // =================================================
 class StubClass : public Class {
  public:
-  StubClass(const Type* type, const InterfaceType* interfaceType,
-            JavaTypeNamespace* types, const JavaOptions& options);
+  StubClass(const Type* type, const InterfaceType* interfaceType, JavaTypeNamespace* types,
+            const Options& options);
   virtual ~StubClass() = default;
 
   Variable* transact_code;
@@ -72,13 +72,13 @@ class StubClass : public Class {
                          JavaTypeNamespace* types);
 
   Variable* transact_descriptor;
-  const JavaOptions& options_;
+  const Options& options_;
 
   DISALLOW_COPY_AND_ASSIGN(StubClass);
 };
 
-StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
-                     JavaTypeNamespace* types, const JavaOptions& options)
+StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaTypeNamespace* types,
+                     const Options& options)
     : Class(), options_(options) {
   transact_descriptor = nullptr;
   transact_outline = false;
@@ -125,7 +125,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType,
   this->elements.push_back(asBinder);
 
   // getTransactionName
-  if (options_.ShouldGenGetTransactionName()) {
+  if (options_.GenTransactionNames()) {
     Method* getTransactionName = new Method;
     getTransactionName->modifiers = PUBLIC;
     getTransactionName->returnType = types->StringType();
@@ -170,7 +170,7 @@ void StubClass::finish() {
   transact_statements->Add(this->transact_switch);
 
   // getTransactionName
-  if (options_.ShouldGenGetTransactionName()) {
+  if (options_.GenTransactionNames()) {
     // Some transaction codes are common, e.g. INTERFACE_TRANSACTION or DUMP_TRANSACTION.
     // Common transaction codes will not be resolved to a string by getTransactionName. The method
     // will return NULL in this case.
@@ -714,14 +714,9 @@ static std::unique_ptr<Method> generate_proxy_method(
   return proxy;
 }
 
-static void generate_methods(const AidlInterface& iface,
-                             const AidlMethod& method,
-                             Class* interface,
-                             StubClass* stubClass,
-                             ProxyClass* proxyClass,
-                             int index,
-                             JavaTypeNamespace* types,
-                             const JavaOptions& options) {
+static void generate_methods(const AidlInterface& iface, const AidlMethod& method, Class* interface,
+                             StubClass* stubClass, ProxyClass* proxyClass, int index,
+                             JavaTypeNamespace* types, const Options& options) {
   const bool oneway = proxyClass->mOneWay || method.IsOneway();
 
   // == the TRANSACT_ constant =============================================
@@ -735,7 +730,7 @@ static void generate_methods(const AidlInterface& iface,
   stubClass->elements.push_back(transactCode);
 
   // getTransactionName
-  if (options.ShouldGenGetTransactionName()) {
+  if (options.GenTransactionNames()) {
     Case* c = new Case(transactCodeName);
     c->statements->Add(new ReturnStatement(new StringLiteralExpression(method.GetName())));
     stubClass->code_to_method_name_switch->cases.push_back(c);
@@ -873,9 +868,8 @@ static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface)
   return default_class;
 }
 
-Class* generate_binder_interface_class(const AidlInterface* iface,
-                                       JavaTypeNamespace* types,
-                                       const JavaOptions& options) {
+Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNamespace* types,
+                                       const Options& options) {
   const InterfaceType* interfaceType = iface->GetLanguageType<InterfaceType>();
 
   // the interface class

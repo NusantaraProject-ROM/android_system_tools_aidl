@@ -264,118 +264,83 @@ int check_types(const string& filename,
   return err;
 }
 
-void write_common_dep_file(const string& output_file,
-                           const vector<string>& aidl_sources,
-                           CodeWriter* writer,
-                           const bool ninja) {
+bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
+                    const vector<unique_ptr<AidlImport>>& imports, const IoDelegate& io_delegate,
+                    const string& input_file, const string& output_file) {
+  string dep_file_name = options.DependencyFile();
+  if (dep_file_name.empty() && options.AutoDepFile()) {
+    dep_file_name = output_file + ".d";
+  }
+
+  if (dep_file_name.empty()) {
+    return true;  // nothing to do
+  }
+  CodeWriterPtr writer = io_delegate.GetCodeWriter(dep_file_name);
+  if (!writer) {
+    LOG(ERROR) << "Could not open dependency file: " << dep_file_name;
+    return false;
+  }
+
+  vector<string> source_aidl = {input_file};
+  for (const auto& import : imports) {
+    if (!import->GetFilename().empty()) {
+      source_aidl.push_back(import->GetFilename());
+    }
+  }
+
   // Encode that the output file depends on aidl input files.
   writer->Write("%s : \\\n", output_file.c_str());
-  writer->Write("  %s", Join(aidl_sources, " \\\n  ").c_str());
+  writer->Write("  %s", Join(source_aidl, " \\\n  ").c_str());
   writer->Write("\n");
 
-  if (!ninja) {
+  if (!options.DependencyFileNinja()) {
     writer->Write("\n");
     // Output "<input_aidl_file>: " so make won't fail if the input .aidl file
     // has been deleted, moved or renamed in incremental build.
-    for (const auto& src : aidl_sources) {
+    for (const auto& src : source_aidl) {
       writer->Write("%s :\n", src.c_str());
     }
   }
-}
 
-bool write_java_dep_file(const JavaOptions& options,
-                         const vector<unique_ptr<AidlImport>>& imports,
-                         const IoDelegate& io_delegate,
-                         const string& output_file_name) {
-  string dep_file_name = options.DependencyFilePath();
-  if (dep_file_name.empty()) {
-    return true;  // nothing to do
-  }
-  CodeWriterPtr writer = io_delegate.GetCodeWriter(dep_file_name);
-  if (!writer) {
-    LOG(ERROR) << "Could not open dependency file: " << dep_file_name;
-    return false;
-  }
+  if (options.TargetLanguage() == Options::Language::CPP) {
+    if (!options.DependencyFileNinja()) {
+      using ::android::aidl::cpp::ClassNames;
+      using ::android::aidl::cpp::HeaderFile;
+      vector<string> headers;
+      for (ClassNames c : {ClassNames::CLIENT, ClassNames::SERVER, ClassNames::INTERFACE}) {
+        headers.push_back(options.OutputHeaderDir() + '/' +
+                          HeaderFile(defined_type, c, false /* use_os_sep */));
+      }
 
-  vector<string> source_aidl = {options.input_file_name_};
-  for (const auto& import : imports) {
-    if (!import->GetFilename().empty()) {
-      source_aidl.push_back(import->GetFilename());
+      writer->Write("\n");
+
+      // Generated headers also depend on the source aidl files.
+      writer->Write("%s : \\\n    %s\n", Join(headers, " \\\n    ").c_str(),
+                    Join(source_aidl, " \\\n    ").c_str());
     }
-  }
-
-  write_common_dep_file(output_file_name, source_aidl, writer.get(),
-                        options.DependencyFileNinja());
-
-  return true;
-}
-
-bool write_cpp_dep_file(const CppOptions& options, const AidlDefinedType& defined_type,
-                        const vector<unique_ptr<AidlImport>>& imports,
-                        const IoDelegate& io_delegate) {
-  using ::android::aidl::cpp::HeaderFile;
-  using ::android::aidl::cpp::ClassNames;
-
-  string dep_file_name = options.DependencyFilePath();
-  if (dep_file_name.empty()) {
-    return true;  // nothing to do
-  }
-  CodeWriterPtr writer = io_delegate.GetCodeWriter(dep_file_name);
-  if (!writer) {
-    LOG(ERROR) << "Could not open dependency file: " << dep_file_name;
-    return false;
-  }
-
-  vector<string> source_aidl = {options.InputFileName()};
-  for (const auto& import : imports) {
-    if (!import->GetFilename().empty()) {
-      source_aidl.push_back(import->GetFilename());
-    }
-  }
-
-  write_common_dep_file(options.OutputCppFilePath(), source_aidl, writer.get(),
-                        options.DependencyFileNinja());
-
-  if (!options.DependencyFileNinja()) {
-    vector<string> headers;
-    for (ClassNames c : {ClassNames::CLIENT,
-                         ClassNames::SERVER,
-                         ClassNames::INTERFACE}) {
-      headers.push_back(options.OutputHeaderDir() + '/' +
-                        HeaderFile(defined_type, c, false /* use_os_sep */));
-    }
-
-    writer->Write("\n");
-
-    // Generated headers also depend on the source aidl files.
-    writer->Write("%s : \\\n    %s\n", Join(headers, " \\\n    ").c_str(),
-                  Join(source_aidl, " \\\n    ").c_str());
   }
 
   return true;
 }
 
-string generate_outputFileName(const JavaOptions& options, const AidlDefinedType& defined_type) {
-  const string& name = defined_type.GetName();
-  string package = defined_type.GetPackage();
-  string result;
-
+string generate_outputFileName(const Options& options, const AidlDefinedType& defined_type) {
   // create the path to the destination folder based on the
   // defined_type package name
-  result = options.output_base_folder_;
+  string result = options.OutputDir();
   result += OS_PATH_SEPARATOR;
 
-  string packageStr = package;
-  size_t len = packageStr.length();
+  string package = defined_type.GetPackage();
+  size_t len = package.length();
   for (size_t i = 0; i < len; i++) {
-    if (packageStr[i] == '.') {
-      packageStr[i] = OS_PATH_SEPARATOR;
+    if (package[i] == '.') {
+      package[i] = OS_PATH_SEPARATOR;
     }
   }
 
-  result += packageStr;
+  result += package;
 
   // add the filename by replacing the .aidl extension to .java
+  const string& name = defined_type.GetName();
   result += OS_PATH_SEPARATOR;
   result.append(name, 0, name.find('.'));
   result += ".java";
@@ -717,78 +682,94 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
 
 } // namespace internals
 
-int compile_aidl_to_cpp(const CppOptions& options,
-                        const IoDelegate& io_delegate) {
-  unique_ptr<AidlDefinedType> defined_type;
-  std::vector<std::unique_ptr<AidlImport>> imports;
-  unique_ptr<cpp::TypeNamespace> types(new cpp::TypeNamespace());
-  types->Init();
-  ImportResolver import_resolver{io_delegate, options.ImportPaths(), {}};
-  AidlError err = internals::load_and_validate_aidl(
-      options.preprocessed_files_, import_resolver, options.InputFileName(),
-      options.ShouldGenTraces(), io_delegate, types.get(), &defined_type, &imports);
-  if (err != AidlError::OK) {
-    return 1;
+int compile_aidl_to_cpp(const Options& options, const IoDelegate& io_delegate) {
+  for (const string& input_file : options.InputFiles()) {
+    unique_ptr<AidlDefinedType> defined_type;
+    std::vector<std::unique_ptr<AidlImport>> imports;
+    unique_ptr<cpp::TypeNamespace> types(new cpp::TypeNamespace());
+    types->Init();
+    ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
+    AidlError err = internals::load_and_validate_aidl(options.PreprocessedFiles(), import_resolver,
+                                                      input_file, options.GenTraces(), io_delegate,
+                                                      types.get(), &defined_type, &imports);
+    if (err != AidlError::OK) {
+      return 1;
+    }
+
+    CHECK(defined_type != nullptr);
+
+    string output_file_name = options.OutputFile();
+    // if needed, generate the output file name from the base folder
+    if (output_file_name.empty() && !options.OutputDir().empty()) {
+      output_file_name = options.OutputDir() + defined_type->GetName() + ".cpp";
+    }
+
+    if (!write_dep_file(options, *defined_type, imports, io_delegate, input_file,
+                        output_file_name)) {
+      return 1;
+    }
+
+    bool success = cpp::GenerateCpp(output_file_name, options, *types, *defined_type, io_delegate);
+    if (!success) {
+      return 1;
+    }
   }
-
-  CHECK(defined_type != nullptr);
-
-  if (!write_cpp_dep_file(options, *defined_type, imports, io_delegate)) {
-    return 1;
-  }
-
-  return (cpp::GenerateCpp(options, *types, *defined_type, io_delegate)) ? 0 : 1;
+  return 0;
 }
 
-int compile_aidl_to_java(const JavaOptions& options,
-                         const IoDelegate& io_delegate) {
-  unique_ptr<AidlDefinedType> defined_type;
-  std::vector<std::unique_ptr<AidlImport>> imports;
-  unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
-  types->Init();
-  ImportResolver import_resolver{io_delegate, options.import_paths_, {}};
-  AidlError aidl_err = internals::load_and_validate_aidl(
-      options.preprocessed_files_, import_resolver, options.input_file_name_, options.gen_traces_,
-      io_delegate, types.get(), &defined_type, &imports);
-  if (aidl_err == AidlError::FOUND_PARCELABLE && !options.fail_on_parcelable_) {
-    // We aborted code generation because this file contains parcelables.
-    // However, we were not told to complain if we find parcelables.
-    // Just generate a dep file and exit quietly.  The dep file is for a legacy
-    // use case by the SDK.
-    write_java_dep_file(options, imports, io_delegate, "");
-    return 0;
-  }
-  if (aidl_err != AidlError::OK) {
-    return 1;
-  }
+int compile_aidl_to_java(const Options& options, const IoDelegate& io_delegate) {
+  for (const string& input_file : options.InputFiles()) {
+    unique_ptr<AidlDefinedType> defined_type;
+    std::vector<std::unique_ptr<AidlImport>> imports;
+    unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
+    types->Init();
+    ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
+    AidlError aidl_err = internals::load_and_validate_aidl(
+        options.PreprocessedFiles(), import_resolver, input_file, options.GenTraces(), io_delegate,
+        types.get(), &defined_type, &imports);
+    if (aidl_err == AidlError::FOUND_PARCELABLE && !options.FailOnParcelable()) {
+      // We aborted code generation because this file contains parcelables.
+      // However, we were not told to complain if we find parcelables.
+      // Just generate a dep file and exit quietly.  The dep file is for a legacy
+      // use case by the SDK.
+      write_dep_file(options, *defined_type, imports, io_delegate, input_file, "");
+      return 0;
+    }
+    if (aidl_err != AidlError::OK) {
+      return 1;
+    }
 
-  CHECK(defined_type != nullptr);
+    CHECK(defined_type != nullptr);
 
-  string output_file_name = options.output_file_name_;
-  // if needed, generate the output file name from the base folder
-  if (output_file_name.empty() && !options.output_base_folder_.empty()) {
-    output_file_name = generate_outputFileName(options, *defined_type);
+    string output_file_name = options.OutputFile();
+    // if needed, generate the output file name from the base folder
+    if (output_file_name.empty() && !options.OutputDir().empty()) {
+      output_file_name = generate_outputFileName(options, *defined_type);
+    }
+
+    // make sure the folders of the output file all exists
+    if (!io_delegate.CreatePathForFile(output_file_name)) {
+      return 1;
+    }
+
+    if (!write_dep_file(options, *defined_type, imports, io_delegate, input_file,
+                        output_file_name)) {
+      return 1;
+    }
+
+    bool success = generate_java(output_file_name, input_file.c_str(), defined_type.get(),
+                                 types.get(), io_delegate, options);
+    if (!success) {
+      return 1;
+    }
   }
-
-  // make sure the folders of the output file all exists
-  if (!io_delegate.CreatePathForFile(output_file_name)) {
-    return 1;
-  }
-
-  if (!write_java_dep_file(options, imports, io_delegate, output_file_name)) {
-    return 1;
-  }
-
-  return generate_java(output_file_name, options.input_file_name_.c_str(), defined_type.get(),
-                       types.get(), io_delegate, options);
+  return 0;
 }
 
-bool preprocess_aidl(const JavaOptions& options,
-                     const IoDelegate& io_delegate) {
-  unique_ptr<CodeWriter> writer =
-      io_delegate.GetCodeWriter(options.output_file_name_);
+bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate) {
+  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(options.OutputFile());
 
-  for (const auto& file : options.input_file_names_) {
+  for (const auto& file : options.InputFiles()) {
     AidlTypenames typenames;
     Parser p{io_delegate, &typenames};
     if (!p.ParseFile(file))
@@ -807,16 +788,16 @@ bool preprocess_aidl(const JavaOptions& options,
   return writer->Close();
 }
 
-bool dump_api(const JavaOptions& options, const IoDelegate& io_delegate) {
-  ImportResolver import_resolver{io_delegate, options.import_paths_, options.input_file_names_};
+bool dump_api(const Options& options, const IoDelegate& io_delegate) {
+  ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
 
   map<string, vector<unique_ptr<AidlDefinedType>>> types_by_package;
-  for (const auto& file : options.input_file_names_) {
+  for (const auto& file : options.InputFiles()) {
     unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
     types->Init();
     unique_ptr<AidlDefinedType> t;
-    if (internals::load_and_validate_aidl(options.preprocessed_files_, import_resolver, file,
-                                          options.gen_traces_, io_delegate, types.get(), &t,
+    if (internals::load_and_validate_aidl(options.PreprocessedFiles(), import_resolver, file,
+                                          options.GenTraces(), io_delegate, types.get(), &t,
                                           nullptr) == AidlError::OK) {
       // group them by package name
       string package = t->GetPackage();
@@ -835,7 +816,7 @@ bool dump_api(const JavaOptions& options, const IoDelegate& io_delegate) {
   }
 
   // print
-  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(options.output_file_name_);
+  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(options.OutputFile());
   for (auto it = types_by_package.begin(); it != types_by_package.end(); it++) {
     writer->Write("package %s {\n", it->first.c_str());
     writer->Indent();
