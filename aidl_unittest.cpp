@@ -221,11 +221,11 @@ TEST_F(AidlTest, WritePreprocessedFile) {
   io_delegate_.SetFileContents("one/IBar.aidl", "package one; import p.Outer;"
                                                 "interface IBar {}");
 
-  JavaOptions options;
-  options.output_file_name_ = "preprocessed";
-  options.input_file_names_.resize(2);
-  options.input_file_names_[0] = "p/Outer.aidl";
-  options.input_file_names_[1] = "one/IBar.aidl";
+  Options options;
+  options.output_file_ = "preprocessed";
+  options.input_files_.resize(2);
+  options.input_files_[0] = "p/Outer.aidl";
+  options.input_files_[1] = "one/IBar.aidl";
   EXPECT_TRUE(::android::aidl::preprocess_aidl(options, io_delegate_));
 
   string output;
@@ -259,10 +259,9 @@ TEST_F(AidlTest, ParseCompoundParcelableFromPreprocess) {
 }
 
 TEST_F(AidlTest, FailOnParcelable) {
-  JavaOptions options;
-  options.input_file_name_ = "p/IFoo.aidl";
-  io_delegate_.SetFileContents(options.input_file_name_,
-                               "package p; parcelable IFoo;");
+  Options options;
+  options.input_files_.push_back("p/IFoo.aidl");
+  io_delegate_.SetFileContents(options.input_files_.front(), "package p; parcelable IFoo;");
   // By default, we shouldn't fail on parcelable.
   EXPECT_EQ(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
   options.fail_on_parcelable_ = true;
@@ -410,16 +409,14 @@ TEST_F(AidlTest, WritesCorrectDependencyFile) {
   // While the in tree build system always gives us an output file name,
   // other android tools take advantage of our ability to infer the intended
   // file name.  This test makes sure we handle this correctly.
-  JavaOptions options;
-  options.input_file_name_ = "p/IFoo.aidl";
-  options.output_base_folder_ = "place/for/output";
-  options.dep_file_name_ = "dep/file/path";
-  io_delegate_.SetFileContents(options.input_file_name_,
-                               "package p; interface IFoo {}");
+  Options options;
+  options.input_files_.push_back("p/IFoo.aidl");
+  options.output_dir_ = "place/for/output";
+  options.dependency_file_ = "dep/file/path";
+  io_delegate_.SetFileContents(options.input_files_.front(), "package p; interface IFoo {}");
   EXPECT_EQ(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
   string actual_dep_file_contents;
-  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dep_file_name_,
-                                              &actual_dep_file_contents));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dependency_file_, &actual_dep_file_contents));
   EXPECT_EQ(actual_dep_file_contents, kExpectedDepFileContents);
 }
 
@@ -427,17 +424,15 @@ TEST_F(AidlTest, WritesCorrectDependencyFileNinja) {
   // While the in tree build system always gives us an output file name,
   // other android tools take advantage of our ability to infer the intended
   // file name.  This test makes sure we handle this correctly.
-  JavaOptions options;
-  options.input_file_name_ = "p/IFoo.aidl";
-  options.output_base_folder_ = "place/for/output";
-  options.dep_file_name_ = "dep/file/path";
-  options.dep_file_ninja_ = true;
-  io_delegate_.SetFileContents(options.input_file_name_,
-                               "package p; interface IFoo {}");
+  Options options;
+  options.input_files_.push_back("p/IFoo.aidl");
+  options.output_dir_ = "place/for/output";
+  options.dependency_file_ = "dep/file/path";
+  options.dependency_file_ninja_ = true;
+  io_delegate_.SetFileContents(options.input_files_.front(), "package p; interface IFoo {}");
   EXPECT_EQ(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
   string actual_dep_file_contents;
-  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dep_file_name_,
-                                              &actual_dep_file_contents));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dependency_file_, &actual_dep_file_contents));
   EXPECT_EQ(actual_dep_file_contents, kExpectedNinjaDepFileContents);
 }
 
@@ -447,16 +442,14 @@ TEST_F(AidlTest, WritesTrivialDependencyFileForParcelable) {
   // generated dependency files.  Those that reference .java output files are
   // for interfaces and those that do not are parcelables.  However, for both
   // parcelables and interfaces, we *must* generate a non-empty dependency file.
-  JavaOptions options;
-  options.input_file_name_ = "p/Foo.aidl";
-  options.output_base_folder_ = "place/for/output";
-  options.dep_file_name_ = "dep/file/path";
-  io_delegate_.SetFileContents(options.input_file_name_,
-                               "package p; parcelable Foo;");
+  Options options;
+  options.input_files_.push_back("p/Foo.aidl");
+  options.output_dir_ = "place/for/output";
+  options.dependency_file_ = "dep/file/path";
+  io_delegate_.SetFileContents(options.input_files_.front(), "package p; parcelable Foo;");
   EXPECT_EQ(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
   string actual_dep_file_contents;
-  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dep_file_name_,
-                                              &actual_dep_file_contents));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.dependency_file_, &actual_dep_file_contents));
   EXPECT_EQ(actual_dep_file_contents, kExpectedParcelableDepFileContents);
 }
 
@@ -495,9 +488,9 @@ TEST_F(AidlTest, ApiDump) {
                                "   List<foo.bar.IFoo> b;\n"
                                "}\n");
   io_delegate_.SetFileContents("api.aidl", "");
-  JavaOptions options;
-  options.input_file_names_ = {"foo/bar/IFoo.aidl", "foo/bar/Data.aidl"};
-  options.output_file_name_ = "api.aidl";
+  Options options;
+  options.input_files_ = {"foo/bar/IFoo.aidl", "foo/bar/Data.aidl"};
+  options.output_file_ = "api.aidl";
   bool result = dump_api(options, io_delegate_);
   ASSERT_TRUE(result);
   string actual;

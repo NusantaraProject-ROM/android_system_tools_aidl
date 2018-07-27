@@ -16,76 +16,71 @@
 #ifndef AIDL_OPTIONS_H_
 #define AIDL_OPTIONS_H_
 
-#include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include <android-base/macros.h>
 #include <gtest/gtest_prod.h>
+
+using std::string;
+using std::vector;
 
 namespace android {
 namespace aidl {
 
-class Options {
+class Options final {
  public:
-  virtual ~Options() = default;
+  enum class Language { UNSPECIFIED, JAVA, CPP };
 
-  // flag arguments
-  std::vector<std::string> import_paths_;
-  std::vector<std::string> preprocessed_files_;
-  std::string dep_file_name_;
-  bool gen_traces_{false};
-  bool dep_file_ninja_{false};
+  enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMPAPI };
 
-  // positional arguments
-  std::string input_file_name_;
-  std::string output_file_name_;
-  // currently, this is only for --dumpapi
-  std::vector<std::string> input_file_names_;
+  Options(int argc, const char* const argv[], Language default_lang = Language::UNSPECIFIED);
 
- protected:
-  enum class Result {
-    CONSUMED,
-    UNHANDLED,
-    ERROR,
-  };
+  Language TargetLanguage() const { return language_; }
 
-  // parses all flag arguments
-  virtual Result ParseFlag(int index, const std::string& arg);
+  Task GetTask() const { return task_; }
 
-  // print all flag arguments
-  virtual void FlagUsage();
-};
+  const vector<string>& ImportPaths() const { return import_paths_; }
 
-// This object represents the parsed options to the Java generating aidl.
-class JavaOptions final : public Options {
- public:
-  enum {
-    COMPILE_AIDL_TO_JAVA,
-    PREPROCESS_AIDL,
-    DUMP_API,
-  };
+  const vector<string>& PreprocessedFiles() const { return preprocessed_files_; }
 
-  // Parses the command line and returns a non-null pointer to an JavaOptions
-  // object on success.
-  // Prints the usage statement on failure.
-  static std::unique_ptr<JavaOptions> Parse(int argc, const char* const* argv);
+  string DependencyFile() const {
+    if (auto_dep_file_) {
+      return output_file_ + ".d";
+    }
+    return dependency_file_;
+  }
 
-  std::string DependencyFilePath() const;
-  bool DependencyFileNinja() const { return dep_file_ninja_; }
-  bool ShouldGenGetTransactionName() const { return gen_transaction_names_; }
+  bool AutoDepFile() const { return auto_dep_file_; }
 
-  Result ParseFlag(int index, const std::string& arg) override;
-  void FlagUsage() override;
+  bool GenTraces() const { return gen_traces_; }
 
-  // flag arguments
-  int task{COMPILE_AIDL_TO_JAVA};
-  bool fail_on_parcelable_{false};
-  bool auto_dep_file_{false};
-  bool gen_transaction_names_{false};  // for Binder#getTransactionName
+  bool GenTransactionNames() const { return gen_transaction_names_; }
 
-  // positional arguments
-  std::string output_base_folder_;
+  bool DependencyFileNinja() const { return dependency_file_ninja_; }
+
+  const vector<string>& InputFiles() const { return input_files_; }
+
+  // Path to the output file. This is used only when there is only one
+  // output file for the invocation. When there are multiple outputs
+  // (e.g. compile multiple AIDL files), output files are created under
+  // OutputDir().
+  const string& OutputFile() const { return output_file_; }
+
+  // Path to the directory where output file(s) will be generated under.
+  const string& OutputDir() const { return output_dir_; }
+
+  // Path to the directory where header file(s) will be generated under.
+  // Only used when TargetLanguage() == Language::CPP
+  const string& OutputHeaderDir() const { return output_header_dir_; }
+
+  bool FailOnParcelable() const { return fail_on_parcelable_; }
+
+  bool Ok() const { return error_message_.str().empty(); }
+
+  string GetErrorMessage() const { return error_message_.str(); }
+
+  string GetUsage() const;
 
   // The following are for testability, but cannot be influenced on the command line.
   // Threshold of interface methods to enable outlining of onTransact cases.
@@ -94,9 +89,24 @@ class JavaOptions final : public Options {
   size_t onTransact_non_outline_count_{275u};
 
  private:
-  JavaOptions() = default;
+  Options() = default;
 
-  std::unique_ptr<JavaOptions> Usage();
+  const string myname_;
+  Language language_ = Language::UNSPECIFIED;
+  Task task_ = Task::COMPILE;
+  vector<string> import_paths_;
+  vector<string> preprocessed_files_;
+  string dependency_file_;
+  bool gen_traces_ = false;
+  bool gen_transaction_names_ = false;
+  bool dependency_file_ninja_ = false;
+  string output_dir_;
+  string output_header_dir_;
+  bool fail_on_parcelable_ = false;
+  bool auto_dep_file_ = false;
+  vector<string> input_files_;
+  string output_file_;
+  std::ostringstream error_message_;
 
   FRIEND_TEST(EndToEndTest, IExampleInterface);
   FRIEND_TEST(EndToEndTest, IExampleInterface_WithTransactionNames);
@@ -108,42 +118,8 @@ class JavaOptions final : public Options {
   FRIEND_TEST(AidlTest, WritesCorrectDependencyFileNinja);
   FRIEND_TEST(AidlTest, WritesTrivialDependencyFileForParcelable);
   FRIEND_TEST(AidlTest, ApiDump);
-
-  DISALLOW_COPY_AND_ASSIGN(JavaOptions);
 };
 
-class CppOptions final : public Options {
- public:
-  // Parses the command line and returns a non-null pointer to an CppOptions
-  // object on success.
-  // Prints the usage statement on failure.
-  static std::unique_ptr<CppOptions> Parse(int argc, const char* const* argv);
-
-  std::string InputFileName() const { return input_file_name_; }
-  std::string OutputHeaderDir() const { return output_header_dir_; }
-  std::string OutputCppFilePath() const { return output_file_name_; }
-
-  std::vector<std::string> ImportPaths() const { return import_paths_; }
-  std::string DependencyFilePath() const { return dep_file_name_; }
-  bool DependencyFileNinja() const { return dep_file_ninja_; }
-  bool ShouldGenTraces() const { return gen_traces_; }
-
- private:
-  CppOptions() = default;
-
-  std::unique_ptr<CppOptions> Usage();
-
-  std::string output_header_dir_;
-
-  FRIEND_TEST(CppOptionsTests, ParsesCompileCpp);
-  FRIEND_TEST(CppOptionsTests, ParsesCompileCppNinja);
-  DISALLOW_COPY_AND_ASSIGN(CppOptions);
-};
-
-bool EndsWith(const std::string& str, const std::string& suffix);
-bool ReplaceSuffix(const std::string& old_suffix,
-                   const std::string& new_suffix,
-                   std::string* str);
 
 }  // namespace android
 }  // namespace aidl

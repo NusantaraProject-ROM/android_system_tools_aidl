@@ -73,15 +73,15 @@ class EndToEndTest : public ::testing::Test {
 TEST_F(EndToEndTest, IExampleInterface) {
   using namespace ::android::aidl::test_data::example_interface;
 
-  JavaOptions options;
+  Options options;
   options.fail_on_parcelable_ = true;
   options.import_paths_.push_back("");
-  options.input_file_name_ = CanonicalNameToPath(kCanonicalName, ".aidl");
-  options.output_file_name_ = kJavaOutputPath;
-  options.dep_file_name_ = "an/arbitrary/path/to/deps.P";
+  options.input_files_.push_back(CanonicalNameToPath(kCanonicalName, ".aidl"));
+  options.output_file_ = kJavaOutputPath;
+  options.dependency_file_ = "an/arbitrary/path/to/deps.P";
 
   // Load up our fake file system with data.
-  io_delegate_.SetFileContents(options.input_file_name_, kInterfaceDefinition);
+  io_delegate_.SetFileContents(options.input_files_.front(), kInterfaceDefinition);
   io_delegate_.AddCompoundParcelable("android.test.CompoundParcelable",
                                      {"Subclass1", "Subclass2"});
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
@@ -89,22 +89,22 @@ TEST_F(EndToEndTest, IExampleInterface) {
   // Check that we parse correctly.
   EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutput);
-  CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
+  CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
 
 TEST_F(EndToEndTest, IExampleInterface_WithTrace) {
   using namespace ::android::aidl::test_data::example_interface;
 
-  JavaOptions options;
+  Options options;
   options.fail_on_parcelable_ = true;
   options.import_paths_.push_back("");
-  options.input_file_name_ = CanonicalNameToPath(kCanonicalName, ".aidl");
-  options.output_file_name_ = kJavaOutputPath;
-  options.dep_file_name_ = "an/arbitrary/path/to/deps.P";
+  options.input_files_.push_back(CanonicalNameToPath(kCanonicalName, ".aidl"));
+  options.output_file_ = kJavaOutputPath;
+  options.dependency_file_ = "an/arbitrary/path/to/deps.P";
   options.gen_traces_ = true;
 
   // Load up our fake file system with data.
-  io_delegate_.SetFileContents(options.input_file_name_, kInterfaceDefinition);
+  io_delegate_.SetFileContents(options.input_files_.front(), kInterfaceDefinition);
   io_delegate_.AddCompoundParcelable("android.test.CompoundParcelable",
                                      {"Subclass1", "Subclass2"});
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
@@ -112,22 +112,22 @@ TEST_F(EndToEndTest, IExampleInterface_WithTrace) {
   // Check that we parse correctly.
   EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithTrace);
-  CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
+  CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
 
 TEST_F(EndToEndTest, IExampleInterface_WithTransactionNames) {
   using namespace ::android::aidl::test_data::example_interface;
 
-  JavaOptions options;
+  Options options;
   options.fail_on_parcelable_ = true;
   options.import_paths_.push_back("");
-  options.input_file_name_ = CanonicalNameToPath(kCanonicalName, ".aidl");
-  options.output_file_name_ = kJavaOutputPath;
-  options.dep_file_name_ = "an/arbitrary/path/to/deps.P";
+  options.input_files_.push_back(CanonicalNameToPath(kCanonicalName, ".aidl"));
+  options.output_file_ = kJavaOutputPath;
+  options.dependency_file_ = "an/arbitrary/path/to/deps.P";
   options.gen_transaction_names_ = true;
 
   // Load up our fake file system with data.
-  io_delegate_.SetFileContents(options.input_file_name_, kInterfaceDefinition);
+  io_delegate_.SetFileContents(options.input_files_.front(), kInterfaceDefinition);
   io_delegate_.AddCompoundParcelable("android.test.CompoundParcelable",
                                      {"Subclass1", "Subclass2"});
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
@@ -135,23 +135,23 @@ TEST_F(EndToEndTest, IExampleInterface_WithTransactionNames) {
   // Check that we parse correctly.
   EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithTransactionNames);
-  CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
+  CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
 
 TEST_F(EndToEndTest, IExampleInterface_Outlining) {
   using namespace ::android::aidl::test_data::example_interface;
 
-  JavaOptions options;
+  Options options;
   options.fail_on_parcelable_ = true;
   options.import_paths_.push_back("");
-  options.input_file_name_ = CanonicalNameToPath(kCanonicalName, ".aidl");
-  options.output_file_name_ = kJavaOutputPath;
-  options.dep_file_name_ = "an/arbitrary/path/to/deps.P";
+  options.input_files_.push_back(CanonicalNameToPath(kCanonicalName, ".aidl"));
+  options.output_file_ = kJavaOutputPath;
+  options.dependency_file_ = "an/arbitrary/path/to/deps.P";
   options.onTransact_outline_threshold_ = 4;
   options.onTransact_non_outline_count_ = 3;
 
   // Load up our fake file system with data.
-  io_delegate_.SetFileContents(options.input_file_name_, kInterfaceDefinitionOutlining);
+  io_delegate_.SetFileContents(options.input_files_.front(), kInterfaceDefinitionOutlining);
   io_delegate_.AddCompoundParcelable("android.test.CompoundParcelable",
                                      {"Subclass1", "Subclass2"});
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
@@ -159,7 +159,7 @@ TEST_F(EndToEndTest, IExampleInterface_Outlining) {
   // Check that we parse correctly.
   EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputOutlining);
-  CheckFileContents(options.DependencyFilePath(), kExpectedJavaDepsOutput);
+  CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
 
 TEST_F(EndToEndTest, IPingResponderCpp) {
@@ -172,19 +172,19 @@ TEST_F(EndToEndTest, IPingResponderCpp) {
       "aidl-cpp", "-ddeps.P", "-I.", input_path.c_str(), kGenHeaderDir,
       output_file.c_str(), nullptr
   };
-  auto options = CppOptions::Parse(argc, cmdline);
+  Options options(argc, cmdline, Options::Language::CPP);
 
   // Set up input paths.
   io_delegate_.SetFileContents(input_path, kInterfaceDefinition);
   AddStubAidls(kImportedParcelables, kImportedInterfaces, kCppParcelableHeader);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(*options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
   CheckFileContents(output_file, kExpectedCppOutput);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutput);
   CheckFileContents(kGenClientHeaderPath, kExpectedBpHeaderOutput);
   CheckFileContents(kGenServerHeaderPath, kExpectedBnHeaderOutput);
-  CheckFileContents(options->DependencyFilePath(), kExpectedCppDepsOutput);
+  CheckFileContents(options.DependencyFile(), kExpectedCppDepsOutput);
 }
 
 TEST_F(EndToEndTest, StringConstantsInCpp) {
@@ -197,13 +197,13 @@ TEST_F(EndToEndTest, StringConstantsInCpp) {
       "aidl-cpp", input_path.c_str(), kGenHeaderDir,
       output_file.c_str(), nullptr
   };
-  auto options = CppOptions::Parse(argc, cmdline);
+  Options options(argc, cmdline, Options::Language::CPP);
 
   // Set up input paths.
   io_delegate_.SetFileContents(input_path, kInterfaceDefinition);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(*options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
   CheckFileContents(output_file, kExpectedCppOutput);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutput);
 }
@@ -215,19 +215,15 @@ TEST_F(EndToEndTest, StringConstantsInJava) {
   const string output_file = kJavaOutputPath;
   const size_t argc = 4;
   const char* cmdline[argc + 1] = {
-    "aidl",
-    "-b",
-    input_path.c_str(),
-    output_file.c_str(),
-    nullptr,
-};
-  auto options = JavaOptions::Parse(argc, cmdline);
+      "aidl", "-b", input_path.c_str(), output_file.c_str(), nullptr,
+  };
+  Options options(argc, cmdline, Options::Language::JAVA);
 
   // Load up our fake file system with data.
   io_delegate_.SetFileContents(input_path, kInterfaceDefinition);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(*options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutput);
 }
 
