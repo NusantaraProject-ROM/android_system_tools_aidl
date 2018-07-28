@@ -140,6 +140,27 @@ bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
   return result.second;
 }
 
+bool AidlTypeSpecifier::CheckValid() const {
+  if (IsGeneric()) {
+    const string& type_name = GetName();
+    const int num = GetTypeParameters().size();
+    if (type_name == "List") {
+      if (num > 1) {
+        cerr << " List cannot have type parameters more than one, but got "
+             << "'" << ToString() << "'" << endl;
+        return false;
+      }
+    } else if (type_name == "Map") {
+      if (num != 0 && num != 2) {
+        cerr << "Map must have 0 or 2 type parameters, but got "
+             << "'" << ToString() << "'" << endl;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
                                                  unsigned line)
     : AidlVariableDeclaration(type, name, line, nullptr /*default_value*/) {}
@@ -149,6 +170,10 @@ AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::s
     : type_(type), name_(name), line_(line), default_value_(default_value) {}
 
 bool AidlVariableDeclaration::CheckValid() const {
+  if (!type_->CheckValid()) {
+    return false;
+  }
+
   if (default_value_ == nullptr) return true;
 
   const string given_type = type_->GetName();
@@ -312,11 +337,6 @@ string AidlMethod::Signature() const {
   return GetType().Signature() + " " + GetName() + "(" + Join(arg_signatures, ", ") + ")";
 }
 
-Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames* typenames)
-    : io_delegate_(io_delegate), typenames_(typenames) {
-  yylex_init(&scanner_);
-}
-
 AidlDefinedType::AidlDefinedType(std::string name, unsigned line, const std::string& comments,
                                  const std::vector<std::string>& package)
     : name_(name), line_(line), comments_(comments), package_(package) {}
@@ -435,6 +455,11 @@ AidlImport::AidlImport(const std::string& from,
       needed_class_(needed_class),
       line_(line) {}
 
+Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames& typenames)
+    : io_delegate_(io_delegate), typenames_(typenames) {
+  yylex_init(&scanner_);
+}
+
 Parser::~Parser() {
   if (raw_buffer_) {
     yy_delete_buffer(buffer_, scanner_);
@@ -494,7 +519,7 @@ void Parser::AddImport(AidlQualifiedName* name, unsigned line) {
 bool Parser::Resolve() {
   bool success = true;
   for (AidlTypeSpecifier* typespec : unresolved_typespecs_) {
-    if (!typespec->Resolve(*typenames_)) {
+    if (!typespec->Resolve(typenames_)) {
       LOG(ERROR) << "Failed to resolve '" << typespec->GetUnresolvedName() << "' at "
                  << this->FileName() << ":" << typespec->GetLine();
       success = false;

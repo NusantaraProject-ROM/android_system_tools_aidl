@@ -22,11 +22,11 @@
 
 #include <gtest/gtest_prod.h>
 
-using std::string;
-using std::vector;
-
 namespace android {
 namespace aidl {
+
+using std::string;
+using std::vector;
 
 class Options final {
  public:
@@ -118,8 +118,8 @@ class Options final {
   FRIEND_TEST(AidlTest, WritesCorrectDependencyFileNinja);
   FRIEND_TEST(AidlTest, WritesTrivialDependencyFileForParcelable);
   FRIEND_TEST(AidlTest, ApiDump);
+  FRIEND_TEST(AidlTest, CheckNumGenericTypeSecifier);
 };
-
 
 }  // namespace android
 }  // namespace aidl

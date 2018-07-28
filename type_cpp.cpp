@@ -72,7 +72,6 @@ class VoidType : public Type {
   VoidType() : Type(ValidatableType::KIND_BUILT_IN, kNoPackage, "void",
                     {}, "void", kNoValidMethod, kNoValidMethod) {}
   virtual ~VoidType() = default;
-  bool CanBeOutParameter() const override { return false; }
   bool CanWriteToParcel() const override { return false; }
 };  // class VoidType
 
@@ -101,8 +100,6 @@ class CppArrayType : public Type {
                                     underlying_cpp_type_nulllable,
                                     read_method, write_method, true),
              src_file_name) {}
-
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   static vector<string> GetHeaders(bool is_nullable, const string& cpp_header) {
@@ -229,7 +226,6 @@ class NullableParcelableType : public Type {
              {cpp_header}, GetCppName(parcelable), "readParcelable", "writeNullableParcelable",
              kNoArrayType, kNoNullableType, src_file_name, parcelable.GetLine()) {}
   virtual ~NullableParcelableType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   static string GetCppName(const AidlParcelable& parcelable) {
@@ -251,7 +247,6 @@ class ParcelableType : public Type {
              new NullableParcelableType(parcelable, cpp_header, src_file_name), src_file_name,
              parcelable.GetLine()) {}
   virtual ~ParcelableType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   static string GetCppName(const AidlParcelable& parcelable) {
@@ -269,7 +264,6 @@ class NullableMap : public Type {
              "::std::unique_ptr<::android::binder::Map>",
              "readNullableMap", "writeNullableMap") {}
   virtual ~NullableMap() = default;
-  bool CanBeOutParameter() const override { return true; }
 };
 
 
@@ -284,7 +278,6 @@ class MapType : public Type {
              kNoArrayType,
              new NullableMap() ) {}
   virtual ~MapType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(MapType);
@@ -299,7 +292,6 @@ class NullableStringListType : public Type {
              "::std::unique_ptr<::std::vector<std::unique_ptr<::android::String16>>>",
              "readString16Vector", "writeString16Vector") {}
   virtual ~NullableStringListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableStringListType);
@@ -315,7 +307,6 @@ class StringListType : public Type {
              "readString16Vector", "writeString16Vector",
              kNoArrayType, new NullableStringListType()) {}
   virtual ~StringListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(StringListType);
@@ -330,7 +321,6 @@ class NullableUtf8InCppStringListType : public Type {
              "::std::unique_ptr<::std::vector<std::unique_ptr<::std::string>>>",
              "readUtf8VectorFromUtf16Vector", "writeUtf8VectorAsUtf16Vector") {}
   virtual ~NullableUtf8InCppStringListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableUtf8InCppStringListType);
@@ -346,7 +336,6 @@ class Utf8InCppStringListType : public Type {
              "readUtf8VectorFromUtf16Vector", "writeUtf8VectorAsUtf16Vector",
              kNoArrayType, new NullableUtf8InCppStringListType()) {}
   virtual ~Utf8InCppStringListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Utf8InCppStringListType);
@@ -360,7 +349,6 @@ class NullableBinderListType : public Type {
              "::std::unique_ptr<::std::vector<::android::sp<::android::IBinder>>>",
              "readStrongBinderVector", "writeStrongBinderVector") {}
   virtual ~NullableBinderListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableBinderListType);
@@ -375,7 +363,6 @@ class BinderListType : public Type {
              "readStrongBinderVector", "writeStrongBinderVector",
              kNoArrayType, new NullableBinderListType()) {}
   virtual ~BinderListType() = default;
-  bool CanBeOutParameter() const override { return true; }
 
  private:
   DISALLOW_COPY_AND_ASSIGN(BinderListType);
