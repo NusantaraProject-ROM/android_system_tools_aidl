@@ -55,6 +55,7 @@ class AidlTypenames final {
   static bool IsBuiltinTypename(const string& type_name);
   const AidlDefinedType* TryGetDefinedType(const string& type_name) const;
   pair<string, bool> ResolveTypename(const string& type_name) const;
+  bool CanBeOutParameter(const AidlTypeSpecifier& type) const;
 
  private:
   map<string, const AidlDefinedType*> defined_types_;
