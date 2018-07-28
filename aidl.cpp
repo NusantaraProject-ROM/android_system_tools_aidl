@@ -213,6 +213,10 @@ int check_types(const string& filename,
     const ValidatableType* return_type =
         types->GetReturnType(m->GetType(), filename, *c);
 
+    if (!m->GetType().CheckValid()) {
+      err = 1;
+    }
+
     if (!return_type) {
       err = 1;
     }
@@ -229,6 +233,10 @@ int check_types(const string& filename,
     int index = 1;
     for (const auto& arg : m->GetArguments()) {
       if (!types->MaybeAddContainerType(arg->GetType())) {
+        err = 1;
+      }
+
+      if (!arg->GetType().CheckValid()) {
         err = 1;
       }
 
@@ -529,11 +537,9 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
                                  std::vector<std::unique_ptr<AidlImport>>* returned_imports) {
   AidlError err = AidlError::OK;
 
-  AidlTypenames typenames;
-
   // import the preprocessed file
   for (const string& s : preprocessed_files) {
-    if (!parse_preprocessed_file(io_delegate, s, types, typenames)) {
+    if (!parse_preprocessed_file(io_delegate, s, types, types->typenames_)) {
       err = AidlError::BAD_PRE_PROCESSED_FILE;
     }
   }
@@ -542,7 +548,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
   }
 
   // parse the input file
-  Parser p{io_delegate, &typenames};
+  Parser p{io_delegate, types->typenames_};
   if (!p.ParseFile(input_file_name)) {
     return AidlError::PARSE_ERROR;
   }
@@ -603,7 +609,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     }
     import->SetFilename(import_path);
 
-    Parser p{io_delegate, &typenames};
+    Parser p{io_delegate, types->typenames_};
     if (!p.ParseFile(import->GetFilename())) {
       cerr << "error while parsing import for class "
            << import->GetNeededClass() << endl;
@@ -771,7 +777,7 @@ bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate) {
 
   for (const auto& file : options.InputFiles()) {
     AidlTypenames typenames;
-    Parser p{io_delegate, &typenames};
+    Parser p{io_delegate, typenames};
     if (!p.ParseFile(file))
       return false;
     AidlDocument* doc = p.GetDocument();

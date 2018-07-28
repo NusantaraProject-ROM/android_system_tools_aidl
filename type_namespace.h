@@ -62,7 +62,6 @@ class ValidatableType {
   virtual ~ValidatableType() = default;
 
   virtual bool CanBeArray() const { return ArrayType() != nullptr; }
-  virtual bool CanBeOutParameter() const = 0;
   virtual bool CanWriteToParcel() const = 0;
 
   virtual const ValidatableType* ArrayType() const = 0;
@@ -124,6 +123,8 @@ class TypeNamespace {
 
   // Returns a pointer to a type corresponding to |defined_type|.
   virtual const ValidatableType* GetDefinedType(const AidlDefinedType& defined_type) const = 0;
+
+  AidlTypenames typenames_;
 
  protected:
   TypeNamespace() = default;
