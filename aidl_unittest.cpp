@@ -88,7 +88,6 @@ class AidlTest : public ::testing::Test {
   vector<string> preprocessed_files_;
   vector<string> import_paths_;
   java::JavaTypeNamespace java_types_;
-  AidlTypenames typenames_;
   cpp::TypeNamespace cpp_types_;
 };
 
@@ -181,7 +180,7 @@ TEST_F(AidlTest, ParsesPreprocessedFile) {
   string simple_content = "parcelable a.Foo;\ninterface b.IBar;";
   io_delegate_.SetFileContents("path", simple_content);
   EXPECT_FALSE(java_types_.HasTypeByCanonicalName("a.Foo"));
-  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, typenames_));
+  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, java_types_.typenames_));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("a.Foo"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("b.IBar"));
 }
@@ -190,7 +189,7 @@ TEST_F(AidlTest, ParsesPreprocessedFileWithWhitespace) {
   string simple_content = "parcelable    a.Foo;\n  interface b.IBar  ;\t";
   io_delegate_.SetFileContents("path", simple_content);
   EXPECT_FALSE(java_types_.HasTypeByCanonicalName("a.Foo"));
-  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, typenames_));
+  EXPECT_TRUE(parse_preprocessed_file(io_delegate_, "path", &java_types_, java_types_.typenames_));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("a.Foo"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("b.IBar"));
 }
@@ -513,6 +512,33 @@ TEST_F(AidlTest, ApiDump) {
 
 }
 )");
+}
+
+TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
+  Options options;
+  options.input_files_ = {"p/IFoo.aidl"};
+  options.output_file_ = "IFoo.java";
+  io_delegate_.SetFileContents(options.input_files_.at(0),
+                               "package p; interface IFoo {"
+                               "void foo(List<String, String> a);}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  io_delegate_.SetFileContents(options.input_files_.at(0),
+                               "package p; interface IFoo {"
+                               "void foo(Map<String> a);}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  options.input_files_ = {"p/Data.aidl"};
+  options.output_file_ = "Data.java";
+  io_delegate_.SetFileContents(options.input_files_.at(0),
+                               "package p; parcelable Data {"
+                               "List<String, String> foo;}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  io_delegate_.SetFileContents(options.input_files_.at(0),
+                               "package p; parcelable Data {"
+                               "Map<String> foo;}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
 }
 
 }  // namespace aidl
