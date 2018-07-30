@@ -49,22 +49,30 @@ std::string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_typ
 
 namespace internals {
 std::unique_ptr<Document> BuildClientSource(const TypeNamespace& types,
-                                            const AidlInterface& parsed_doc);
+                                            const AidlInterface& parsed_doc,
+                                            const Options& options);
 std::unique_ptr<Document> BuildServerSource(const TypeNamespace& types,
-                                            const AidlInterface& parsed_doc);
+                                            const AidlInterface& parsed_doc,
+                                            const Options& options);
 std::unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
-                                               const AidlInterface& parsed_doc);
+                                               const AidlInterface& parsed_doc,
+                                               const Options& options);
 std::unique_ptr<Document> BuildClientHeader(const TypeNamespace& types,
-                                            const AidlInterface& parsed_doc);
+                                            const AidlInterface& parsed_doc,
+                                            const Options& options);
 std::unique_ptr<Document> BuildServerHeader(const TypeNamespace& types,
-                                            const AidlInterface& parsed_doc);
+                                            const AidlInterface& parsed_doc,
+                                            const Options& options);
 std::unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
-                                               const AidlInterface& parsed_doc);
+                                               const AidlInterface& parsed_doc,
+                                               const Options& options);
 
 std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& types,
-                                            const AidlStructuredParcelable& parsed_doc);
+                                            const AidlStructuredParcelable& parsed_doc,
+                                            const Options& options);
 std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& types,
-                                            const AidlStructuredParcelable& parsed_doc);
+                                            const AidlStructuredParcelable& parsed_doc,
+                                            const Options& options);
 }
 }  // namespace cpp
 }  // namespace aidl

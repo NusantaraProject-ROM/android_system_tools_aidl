@@ -1390,13 +1390,8 @@ class ASTTest : public ::testing::Test {
 
     unique_ptr<AidlDefinedType> ret;
     std::vector<std::unique_ptr<AidlImport>> imports;
-    ImportResolver import_resolver{io_delegate_, {"."}, {}};
     AidlError err = ::android::aidl::internals::load_and_validate_aidl(
-        {},  // no preprocessed files
-        import_resolver, options_.InputFiles().front(),
-        false,  // generate_traces
-        false,  // is_structured
-        io_delegate_, &types_, &ret, &imports);
+        options_.InputFiles().front(), options_, io_delegate_, &types_, &ret, &imports);
 
     if (err != AidlError::OK) {
       return nullptr;
@@ -1430,7 +1425,7 @@ class ASTTest : public ::testing::Test {
 class ComplexTypeInterfaceASTTest : public ASTTest {
  public:
   ComplexTypeInterfaceASTTest()
-      : ASTTest("aidl --lang=cpp -o out android/os/IComplexTypeInterface.aidl",
+      : ASTTest("aidl --lang=cpp -I . -o out android/os/IComplexTypeInterface.aidl",
                 kComplexTypeInterfaceAIDL) {
     io_delegate_.SetFileContents("foo/IFooType.aidl",
                                  "package foo; interface IFooType {}");
@@ -1440,59 +1435,66 @@ class ComplexTypeInterfaceASTTest : public ASTTest {
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesClientHeader) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildClientHeader(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildClientHeader(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeClientHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesClientSource) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildClientSource(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildClientSource(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeClientSourceOutput);
-}
-
-TEST_F(ComplexTypeInterfaceASTTest, GeneratesClientSourceWithTrace) {
-  unique_ptr<AidlInterface> interface = ParseInterface();
-  ASSERT_NE(interface, nullptr);
-  interface->SetGenerateTraces(true);
-  unique_ptr<Document> doc = internals::BuildClientSource(types_, *interface);
-  Compare(doc.get(), kExpectedComplexTypeClientWithTraceSourceOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesServerHeader) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildServerHeader(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildServerHeader(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeServerHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesServerSource) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildServerSource(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildServerSource(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeServerSourceOutput);
-}
-
-TEST_F(ComplexTypeInterfaceASTTest, GeneratesServerSourceWithTrace) {
-  unique_ptr<AidlInterface> interface = ParseInterface();
-  ASSERT_NE(interface, nullptr);
-  interface->SetGenerateTraces(true);
-  unique_ptr<Document> doc = internals::BuildServerSource(types_, *interface);
-  Compare(doc.get(), kExpectedComplexTypeServerWithTraceSourceOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesInterfaceHeader) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildInterfaceHeader(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildInterfaceHeader(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeInterfaceHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesInterfaceSource) {
   unique_ptr<AidlInterface> interface = ParseInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildInterfaceSource(types_, *interface);
+  unique_ptr<Document> doc = internals::BuildInterfaceSource(types_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeInterfaceSourceOutput);
+}
+
+class ComplexTypeInterfaceASTTestWithTrace : public ASTTest {
+ public:
+  ComplexTypeInterfaceASTTestWithTrace()
+      : ASTTest("aidl --lang=cpp -t -I . -o out android/os/IComplexTypeInterface.aidl",
+                kComplexTypeInterfaceAIDL) {
+    io_delegate_.SetFileContents("foo/IFooType.aidl", "package foo; interface IFooType {}");
+  }
+};
+
+TEST_F(ComplexTypeInterfaceASTTestWithTrace, GeneratesClientSource) {
+  unique_ptr<AidlInterface> interface = ParseInterface();
+  ASSERT_NE(interface, nullptr);
+  unique_ptr<Document> doc = internals::BuildClientSource(types_, *interface, options_);
+  Compare(doc.get(), kExpectedComplexTypeClientWithTraceSourceOutput);
+}
+
+TEST_F(ComplexTypeInterfaceASTTestWithTrace, GeneratesServerSource) {
+  unique_ptr<AidlInterface> interface = ParseInterface();
+  ASSERT_NE(interface, nullptr);
+  unique_ptr<Document> doc = internals::BuildServerSource(types_, *interface, options_);
+  Compare(doc.get(), kExpectedComplexTypeServerWithTraceSourceOutput);
 }
 
 namespace test_io_handling {
