@@ -20,8 +20,6 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest_prod.h>
-
 namespace android {
 namespace aidl {
 

@@ -16,6 +16,7 @@
 struct yy_buffer_state;
 typedef yy_buffer_state* YY_BUFFER_STATE;
 
+using android::aidl::AidlTypenames;
 using android::aidl::CodeWriter;
 using std::string;
 using std::unique_ptr;
@@ -333,6 +334,9 @@ class AidlMethod : public AidlMember {
   AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
              const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
              const std::string& comments, int id);
+  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
+             const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
+             const std::string& comments, int id, bool is_user_defined);
   virtual ~AidlMethod() = default;
 
   AidlMethod* AsMethod() override { return this; }
@@ -346,10 +350,6 @@ class AidlMethod : public AidlMember {
   int GetId() { return id_; }
   void SetId(unsigned id) { id_ = id; }
 
-  // A method marked as compiler-defined is the one that is not coming from
-  // an input AIDL file, but is automatically added by the AIDL compiler for
-  // common meta-functionalities like the version querying.
-  void MarkAsCompilerDefined() { is_user_defined_ = false; }
   bool IsUserDefined() const { return is_user_defined_; }
 
   const std::vector<std::unique_ptr<AidlArgument>>& GetArguments() const {
@@ -389,25 +389,9 @@ class AidlMethod : public AidlMember {
 };
 
 class AidlDefinedType;
-class AidlDocument {
- public:
-  AidlDocument() = default;
-  virtual ~AidlDocument() = default;
-
-  AidlDefinedType* ReleaseDefinedType();
-
-  const std::vector<std::unique_ptr<AidlDefinedType>>& GetDefinedTypes() const {
-    return defined_types_;
-  }
-  void AddDefinedType(AidlDefinedType* defined_type) {
-    defined_types_.push_back(std::unique_ptr<AidlDefinedType>(defined_type));
-  }
-
- private:
-  std::vector<std::unique_ptr<AidlDefinedType>> defined_types_;
-
-  DISALLOW_COPY_AND_ASSIGN(AidlDocument);
-};
+class AidlInterface;
+class AidlParcelable;
+class AidlStructuredParcelable;
 
 class AidlQualifiedName : public AidlNode {
  public:
@@ -573,26 +557,17 @@ class AidlImport : public AidlNode {
 
   const std::string& GetFilename() const { return filename_; }
   const std::string& GetNeededClass() const { return needed_class_; }
-  const AidlDocument* GetAidlDocument() const {
-    // can return nullptr when AidlDocument is not set.
-    return imported_doc_.get();
-  }
-
-  void SetFilename(const std::string& filename) { filename_ = filename; }
-  void SetAidlDocument(unique_ptr<AidlDocument>&& doc) { imported_doc_ = std::move(doc); }
 
  private:
   std::string filename_;
   std::string needed_class_;
-  unique_ptr<AidlDocument> imported_doc_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlImport);
 };
 
 class Parser {
  public:
-  explicit Parser(const android::aidl::IoDelegate& io_delegate,
-                  android::aidl::AidlTypenames& typenames);
+  explicit Parser(const android::aidl::IoDelegate& io_delegate, AidlTypenames& typenames);
   ~Parser();
 
   // Parse contents of file |filename|.
@@ -603,25 +578,17 @@ class Parser {
   const std::string& FileName() const { return filename_; }
   void* Scanner() const { return scanner_; }
 
-  void SetDocument(AidlDocument* doc) { document_.reset(doc); };
-
   void AddImport(AidlImport* import);
-
-  std::vector<std::string> Package() const;
-  void SetPackage(AidlQualifiedName* name) { package_.reset(name); }
-
-  AidlDocument* GetDocument() const { return document_.get(); }
-  AidlDocument* ReleaseDocument() { return document_.release(); }
   const std::vector<std::unique_ptr<AidlImport>>& GetImports() {
     return imports_;
   }
-
   void ReleaseImports(std::vector<std::unique_ptr<AidlImport>>* ret) {
-      *ret = std::move(imports_);
-      imports_.clear();
+    *ret = std::move(imports_);
+    imports_.clear();
   }
 
-  android::aidl::AidlTypenames& GetTypenames() { return typenames_; }
+  void SetPackage(unique_ptr<AidlQualifiedName> name) { package_ = std::move(name); }
+  std::vector<std::string> Package() const;
 
   void DeferResolution(AidlTypeSpecifier* typespec) {
     unresolved_typespecs_.emplace_back(typespec);
@@ -629,17 +596,30 @@ class Parser {
 
   bool Resolve();
 
+  void AddDefinedType(unique_ptr<AidlDefinedType> type) {
+    // Parser does NOT own AidlDefinedType, it just has references to the types
+    // that it encountered while parsing the input file.
+    defined_types_.emplace_back(type.get());
+
+    // AidlDefinedType IS owned by AidlTypenames
+    if (!typenames_.AddDefinedType(std::move(type))) {
+      AddError();
+    }
+  }
+
+  vector<AidlDefinedType*>& GetDefinedTypes() { return defined_types_; }
+
  private:
   const android::aidl::IoDelegate& io_delegate_;
   int error_ = 0;
   std::string filename_;
   std::unique_ptr<AidlQualifiedName> package_;
   void* scanner_ = nullptr;
-  std::unique_ptr<AidlDocument> document_;
   std::vector<std::unique_ptr<AidlImport>> imports_;
   std::unique_ptr<std::string> raw_buffer_;
   YY_BUFFER_STATE buffer_;
-  android::aidl::AidlTypenames& typenames_;
+  AidlTypenames& typenames_;
+  vector<AidlDefinedType*> defined_types_;
   vector<AidlTypeSpecifier*> unresolved_typespecs_;
 
   DISALLOW_COPY_AND_ASSIGN(Parser);

@@ -46,8 +46,7 @@ enum class AidlError {
   OK = 0,
 };
 
-int compile_aidl_to_cpp(const Options& options, const IoDelegate& io_delegate);
-int compile_aidl_to_java(const Options& options, const IoDelegate& io_delegate);
+int compile_aidl(const Options& options, const IoDelegate& io_delegate);
 bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate);
 bool dump_api(const Options& options, const IoDelegate& io_delegate);
 
@@ -57,8 +56,8 @@ namespace internals {
 
 AidlError load_and_validate_aidl(const std::string& input_file_name, const Options& options,
                                  const IoDelegate& io_delegate, TypeNamespace* types,
-                                 std::unique_ptr<AidlDefinedType>* returned_type,
-                                 std::vector<std::unique_ptr<AidlImport>>* returned_imports);
+                                 vector<AidlDefinedType*>* defined_types,
+                                 vector<string>* imported_files);
 
 bool parse_preprocessed_file(const IoDelegate& io_delegate, const std::string& filename,
                              TypeNamespace* types, AidlTypenames& typenames);
