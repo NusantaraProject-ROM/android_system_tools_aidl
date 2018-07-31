@@ -529,17 +529,16 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
   return success;
 }
 
-AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_files,
-                                 const ImportResolver& import_resolver,
-                                 const std::string& input_file_name, bool generate_traces,
-                                 bool is_structured, const IoDelegate& io_delegate,
-                                 TypeNamespace* types,
+AidlError load_and_validate_aidl(const std::string& input_file_name, const Options& options,
+                                 const IoDelegate& io_delegate, TypeNamespace* types,
                                  std::unique_ptr<AidlDefinedType>* returned_type,
                                  std::vector<std::unique_ptr<AidlImport>>* returned_imports) {
   AidlError err = AidlError::OK;
 
+  ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
+
   // import the preprocessed file
-  for (const string& s : preprocessed_files) {
+  for (const string& s : options.PreprocessedFiles()) {
     if (!parse_preprocessed_file(io_delegate, s, types, types->typenames_)) {
       err = AidlError::BAD_PRE_PROCESSED_FILE;
     }
@@ -634,7 +633,6 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     if (!types->AddBinderType(*interface, input_file_name)) {
       err = AidlError::BAD_TYPE;
     }
-    interface->SetGenerateTraces(generate_traces);
   }
 
   if (parcelable) {
@@ -669,7 +667,7 @@ AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_fi
     return err;
   }
 
-  if (is_structured) {
+  if (options.IsStructured()) {
     types->typenames_.IterateTypes([&](const AidlDefinedType& type) {
       if (type.AsUnstructuredParcelable() != nullptr) {
         err = AidlError::BAD_TYPE;
@@ -707,10 +705,8 @@ int compile_aidl_to_cpp(const Options& options, const IoDelegate& io_delegate) {
     std::vector<std::unique_ptr<AidlImport>> imports;
     unique_ptr<cpp::TypeNamespace> types(new cpp::TypeNamespace());
     types->Init();
-    ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
-    AidlError err = internals::load_and_validate_aidl(
-        options.PreprocessedFiles(), import_resolver, input_file, options.GenTraces(),
-        options.IsStructured(), io_delegate, types.get(), &defined_type, &imports);
+    AidlError err = internals::load_and_validate_aidl(input_file, options, io_delegate, types.get(),
+                                                      &defined_type, &imports);
     if (err != AidlError::OK) {
       return 1;
     }
@@ -743,9 +739,8 @@ int compile_aidl_to_java(const Options& options, const IoDelegate& io_delegate) 
     unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
     types->Init();
     ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
-    AidlError aidl_err = internals::load_and_validate_aidl(
-        options.PreprocessedFiles(), import_resolver, input_file, options.GenTraces(),
-        options.IsStructured(), io_delegate, types.get(), &defined_type, &imports);
+    AidlError aidl_err = internals::load_and_validate_aidl(input_file, options, io_delegate,
+                                                           types.get(), &defined_type, &imports);
     if (aidl_err == AidlError::FOUND_PARCELABLE && !options.FailOnParcelable()) {
       // We aborted code generation because this file contains parcelables.
       // However, we were not told to complain if we find parcelables.
@@ -815,9 +810,8 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate) {
     unique_ptr<java::JavaTypeNamespace> types(new java::JavaTypeNamespace());
     types->Init();
     unique_ptr<AidlDefinedType> t;
-    if (internals::load_and_validate_aidl(options.PreprocessedFiles(), import_resolver, file,
-                                          options.GenTraces(), options.IsStructured(), io_delegate,
-                                          types.get(), &t, nullptr) == AidlError::OK) {
+    if (internals::load_and_validate_aidl(file, options, io_delegate, types.get(), &t, nullptr) ==
+        AidlError::OK) {
       // group them by package name
       string package = t->GetPackage();
       types_by_package[package].emplace_back(std::move(t));
