@@ -82,9 +82,6 @@ class Options final {
   const vector<string>& PreprocessedFiles() const { return preprocessed_files_; }
 
   string DependencyFile() const {
-    if (auto_dep_file_) {
-      return output_file_ + ".d";
-    }
     return dependency_file_;
   }
 
