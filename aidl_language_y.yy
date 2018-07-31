@@ -388,6 +388,6 @@ direction
 #include <stdio.h>
 
 void yy::parser::error(const yy::parser::location_type& l, const std::string& errstr) {
-  AIDL_ERROR(loc(l)) << errstr << std::endl;
+  AIDL_ERROR(loc(l)) << errstr;
   // parser will return error value
 }
