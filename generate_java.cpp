@@ -35,25 +35,6 @@ using android::base::StringPrintf;
 
 namespace android {
 namespace aidl {
-
-// =================================================
-VariableFactory::VariableFactory(const string& base)
-    : base_(base),
-      index_(0) {
-}
-
-Variable* VariableFactory::Get(const Type* type) {
-  Variable* v = new Variable(
-      type, StringPrintf("%s%d", base_.c_str(), index_));
-  vars_.push_back(v);
-  index_++;
-  return v;
-}
-
-Variable* VariableFactory::Get(int index) {
-  return vars_[index];
-}
-
 namespace java {
 
 bool generate_java_interface(const string& filename, const string& original_src,

@@ -44,6 +44,30 @@ namespace aidl {
 namespace java {
 
 // =================================================
+class VariableFactory {
+ public:
+  using Variable = ::android::aidl::java::Variable;
+  using Type = ::android::aidl::java::Type;
+
+  explicit VariableFactory(const std::string& base) : base_(base), index_(0) {}
+  Variable* Get(const Type* type) {
+    Variable* v = new Variable(type, StringPrintf("%s%d", base_.c_str(), index_));
+    vars_.push_back(v);
+    index_++;
+    return v;
+  }
+
+  Variable* Get(int index) { return vars_[index]; }
+
+ private:
+  std::vector<Variable*> vars_;
+  std::string base_;
+  int index_;
+
+  DISALLOW_COPY_AND_ASSIGN(VariableFactory);
+};
+
+// =================================================
 class StubClass : public Class {
  public:
   StubClass(const Type* type, const InterfaceType* interfaceType, JavaTypeNamespace* types,
