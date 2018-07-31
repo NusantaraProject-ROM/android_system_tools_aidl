@@ -15,6 +15,7 @@
  */
 
 #include "options.h"
+#include "os.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -25,6 +26,7 @@
 
 #include <android-base/strings.h>
 
+using android::base::Split;
 using android::base::Trim;
 using std::endl;
 using std::string;
@@ -102,10 +104,30 @@ string Options::GetUsage() const {
   return sstr.str();
 }
 
+Options Options::From(const string& cmdline) {
+  vector<string> args = Split(cmdline, " ");
+  return From(args);
+}
+
+Options Options::From(const vector<string>& args) {
+  Options::Language lang = Options::Language::JAVA;
+  int argc = args.size();
+  if (argc >= 1 && args.at(0) == "aidl-cpp") {
+    lang = Options::Language::CPP;
+  }
+  const char* argv[argc + 1];
+  for (int i = 0; i < argc; i++) {
+    argv[i] = args.at(i).c_str();
+  }
+  argv[argc] = nullptr;
+
+  return Options(argc, argv, lang);
+}
+
 Options::Options(int argc, const char* const argv[], Options::Language default_lang)
     : myname_(argv[0]), language_(default_lang) {
   bool lang_option_found = false;
-  optind = 1;
+  optind = 0;
   while (true) {
     static struct option long_options[] = {
         {"lang", required_argument, 0, 'l'},
@@ -129,7 +151,6 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       // no more options
       break;
     }
-
     switch (c) {
       case 'l':
         if (language_ == Options::Language::CPP) {
@@ -220,6 +241,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         // file path with .aidl is replaced to .java.
         output_file_ = input_files_.front();
         output_file_.replace(output_file_.length() - strlen(".aidl"), strlen(".aidl"), ".java");
+        if (!output_dir_.empty()) {
+          output_file_ = output_dir_ + OS_PATH_SEPARATOR + output_file_;
+        }
       }
     } else if (language_ == Options::Language::CPP) {
       input_files_.emplace_back(argv[optind++]);
