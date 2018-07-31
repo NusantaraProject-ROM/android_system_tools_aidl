@@ -71,10 +71,7 @@ namespace {
 const int kMinUserSetMethodId = 0;
 const int kMaxUserSetMethodId = 16777214;
 
-bool check_filename(const std::string& filename,
-                    const std::string& package,
-                    const std::string& name,
-                    unsigned line) {
+bool check_filename(const std::string& filename, const AidlDefinedType& defined_type) {
     const char* p;
     string expected;
     string fn;
@@ -85,6 +82,7 @@ bool check_filename(const std::string& filename,
       return false;
     }
 
+    const std::string package = defined_type.GetPackage();
     if (!package.empty()) {
         expected = package;
         expected += '.';
@@ -97,6 +95,7 @@ bool check_filename(const std::string& filename,
         }
     }
 
+    const std::string name = defined_type.GetName();
     expected.append(name, 0, name.find('.'));
 
     expected += ".aidl";
@@ -127,8 +126,7 @@ bool check_filename(const std::string& filename,
     }
 
     if (!valid) {
-        fprintf(stderr, "%s:%d %s should be declared in a file called %s.\n",
-                filename.c_str(), line, name.c_str(), expected.c_str());
+      AIDL_ERROR(defined_type) << name << " should be declared in a file called " << expected;
     }
 
     return valid;
@@ -138,8 +136,7 @@ bool check_filenames(const std::string& filename, const AidlDocument& doc) {
   bool success = true;
 
   for (const auto& item : doc.GetDefinedTypes()) {
-    success &= check_filename(filename, item->GetPackage(), item->GetName(),
-                              item->GetLine());
+    success &= check_filename(filename, *item);
   }
 
   return success;
@@ -161,14 +158,13 @@ bool gather_types(const std::string& filename, const AidlDocument& doc, TypeName
       continue;
     }
 
-    CHECK(false) << "aidl internal error: unrecognized type";
+    AIDL_FATAL(item) << "aidl internal error: unrecognized type";
   }
 
   return success;
 }
 
-int check_types(const string& filename, const AidlStructuredParcelable* parcel,
-                TypeNamespace* types) {
+int check_types(const AidlStructuredParcelable* parcel, TypeNamespace* types) {
   int err = 0;
   for (const auto& v : parcel->GetFields()) {
     if (!v->CheckValid()) {
@@ -179,7 +175,7 @@ int check_types(const string& filename, const AidlStructuredParcelable* parcel,
       err = 1;  // return type is invalid
     }
 
-    const ValidatableType* type = types->GetReturnType(v->GetType(), filename, *parcel);
+    const ValidatableType* type = types->GetReturnType(v->GetType(), *parcel);
     if (!type) {
       err = 1;
     }
@@ -190,14 +186,11 @@ int check_types(const string& filename, const AidlStructuredParcelable* parcel,
   return err;
 }
 
-int check_types(const string& filename,
-                const AidlInterface* c,
-                TypeNamespace* types) {
+int check_types(const AidlInterface* c, TypeNamespace* types) {
   int err = 0;
 
   if (c->IsUtf8() && c->IsUtf8InCpp()) {
-    cerr << filename << ":" << c->GetLine()
-         << "Interface cannot be marked as both @utf8 and @utf8InCpp";
+    AIDL_ERROR(c) << "Interface cannot be marked as both @utf8 and @utf8InCpp";
     err = 1;
   }
 
@@ -210,8 +203,7 @@ int check_types(const string& filename,
       err = 1;  // return type is invalid
     }
 
-    const ValidatableType* return_type =
-        types->GetReturnType(m->GetType(), filename, *c);
+    const ValidatableType* return_type = types->GetReturnType(m->GetType(), *c);
 
     if (!m->GetType().CheckValid()) {
       err = 1;
@@ -224,10 +216,8 @@ int check_types(const string& filename,
     m->GetMutableType()->SetLanguageType(return_type);
 
     if (oneway && m->GetType().GetName() != "void") {
-        cerr << filename << ":" << m->GetLine()
-            << " oneway method '" << m->GetName() << "' cannot return a value"
-            << endl;
-        err = 1;
+      AIDL_ERROR(m) << "oneway method '" << m->GetName() << "' cannot return a value";
+      err = 1;
     }
 
     int index = 1;
@@ -240,8 +230,7 @@ int check_types(const string& filename,
         err = 1;
       }
 
-      const ValidatableType* arg_type =
-          types->GetArgType(*arg, index, filename, *c);
+      const ValidatableType* arg_type = types->GetArgType(*arg, index, *c);
 
       if (!arg_type) {
         err = 1;
@@ -250,9 +239,7 @@ int check_types(const string& filename,
       arg->GetMutableType()->SetLanguageType(arg_type);
 
       if (oneway && arg->IsOut()) {
-        cerr << filename << ":" << m->GetLine()
-            << " oneway method '" << m->GetName()
-            << "' cannot have out parameters" << endl;
+        AIDL_ERROR(m) << "oneway method '" << m->GetName() << "' cannot have out parameters";
         err = 1;
       }
     }
@@ -262,10 +249,8 @@ int check_types(const string& filename,
     if (it == method_names.end()) {
       method_names[m->GetName()] = m.get();
     } else {
-      cerr << filename << ":" << m->GetLine()
-           << " attempt to redefine method " << m->GetName() << "," << endl
-           << filename << ":" << it->second->GetLine()
-           << "    previously defined here." << endl;
+      AIDL_ERROR(m) << "attempt to redefine method " << m->GetName() << ":";
+      AIDL_ERROR(it->second) << "previously defined here.";
       err = 1;
     }
   }
@@ -369,32 +354,26 @@ int check_and_assign_method_ids(const char * filename,
             hasAssignedIds = true;
             // Ensure that the user set id is not duplicated.
             if (usedIds.find(item->GetId()) != usedIds.end()) {
-                // We found a duplicate id, so throw an error.
-                fprintf(stderr,
-                        "%s:%d Found duplicate method id (%d) for method: %s\n",
-                        filename, item->GetLine(),
-                        item->GetId(), item->GetName().c_str());
-                return 1;
+              AIDL_ERROR(item) << "Found duplicate method id (" << item->GetId() << ") for method "
+                               << item->GetName();
+              return 1;
             }
             // Ensure that the user set id is within the appropriate limits
             if (item->GetId() < kMinUserSetMethodId ||
                     item->GetId() > kMaxUserSetMethodId) {
-                fprintf(stderr, "%s:%d Found out of bounds id (%d) for method: %s\n",
-                        filename, item->GetLine(),
-                        item->GetId(), item->GetName().c_str());
-                fprintf(stderr, "    Value for id must be between %d and %d inclusive.\n",
-                        kMinUserSetMethodId, kMaxUserSetMethodId);
-                return 1;
+              AIDL_ERROR(item) << "Found out of bounds id (" << item->GetId() << ") for method "
+                               << item->GetName() << ". Value for id must be between "
+                               << kMinUserSetMethodId << " and " << kMaxUserSetMethodId
+                               << " inclusive.";
+              return 1;
             }
             usedIds.insert(item->GetId());
         } else {
             hasUnassignedIds = true;
         }
         if (hasAssignedIds && hasUnassignedIds) {
-            fprintf(stderr,
-                    "%s: You must either assign id's to all methods or to none of them.\n",
-                    filename);
-            return 1;
+          AIDL_ERROR(filename) << "You must either assign id's to all methods or to none of them.";
+          return 1;
         }
     }
 
@@ -586,8 +565,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   CHECK(interface != nullptr || parcelable != nullptr);
 
-  if (!check_filename(input_file_name.c_str(), defined_type->GetPackage(), defined_type->GetName(),
-                      defined_type->GetLine()) ||
+  if (!check_filename(input_file_name.c_str(), *defined_type) ||
       !types->IsValidPackage(defined_type->GetPackage())) {
     LOG(ERROR) << "Invalid package declaration '" << defined_type->GetPackage() << "'";
     return AidlError::BAD_PACKAGE;
@@ -603,8 +581,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     }
     string import_path = import_resolver.FindImportFile(import->GetNeededClass());
     if (import_path.empty()) {
-      AIDL_ERROR(import.get()) << "couldn't find import for class " << import->GetNeededClass()
-                               << endl;
+      AIDL_ERROR(import) << "couldn't find import for class " << import->GetNeededClass();
       err = AidlError::BAD_IMPORT;
       continue;
     }
@@ -659,10 +636,10 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   }
 
   // check the referenced types in parsed_doc to make sure we've imported them
-  if (interface && check_types(input_file_name, interface, types) != 0) {
+  if (interface && check_types(interface, types) != 0) {
     err = AidlError::BAD_TYPE;
   }
-  if (parcelable && check_types(input_file_name, parcelable, types) != 0) {
+  if (parcelable && check_types(parcelable, types) != 0) {
     err = AidlError::BAD_TYPE;
   }
   if (err != AidlError::OK) {

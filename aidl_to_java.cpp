@@ -138,8 +138,7 @@ static bool IsMarshallingUnsupportedFor(const AidlTypeSpecifier& aidl,
 
 static bool EnsureCodegenIsSupported(const CodeGeneratorContext& c) {
   if (IsMarshallingUnsupportedFor(c.type, c.typenames)) {
-    cerr << c.filename << ":" << c.line << " '" << c.type.ToString() << "'"
-         << " is not yet supported." << endl;
+    AIDL_ERROR(c.type) << c.type.ToString() << "' is not yet supported.";
     return false;
   }
   return true;
