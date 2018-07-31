@@ -53,11 +53,8 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate);
 
 namespace internals {
 
-AidlError load_and_validate_aidl(const std::vector<std::string>& preprocessed_files,
-                                 const ImportResolver& import_resolver,
-                                 const std::string& input_file_name, bool generate_traces,
-                                 bool is_structured, const IoDelegate& io_delegate,
-                                 TypeNamespace* types,
+AidlError load_and_validate_aidl(const std::string& input_file_name, const Options& options,
+                                 const IoDelegate& io_delegate, TypeNamespace* types,
                                  std::unique_ptr<AidlDefinedType>* returned_type,
                                  std::vector<std::unique_ptr<AidlImport>>* returned_imports);
 

@@ -72,12 +72,24 @@ class AidlTest : public ::testing::Test {
   unique_ptr<AidlDefinedType> Parse(const string& path, const string& contents,
                                     TypeNamespace* types, AidlError* error = nullptr) {
     io_delegate_.SetFileContents(path, contents);
+    vector<string> args;
+    if (types == &java_types_) {
+      args.emplace_back("aidl");
+    } else {
+      args.emplace_back("aidl-cpp");
+    }
+    for (const auto& f : preprocessed_files_) {
+      args.emplace_back("--preprocessed=" + f);
+    }
+    for (const auto& i : import_paths_) {
+      args.emplace_back("--include=" + i);
+    }
+    args.emplace_back(path);
+    Options options = Options::From(args);
     unique_ptr<AidlDefinedType> ret;
     std::vector<std::unique_ptr<AidlImport>> imports;
-    ImportResolver import_resolver{io_delegate_, import_paths_, {}};
     AidlError actual_error = ::android::aidl::internals::load_and_validate_aidl(
-        preprocessed_files_, import_resolver, path, false /* generate_traces */,
-        false /* is_structured*/, io_delegate_, types, &ret, &imports);
+        path, options, io_delegate_, types, &ret, &imports);
     if (error != nullptr) {
       *error = actual_error;
     }
