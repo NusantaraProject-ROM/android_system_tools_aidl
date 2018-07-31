@@ -500,20 +500,23 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
       break;
     }
 
+    AidlLocation::Point point = {.line = lineno, .column = 0 /*column*/};
+    AidlLocation location = AidlLocation(filename, point, point);
+
     if (decl == "parcelable") {
       AidlParcelable* doc =
-          new AidlParcelable(new AidlQualifiedName(class_name, ""), lineno, package);
+          new AidlParcelable(location, new AidlQualifiedName(location, class_name, ""), package);
       types->AddParcelableType(*doc, filename);
       typenames.AddPreprocessedType(unique_ptr<AidlParcelable>(doc));
     } else if (decl == "structured_parcelable") {
       auto temp = new std::vector<std::unique_ptr<AidlVariableDeclaration>>();
       AidlStructuredParcelable* doc = new AidlStructuredParcelable(
-          new AidlQualifiedName(class_name, ""), lineno, package, temp);
+          location, new AidlQualifiedName(location, class_name, ""), package, temp);
       types->AddParcelableType(*doc, filename);
       typenames.AddPreprocessedType(unique_ptr<AidlStructuredParcelable>(doc));
     } else if (decl == "interface") {
       auto temp = new std::vector<std::unique_ptr<AidlMember>>();
-      AidlInterface* doc = new AidlInterface(class_name, lineno, "", false, temp, package);
+      AidlInterface* doc = new AidlInterface(location, class_name, "", false, temp, package);
       types->AddBinderType(*doc, filename);
       typenames.AddPreprocessedType(unique_ptr<AidlInterface>(doc));
     } else {
@@ -600,9 +603,8 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     }
     string import_path = import_resolver.FindImportFile(import->GetNeededClass());
     if (import_path.empty()) {
-      cerr << import->GetFileFrom() << ":" << import->GetLine()
-           << ": couldn't find import for class "
-           << import->GetNeededClass() << endl;
+      AIDL_ERROR(import.get()) << "couldn't find import for class " << import->GetNeededClass()
+                               << endl;
       err = AidlError::BAD_IMPORT;
       continue;
     }
