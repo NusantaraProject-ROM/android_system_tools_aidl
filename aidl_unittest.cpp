@@ -76,8 +76,8 @@ class AidlTest : public ::testing::Test {
     std::vector<std::unique_ptr<AidlImport>> imports;
     ImportResolver import_resolver{io_delegate_, import_paths_, {}};
     AidlError actual_error = ::android::aidl::internals::load_and_validate_aidl(
-        preprocessed_files_, import_resolver, path, false, /* generate_traces */
-        io_delegate_, types, &ret, &imports);
+        preprocessed_files_, import_resolver, path, false /* generate_traces */,
+        false /* is_structured*/, io_delegate_, types, &ret, &imports);
     if (error != nullptr) {
       *error = actual_error;
     }

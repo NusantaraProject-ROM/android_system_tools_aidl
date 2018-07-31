@@ -399,6 +399,15 @@ class AidlDefinedType : public AidlAnnotatable {
     return const_cast<AidlInterface*>(const_cast<const AidlDefinedType*>(this)->AsInterface());
   }
 
+  const AidlParcelable* AsUnstructuredParcelable() const {
+    if (this->AsStructuredParcelable() != nullptr) return nullptr;
+    return this->AsParcelable();
+  }
+  AidlParcelable* AsUnstructuredParcelable() {
+    return const_cast<AidlParcelable*>(
+        const_cast<const AidlDefinedType*>(this)->AsUnstructuredParcelable());
+  }
+
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
   }

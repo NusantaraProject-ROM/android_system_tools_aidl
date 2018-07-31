@@ -36,7 +36,7 @@ var (
 
 	aidlCpp     = pctx.HostBinToolVariable("aidlCpp", "aidl-cpp")
 	aidlCppRule = pctx.StaticRule("aidlCppRule", blueprint.RuleParams{
-		Command:     "${aidlCpp} ${imports} ${in} ${headerDir} ${cppFile}",
+		Command:     "${aidlCpp} --structured ${imports} ${in} ${headerDir} ${cppFile}",
 		CommandDeps: []string{"${aidlCpp}"},
 		Description: "AIDL CPP ${in} => ${out}",
 	}, "imports", "headerDir", "cppFile")
@@ -45,7 +45,7 @@ var (
 	aidlJavaRule = pctx.StaticRule("aidlJavaRule", blueprint.RuleParams{
 		Depfile:     "${out}.d",
 		Deps:        blueprint.DepsGCC,
-		Command:     "${aidlJava} --ninja -d${out}.d ${imports} ${in} ${out}",
+		Command:     "${aidlJava} --structured --ninja -d${out}.d ${imports} ${in} ${out}",
 		CommandDeps: []string{"${aidlJava}"},
 		Description: "AIDL Java ${in} => ${out}",
 	}, "imports")
