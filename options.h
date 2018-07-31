@@ -28,6 +28,34 @@ namespace aidl {
 using std::string;
 using std::vector;
 
+// A simple wrapper around ostringstream. This is just to make Options class
+// copiable by the implicit copy constructor. If ostingstream is not wrapped,
+// the implcit copy constructor is not generated because ostringstream isn't
+// copiable. This class makes the field copiable by having a copy constructor
+// that does not copy the underlying stream.
+class ErrorMessage {
+ public:
+  ErrorMessage() = default;
+  ErrorMessage(const ErrorMessage&) {}
+  std::ostringstream stream_;
+  ErrorMessage& operator<<(int i) {
+    stream_ << i;
+    return *this;
+  }
+  ErrorMessage& operator<<(const char* s) {
+    stream_ << s;
+    return *this;
+  }
+  ErrorMessage& operator<<(const std::string& str) {
+    stream_ << str;
+    return *this;
+  }
+  ErrorMessage& operator<<(std::ostream& (*f)(std::ostream&)) {
+    f(stream_);
+    return *this;
+  }
+};
+
 class Options final {
  public:
   enum class Language { UNSPECIFIED, JAVA, CPP };
@@ -35,6 +63,10 @@ class Options final {
   enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMPAPI };
 
   Options(int argc, const char* const argv[], Language default_lang = Language::UNSPECIFIED);
+
+  static Options From(const string& cmdline);
+
+  static Options From(const vector<string>& args);
 
   // Contain no references to unstructured data types (such as a parcelable that is
   // implemented in Java). These interfaces aren't inherently stable but they have the
@@ -81,9 +113,9 @@ class Options final {
 
   bool FailOnParcelable() const { return fail_on_parcelable_; }
 
-  bool Ok() const { return error_message_.str().empty(); }
+  bool Ok() const { return error_message_.stream_.str().empty(); }
 
-  string GetErrorMessage() const { return error_message_.str(); }
+  string GetErrorMessage() const { return error_message_.stream_.str(); }
 
   string GetUsage() const;
 
@@ -112,19 +144,7 @@ class Options final {
   bool auto_dep_file_ = false;
   vector<string> input_files_;
   string output_file_;
-  std::ostringstream error_message_;
-
-  FRIEND_TEST(EndToEndTest, IExampleInterface);
-  FRIEND_TEST(EndToEndTest, IExampleInterface_WithTransactionNames);
-  FRIEND_TEST(EndToEndTest, IExampleInterface_WithTrace);
-  FRIEND_TEST(EndToEndTest, IExampleInterface_Outlining);
-  FRIEND_TEST(AidlTest, FailOnParcelable);
-  FRIEND_TEST(AidlTest, WritePreprocessedFile);
-  FRIEND_TEST(AidlTest, WritesCorrectDependencyFile);
-  FRIEND_TEST(AidlTest, WritesCorrectDependencyFileNinja);
-  FRIEND_TEST(AidlTest, WritesTrivialDependencyFileForParcelable);
-  FRIEND_TEST(AidlTest, ApiDump);
-  FRIEND_TEST(AidlTest, CheckNumGenericTypeSecifier);
+  ErrorMessage error_message_;
 };
 
 }  // namespace android
