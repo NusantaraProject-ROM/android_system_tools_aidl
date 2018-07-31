@@ -138,5 +138,14 @@ bool AidlTypenames::CanBeOutParameter(const AidlTypeSpecifier& type) const {
   return t->AsParcelable() != nullptr;
 }
 
+void AidlTypenames::IterateTypes(const std::function<void(const AidlDefinedType&)>& body) const {
+  for (const auto& kv : defined_types_) {
+    body(*kv.second);
+  }
+  for (const auto& kv : preprocessed_types_) {
+    body(*kv.second);
+  }
+}
+
 }  // namespace aidl
 }  // namespace android
