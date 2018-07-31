@@ -63,6 +63,10 @@ std::ostream& operator<<(std::ostream& os, const AidlLocation& l) {
 
 AidlNode::AidlNode(const AidlLocation& location) : location_(location) {}
 
+AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
+  os_ << "ERROR: ";
+}
+
 static const string kNullable("nullable");
 static const string kUtf8("utf8");
 static const string kUtf8InCpp("utf8InCpp");

@@ -112,13 +112,11 @@ class TypeNamespace {
   // Returns a pointer to a type corresponding to |raw_type| or nullptr
   // if this is an invalid return type.
   virtual const ValidatableType* GetReturnType(const AidlTypeSpecifier& raw_type,
-                                               const std::string& filename,
                                                const AidlDefinedType& context) const;
 
   // Returns a pointer to a type corresponding to |a| or nullptr if |a|
   // has an invalid argument type.
   virtual const ValidatableType* GetArgType(const AidlArgument& a, int arg_index,
-                                            const std::string& filename,
                                             const AidlDefinedType& context) const;
 
   // Returns a pointer to a type corresponding to |defined_type|.

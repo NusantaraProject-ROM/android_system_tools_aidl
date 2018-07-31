@@ -85,7 +85,6 @@ struct CodeGeneratorContext {
 
   // for error message printing
   const string filename;
-  const unsigned line;
 };
 
 // Writes code fragment that writes a variable to the parcel.
