@@ -1396,6 +1396,7 @@ class ASTTest : public ::testing::Test {
         ::android::aidl::internals::load_and_validate_aidl({},  // no preprocessed files
                                                            import_resolver, file_path_,
                                                            false,  // generate_traces
+                                                           false,  // is_structured
                                                            io_delegate_, &types_, &ret, &imports);
 
     if (err != AidlError::OK) {

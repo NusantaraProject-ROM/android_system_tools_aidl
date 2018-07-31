@@ -145,10 +145,7 @@ decl
    {
     $$ = $2;
 
-    bool is_unstructured_parcelable =
-      $$->AsParcelable() != nullptr && $$->AsStructuredParcelable() == nullptr;
-
-    if (is_unstructured_parcelable && !$1->empty()) {
+    if ($$->AsUnstructuredParcelable() != nullptr && !$1->empty()) {
       std::cerr << ps->FileName() << ":" << @1 << ": unstructured parcelables cannot be annotated"
                 << std::endl;
       ps->AddError();
