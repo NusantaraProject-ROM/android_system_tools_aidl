@@ -47,9 +47,6 @@ class AidlLocation {
 
   AidlLocation(const std::string& file, Point begin, Point end);
 
-  // TODO(b/110967839): remove all error messages containing line
-  friend class AidlNode;  // For temporary access to GetLine
-
   friend std::ostream& operator<<(std::ostream& os, const AidlLocation& l);
 
  private:
@@ -65,9 +62,6 @@ class AidlNode {
  public:
   AidlNode(const AidlLocation& location);
   virtual ~AidlNode() = default;
-
-  // TODO(b/110967839): remove this and use AidlError for errors universally
-  unsigned int GetLine() const { return location_.begin_.line; }
 
   // DO NOT ADD. This is intentionally omitted. Nothing should refer to the location
   // for a functional purpose. It is only for error messages.
@@ -85,15 +79,15 @@ class AidlNode {
 // Generic point for printing any error in the AIDL compiler.
 class AidlError {
  public:
-  AidlError(bool fatal, std::ostream& os, const std::string& filename) : AidlError(fatal, os) {
-    os_ << filename << ": ";
-  }
-  AidlError(bool fatal, std::ostream& os, const AidlLocation& location) : AidlError(fatal, os) {
+  AidlError(bool fatal, const std::string& filename) : AidlError(fatal) { os_ << filename << ": "; }
+  AidlError(bool fatal, const AidlLocation& location) : AidlError(fatal) {
     os_ << location << ": ";
   }
-  AidlError(bool fatal, std::ostream& os, const AidlNode& node)
-      : AidlError(fatal, os, node.location_) {}
-  AidlError(bool fatal, std::ostream& os, const AidlNode* node) : AidlError(fatal, os, *node) {}
+  AidlError(bool fatal, const AidlNode& node) : AidlError(fatal, node.location_) {}
+  AidlError(bool fatal, const AidlNode* node) : AidlError(fatal, *node) {}
+
+  template <typename T>
+  AidlError(bool fatal, const std::unique_ptr<T>& node) : AidlError(fatal, *node) {}
   ~AidlError() {
     os_ << std::endl;
     if (fatal_) abort();
@@ -102,15 +96,15 @@ class AidlError {
   std::ostream& os_;
 
  private:
-  AidlError(bool fatal, std::ostream& os) : os_(os), fatal_(fatal) { os_ << "ERROR: "; }
+  AidlError(bool fatal);
 
   bool fatal_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlError);
 };
 
-#define AIDL_ERROR(CONTEXT) ::AidlError(false /*fatal*/, std::cerr, (CONTEXT)).os_
-#define AIDL_FATAL(CONTEXT) ::AidlError(true /*fatal*/, std::cerr, (CONTEXT)).os_
+#define AIDL_ERROR(CONTEXT) ::AidlError(false /*fatal*/, (CONTEXT)).os_
+#define AIDL_FATAL(CONTEXT) ::AidlError(true /*fatal*/, (CONTEXT)).os_
 
 namespace android {
 namespace aidl {

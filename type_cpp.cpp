@@ -188,14 +188,11 @@ class BinderType : public Type {
   }
 
  private:
-  BinderType(const AidlInterface& interface,
-             const std::string& src_file_name,
-             Type* nullable_type, const std::string& read)
-      : Type(ValidatableType::KIND_GENERATED,
-             interface.GetPackage(), interface.GetName(),
-             {GetCppHeader(interface)}, GetCppName(interface),
-             read, "writeStrongBinder", kNoArrayType, nullable_type,
-             src_file_name, interface.GetLine()),
+  BinderType(const AidlInterface& interface, const std::string& src_file_name, Type* nullable_type,
+             const std::string& read)
+      : Type(ValidatableType::KIND_GENERATED, interface.GetPackage(), interface.GetName(),
+             {GetCppHeader(interface)}, GetCppName(interface), read, "writeStrongBinder",
+             kNoArrayType, nullable_type, src_file_name),
         write_cast_(GetRawCppName(interface) + "::asBinder") {}
 
   static string GetCppName(const AidlInterface& interface) {
@@ -224,7 +221,7 @@ class NullableParcelableType : public Type {
                          const std::string& src_file_name)
       : Type(ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(), parcelable.GetName(),
              {cpp_header}, GetCppName(parcelable), "readParcelable", "writeNullableParcelable",
-             kNoArrayType, kNoNullableType, src_file_name, parcelable.GetLine()) {}
+             kNoArrayType, kNoNullableType, src_file_name) {}
   virtual ~NullableParcelableType() = default;
 
  private:
@@ -244,8 +241,7 @@ class ParcelableType : public Type {
                               parcelable.GetName(), cpp_header, GetCppName(parcelable),
                               GetCppName(parcelable), "readParcelableVector",
                               "writeParcelableVector", false, src_file_name),
-             new NullableParcelableType(parcelable, cpp_header, src_file_name), src_file_name,
-             parcelable.GetLine()) {}
+             new NullableParcelableType(parcelable, cpp_header, src_file_name), src_file_name) {}
   virtual ~ParcelableType() = default;
 
  private:
@@ -493,13 +489,11 @@ void TypeNamespace::Init() {
   Add(void_type_);
 }
 
-bool TypeNamespace::AddParcelableType(const AidlParcelable& p,
-                                      const string& filename) {
+bool TypeNamespace::AddParcelableType(const AidlParcelable& p, const std::string& filename) {
   const std::string cpp_header = p.AsStructuredParcelable() ? GetCppHeader(p) : p.GetCppHeader();
 
   if (cpp_header.empty()) {
-    LOG(ERROR) << "Parcelable " << p.GetCanonicalName()
-               << " has no C++ header defined.";
+    AIDL_ERROR(p) << "Parcelable " << p.GetCanonicalName() << " has no C++ header defined.";
     return false;
   }
 
@@ -507,9 +501,8 @@ bool TypeNamespace::AddParcelableType(const AidlParcelable& p,
   return true;
 }
 
-bool TypeNamespace::AddBinderType(const AidlInterface& b,
-                                  const string& file_name) {
-  Add(new BinderType(b, file_name));
+bool TypeNamespace::AddBinderType(const AidlInterface& b, const std::string& filename) {
+  Add(new BinderType(b, filename));
   return true;
 }
 
@@ -562,20 +555,15 @@ bool TypeNamespace::IsValidPackage(const string& package) const {
 }
 
 const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_index,
-                                                 const std::string& filename,
                                                  const AidlDefinedType& context) const {
-  const string error_prefix = StringPrintf(
-      "In file %s line %d parameter %s (%d):\n    ",
-      filename.c_str(), a.GetLine(), a.GetName().c_str(), arg_index);
-
   // check that the name doesn't match a keyword
   if (is_cpp_keyword(a.GetName().c_str())) {
-    cerr << error_prefix << "Argument name is a C++ keyword"
-         << endl;
+    const string error_prefix = StringPrintf("parameter %s (%d): ", a.GetName().c_str(), arg_index);
+    AIDL_ERROR(a) << error_prefix << "Argument name is a C++ keyword";
     return nullptr;
   }
 
-  return ::android::aidl::TypeNamespace::GetArgType(a, arg_index, filename, context);
+  return ::android::aidl::TypeNamespace::GetArgType(a, arg_index, context);
 }
 
 }  // namespace cpp
