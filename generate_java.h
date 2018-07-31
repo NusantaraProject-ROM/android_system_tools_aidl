@@ -17,20 +17,17 @@
 #ifndef AIDL_GENERATE_JAVA_H_
 #define AIDL_GENERATE_JAVA_H_
 
-#include <string>
-
 #include "aidl_language.h"
 #include "ast_java.h"
 #include "io_delegate.h"
+#include "options.h"
+#include "type_java.h"
+
+#include <string>
 
 namespace android {
 namespace aidl {
-
-class Options;
-
 namespace java {
-
-class JavaTypeNamespace;
 
 bool generate_java(const std::string& filename, const std::string& original_src,
                    const AidlDefinedType* iface, java::JavaTypeNamespace* types,
@@ -45,24 +42,6 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
                                                   const Options& options);
 
 }  // namespace java
-
-class VariableFactory {
- public:
-  using Variable = ::android::aidl::java::Variable;
-  using Type = ::android::aidl::java::Type;
-
-  explicit VariableFactory(const std::string& base); // base must be short
-  Variable* Get(const Type* type);
-  Variable* Get(int index);
-
- private:
-  std::vector<Variable*> vars_;
-  std::string base_;
-  int index_;
-
-  DISALLOW_COPY_AND_ASSIGN(VariableFactory);
-};
-
 }  // namespace android
 }  // namespace aidl
 
