@@ -46,7 +46,8 @@ TEST_F(JavaTypeNamespaceTest, ContainerTypeCreation) {
   EXPECT_FALSE(types_.HasTypeByCanonicalName("Foo"));
   EXPECT_FALSE(types_.HasTypeByCanonicalName("java.util.List<a.goog.Foo>"));
   unique_ptr<AidlParcelable> parcelable(
-      new AidlParcelable(new AidlQualifiedName("Foo", ""), 0, {"a", "goog"}));
+      new AidlParcelable(AidlLocation::nowhere(),
+                         new AidlQualifiedName(AidlLocation::nowhere(), "Foo", ""), {"a", "goog"}));
   // Add the parcelable type we care about.
   EXPECT_TRUE(types_.AddParcelableType(*parcelable.get(), __FILE__));
   // Now we can find the parcelable type, but not the List of them.
@@ -55,8 +56,9 @@ TEST_F(JavaTypeNamespaceTest, ContainerTypeCreation) {
   // But after we add the list explicitly...
   std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_args =
       new std::vector<std::unique_ptr<AidlTypeSpecifier>>();
-  type_args->emplace_back(new AidlTypeSpecifier("Foo", false, nullptr, 0, ""));
-  AidlTypeSpecifier container_type("List", false, type_args, 0, "");
+  type_args->emplace_back(
+      new AidlTypeSpecifier(AidlLocation::nowhere(), "Foo", false, nullptr, ""));
+  AidlTypeSpecifier container_type(AidlLocation::nowhere(), "List", false, type_args, "");
   EXPECT_TRUE(types_.MaybeAddContainerType(container_type));
   // This should work.
   EXPECT_TRUE(types_.HasTypeByCanonicalName("java.util.List<a.goog.Foo>"));

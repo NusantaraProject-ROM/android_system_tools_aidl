@@ -220,7 +220,7 @@ TEST_F(AidlTest, PreferImportToPreprocessed) {
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("one.IBar"));
   EXPECT_TRUE(java_types_.HasTypeByCanonicalName("another.IBar"));
   // But if we request just "IBar" we should get our imported one.
-  AidlTypeSpecifier ambiguous_type("IBar", false, nullptr, 0, "");
+  AidlTypeSpecifier ambiguous_type(AidlLocation::nowhere(), "IBar", false, nullptr, "");
   const java::Type* type = java_types_.Find(ambiguous_type);
   ASSERT_TRUE(type);
   EXPECT_EQ("one.IBar", type->CanonicalName());

@@ -49,24 +49,43 @@ AidlToken::AidlToken(const std::string& text, const std::string& comments)
     : text_(text),
       comments_(comments) {}
 
+AidlLocation::AidlLocation(const std::string& file, Point begin, Point end)
+    : file_(file), begin_(begin), end_(end) {}
+
+std::ostream& operator<<(std::ostream& os, const AidlLocation& l) {
+  os << l.file_ << ":" << l.begin_.line << "." << l.begin_.column << "-";
+  if (l.begin_.line != l.end_.line) {
+    os << l.end_.line << ".";
+  }
+  os << l.end_.column;
+  return os;
+}
+
+AidlNode::AidlNode(const AidlLocation& location) : location_(location) {}
+
 static const string kNullable("nullable");
 static const string kUtf8("utf8");
 static const string kUtf8InCpp("utf8InCpp");
 
 static const set<string> kAnnotationNames{kNullable, kUtf8, kUtf8InCpp};
 
-AidlAnnotation::AidlAnnotation(const string& name, string& error) : name_(name) {
-  if (kAnnotationNames.find(name_) == kAnnotationNames.end()) {
+AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string& name) {
+  if (kAnnotationNames.find(name) == kAnnotationNames.end()) {
     std::ostringstream stream;
-    stream << "'" << name_ << "' is not a recognized annotation. ";
+    stream << "'" << name << "' is not a recognized annotation. ";
     stream << "It must be one of:";
     for (const string& kv : kAnnotationNames) {
       stream << " " << kv;
     }
     stream << ".";
-    error = stream.str();
+    AIDL_ERROR(location) << stream.str();
+    return nullptr;
   }
+  return new AidlAnnotation(location, name);
 }
+
+AidlAnnotation::AidlAnnotation(const AidlLocation& location, const string& name)
+    : AidlNode(location), name_(name) {}
 
 static bool HasAnnotation(const set<unique_ptr<AidlAnnotation>>& annotations, const string& name) {
   for (const auto& a : annotations) {
@@ -76,6 +95,8 @@ static bool HasAnnotation(const set<unique_ptr<AidlAnnotation>>& annotations, co
   }
   return false;
 }
+
+AidlAnnotatable::AidlAnnotatable(const AidlLocation& location) : AidlNode(location) {}
 
 bool AidlAnnotatable::IsNullable() const {
   return HasAnnotation(annotations_, kNullable);
@@ -98,13 +119,14 @@ string AidlAnnotatable::ToString() const {
   return Join(ret, " ");
 }
 
-AidlTypeSpecifier::AidlTypeSpecifier(const string& unresolved_name, bool is_array,
+AidlTypeSpecifier::AidlTypeSpecifier(const AidlLocation& location, const string& unresolved_name,
+                                     bool is_array,
                                      vector<unique_ptr<AidlTypeSpecifier>>* type_params,
-                                     unsigned line, const string& comments)
-    : unresolved_name_(unresolved_name),
+                                     const string& comments)
+    : AidlAnnotatable(location),
+      unresolved_name_(unresolved_name),
       is_array_(is_array),
       type_params_(type_params),
-      line_(line),
       comments_(comments) {}
 
 string AidlTypeSpecifier::ToString() const {
@@ -161,13 +183,14 @@ bool AidlTypeSpecifier::CheckValid() const {
   return true;
 }
 
-AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
-                                                 unsigned line)
-    : AidlVariableDeclaration(type, name, line, nullptr /*default_value*/) {}
+AidlVariableDeclaration::AidlVariableDeclaration(const AidlLocation& location,
+                                                 AidlTypeSpecifier* type, const std::string& name)
+    : AidlVariableDeclaration(location, type, name, nullptr /*default_value*/) {}
 
-AidlVariableDeclaration::AidlVariableDeclaration(AidlTypeSpecifier* type, std::string name,
-                                                 unsigned line, AidlConstantValue* default_value)
-    : type_(type), name_(name), line_(line), default_value_(default_value) {}
+AidlVariableDeclaration::AidlVariableDeclaration(const AidlLocation& location,
+                                                 AidlTypeSpecifier* type, const std::string& name,
+                                                 AidlConstantValue* default_value)
+    : AidlNode(location), type_(type), name_(name), default_value_(default_value) {}
 
 bool AidlVariableDeclaration::CheckValid() const {
   if (!type_->CheckValid()) {
@@ -180,8 +203,8 @@ bool AidlVariableDeclaration::CheckValid() const {
   const string value_type = AidlConstantValue::ToString(default_value_->GetType());
 
   if (given_type != value_type) {
-    cerr << "Declaration " << name_ << " is of type " << given_type << " but value is of type "
-         << value_type << " on line " << line_ << endl;
+    AIDL_ERROR(*this) << "Declaration " << name_ << " is of type " << given_type
+                      << " but value is of type " << value_type << endl;
     return false;
   }
   return true;
@@ -199,14 +222,15 @@ string AidlVariableDeclaration::Signature() const {
   return type_->Signature() + " " + name_;
 }
 
-AidlArgument::AidlArgument(AidlArgument::Direction direction, AidlTypeSpecifier* type,
-                           std::string name, unsigned line)
-    : AidlVariableDeclaration(type, name, line),
+AidlArgument::AidlArgument(const AidlLocation& location, AidlArgument::Direction direction,
+                           AidlTypeSpecifier* type, const std::string& name)
+    : AidlVariableDeclaration(location, type, name),
       direction_(direction),
       direction_specified_(true) {}
 
-AidlArgument::AidlArgument(AidlTypeSpecifier* type, std::string name, unsigned line)
-    : AidlVariableDeclaration(type, name, line),
+AidlArgument::AidlArgument(const AidlLocation& location, AidlTypeSpecifier* type,
+                           const std::string& name)
+    : AidlVariableDeclaration(location, type, name),
       direction_(AidlArgument::IN_DIR),
       direction_specified_(false) {}
 
@@ -233,8 +257,16 @@ string AidlArgument::ToString() const {
 }
 
 std::string AidlArgument::Signature() const {
+  class AidlInterface;
+  class AidlInterface;
+  class AidlParcelable;
+  class AidlStructuredParcelable;
+  class AidlParcelable;
+  class AidlStructuredParcelable;
   return GetDirectionSpecifier() + AidlVariableDeclaration::Signature();
 }
+
+AidlMember::AidlMember(const AidlLocation& location) : AidlNode(location) {}
 
 string AidlConstantValue::ToString(Type type) {
   switch (type) {
@@ -250,36 +282,39 @@ string AidlConstantValue::ToString(Type type) {
   }
 }
 
-AidlConstantValue::AidlConstantValue(Type type, const std::string& checked_value)
-    : type_(type), value_(checked_value) {}
+AidlConstantValue::AidlConstantValue(const AidlLocation& location, Type type,
+                                     const std::string& checked_value)
+    : AidlNode(location), type_(type), value_(checked_value) {}
 
-AidlConstantValue* AidlConstantValue::LiteralInt(int32_t value) {
-  return new AidlConstantValue(Type::INTEGER, std::to_string(value));
+AidlConstantValue* AidlConstantValue::LiteralInt(const AidlLocation& location, int32_t value) {
+  return new AidlConstantValue(location, Type::INTEGER, std::to_string(value));
 }
 
-AidlConstantValue* AidlConstantValue::ParseHex(const std::string& value, unsigned line) {
+AidlConstantValue* AidlConstantValue::ParseHex(const AidlLocation& location,
+                                               const std::string& value) {
   uint32_t unsigned_value;
   if (!android::base::ParseUint<uint32_t>(value.c_str(), &unsigned_value)) {
-    cerr << "Found invalid int value '" << value << "' on line " << line << endl;
-    return new AidlConstantValue(Type::ERROR, "");
+    AIDL_ERROR(location) << "Found invalid int value '" << value << "'";
+    return new AidlConstantValue(location, Type::ERROR, "");
   }
 
-  return LiteralInt(unsigned_value);
+  return LiteralInt(location, unsigned_value);
 }
 
-AidlConstantValue* AidlConstantValue::ParseString(const std::string& value, unsigned line) {
+AidlConstantValue* AidlConstantValue::ParseString(const AidlLocation& location,
+                                                  const std::string& value) {
   for (size_t i = 0; i < value.length(); ++i) {
     const char& c = value[i];
     if (c <= 0x1f || // control characters are < 0x20
         c >= 0x7f || // DEL is 0x7f
         c == '\\') { // Disallow backslashes for future proofing.
-      cerr << "Found invalid character at index " << i << " in string constant '" << value
-           << "' beginning on line " << line << endl;
-      return new AidlConstantValue(Type::ERROR, "");
+      AIDL_ERROR(location) << "Found invalid character at index " << i << " in string constant '"
+                           << value << "'";
+      return new AidlConstantValue(location, Type::ERROR, "");
     }
   }
 
-  return new AidlConstantValue(Type::STRING, value);
+  return new AidlConstantValue(location, Type::STRING, value);
 }
 
 string AidlConstantValue::ToString() const {
@@ -287,31 +322,32 @@ string AidlConstantValue::ToString() const {
   return value_;
 }
 
-AidlConstantDeclaration::AidlConstantDeclaration(AidlTypeSpecifier* type, std::string name,
-                                                 AidlConstantValue* value, unsigned line)
-    : type_(type), name_(name), value_(value), line_(line) {}
+AidlConstantDeclaration::AidlConstantDeclaration(const AidlLocation& location,
+                                                 AidlTypeSpecifier* type, const std::string& name,
+                                                 AidlConstantValue* value)
+    : AidlMember(location), type_(type), name_(name), value_(value) {}
 
 bool AidlConstantDeclaration::CheckValid() const {
   // Error message logged above
   if (value_->GetType() == AidlConstantValue::Type::ERROR) return false;
 
   if (type_->ToString() != AidlConstantValue::ToString(value_->GetType())) {
-    cerr << "Constant " << name_ << " is of type " << type_->ToString() << " but value is of type "
-         << AidlConstantValue::ToString(value_->GetType()) << " on line " << line_ << endl;
+    AIDL_ERROR(this) << "Constant " << name_ << " is of type " << type_->ToString()
+                     << " but value is of type " << AidlConstantValue::ToString(value_->GetType());
     return false;
   }
 
   return true;
 }
 
-AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
-                       std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
+                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
                        const std::string& comments, int id)
-    : oneway_(oneway),
+    : AidlMember(location),
+      oneway_(oneway),
       comments_(comments),
       type_(type),
       name_(name),
-      line_(line),
       arguments_(std::move(*args)),
       id_(id) {
   has_id_ = true;
@@ -322,10 +358,10 @@ AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
   }
 }
 
-AidlMethod::AidlMethod(bool oneway, AidlTypeSpecifier* type, std::string name,
-                       std::vector<std::unique_ptr<AidlArgument>>* args, unsigned line,
+AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
+                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
                        const std::string& comments)
-    : AidlMethod(oneway, type, name, args, line, comments, 0) {
+    : AidlMethod(location, oneway, type, name, args, comments, 0) {
   has_id_ = false;
 }
 
@@ -337,9 +373,10 @@ string AidlMethod::Signature() const {
   return GetType().Signature() + " " + GetName() + "(" + Join(arg_signatures, ", ") + ")";
 }
 
-AidlDefinedType::AidlDefinedType(std::string name, unsigned line, const std::string& comments,
+AidlDefinedType::AidlDefinedType(const AidlLocation& location, const std::string& name,
+                                 const std::string& comments,
                                  const std::vector<std::string>& package)
-    : name_(name), line_(line), comments_(comments), package_(package) {}
+    : AidlAnnotatable(location), name_(name), comments_(comments), package_(package) {}
 
 std::string AidlDefinedType::GetPackage() const {
   return Join(package_, '.');
@@ -352,10 +389,10 @@ std::string AidlDefinedType::GetCanonicalName() const {
   return GetPackage() + "." + GetName();
 }
 
-AidlParcelable::AidlParcelable(AidlQualifiedName* name, unsigned line,
+AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
                                const std::vector<std::string>& package,
                                const std::string& cpp_header)
-    : AidlDefinedType(name->GetDotName(), line, "" /*comments*/, package),
+    : AidlDefinedType(location, name->GetDotName(), "" /*comments*/, package),
       name_(name),
       cpp_header_(cpp_header) {
   // Strip off quotation marks if we actually have a cpp header.
@@ -369,9 +406,10 @@ void AidlParcelable::Write(CodeWriter* writer) const {
 }
 
 AidlStructuredParcelable::AidlStructuredParcelable(
-    AidlQualifiedName* name, unsigned line, const std::vector<std::string>& package,
+    const AidlLocation& location, AidlQualifiedName* name, const std::vector<std::string>& package,
     std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables)
-    : AidlParcelable(name, line, package, "" /*cpp_header*/), variables_(std::move(*variables)) {}
+    : AidlParcelable(location, name, package, "" /*cpp_header*/),
+      variables_(std::move(*variables)) {}
 
 void AidlStructuredParcelable::Write(CodeWriter* writer) const {
   writer->Write("parcelable %s {\n", GetName().c_str());
@@ -383,12 +421,11 @@ void AidlStructuredParcelable::Write(CodeWriter* writer) const {
   writer->Write("}\n");
 }
 
-AidlInterface::AidlInterface(const std::string& name, unsigned line,
+AidlInterface::AidlInterface(const AidlLocation& location, const std::string& name,
                              const std::string& comments, bool oneway,
                              std::vector<std::unique_ptr<AidlMember>>* members,
                              const std::vector<std::string>& package)
-    : AidlDefinedType(name, line, comments, package),
-      oneway_(oneway) {
+    : AidlDefinedType(location, name, comments, package), oneway_(oneway) {
   for (auto& member : *members) {
     AidlMember* local = member.release();
     AidlMethod* method = local->AsMethod();
@@ -401,7 +438,7 @@ AidlInterface::AidlInterface(const std::string& name, unsigned line,
     } else if (constant) {
       constants_.emplace_back(constant);
     } else {
-      LOG(FATAL) << "Member is neither method nor constant!";
+      AIDL_FATAL(this) << "Member is neither method nor constant!";
     }
   }
 
@@ -424,22 +461,21 @@ AidlDefinedType* AidlDocument::ReleaseDefinedType() {
   }
 
   if (defined_types_.size() > 1) {
-    LOG(ERROR) << "AIDL only supports compiling one defined type per file.";
+    AIDL_ERROR(*defined_types_[1]) << "AIDL only supports compiling one defined type per file.";
     return nullptr;
   }
 
   return defined_types_[0].release();
 }
 
-AidlQualifiedName::AidlQualifiedName(std::string term,
-                                     std::string comments)
-    : terms_({term}),
-      comments_(comments) {
+AidlQualifiedName::AidlQualifiedName(const AidlLocation& location, const std::string& term,
+                                     const std::string& comments)
+    : AidlNode(location), terms_({term}), comments_(comments) {
   if (term.find('.') != string::npos) {
     terms_ = Split(term, ".");
-    for (const auto& term: terms_) {
-      if (term.empty()) {
-        LOG(FATAL) << "Malformed qualified identifier: '" << term << "'";
+    for (const auto& subterm : terms_) {
+      if (subterm.empty()) {
+        AIDL_FATAL(this) << "Malformed qualified identifier: '" << term << "'";
       }
     }
   }
@@ -449,11 +485,8 @@ void AidlQualifiedName::AddTerm(const std::string& term) {
   terms_.push_back(term);
 }
 
-AidlImport::AidlImport(const std::string& from,
-                       const std::string& needed_class, unsigned line)
-    : from_(from),
-      needed_class_(needed_class),
-      line_(line) {}
+AidlImport::AidlImport(const AidlLocation& location, const std::string& needed_class)
+    : AidlNode(location), needed_class_(needed_class) {}
 
 Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames& typenames)
     : io_delegate_(io_delegate), typenames_(typenames) {
@@ -472,7 +505,7 @@ bool Parser::ParseFile(const string& filename) {
   // Make sure we can read the file first, before trashing previous state.
   unique_ptr<string> new_buffer = io_delegate_.GetFileContents(filename);
   if (!new_buffer) {
-    LOG(ERROR) << "Error while opening file for parsing: '" << filename << "'";
+    AIDL_ERROR(filename) << "Error while opening file for parsing";
     return false;
   }
 
@@ -497,8 +530,7 @@ bool Parser::ParseFile(const string& filename) {
     return false;
 
   if (document_.get() == nullptr) {
-    LOG(ERROR) << "Parser succeeded but yielded no document!";
-    return false;
+    AIDL_FATAL(filename) << "Parser succeeded but yielded no document!";
   }
   return true;
 }
@@ -510,18 +542,15 @@ std::vector<std::string> Parser::Package() const {
   return package_->GetTerms();
 }
 
-void Parser::AddImport(AidlQualifiedName* name, unsigned line) {
-  imports_.emplace_back(new AidlImport(this->FileName(),
-                                       name->GetDotName(), line));
-  delete name;
+void Parser::AddImport(AidlImport* import) {
+  imports_.emplace_back(import);
 }
 
 bool Parser::Resolve() {
   bool success = true;
   for (AidlTypeSpecifier* typespec : unresolved_typespecs_) {
     if (!typespec->Resolve(typenames_)) {
-      LOG(ERROR) << "Failed to resolve '" << typespec->GetUnresolvedName() << "' at "
-                 << this->FileName() << ":" << typespec->GetLine();
+      AIDL_ERROR(typespec) << "Failed to resolve '" << typespec->GetUnresolvedName() << "'";
       success = false;
       // don't stop to show more errors if any
     }
