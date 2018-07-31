@@ -152,17 +152,29 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   asBinder->statements->Add(new ReturnStatement(THIS_VALUE));
   this->elements.push_back(asBinder);
 
-  // getTransactionName
   if (options_.GenTransactionNames()) {
+    // getDefaultTransactionName
+    Method* getDefaultTransactionName = new Method;
+    getDefaultTransactionName->modifiers = PUBLIC | STATIC;
+    getDefaultTransactionName->returnType = types->StringType();
+    getDefaultTransactionName->name = "getDefaultTransactionName";
+    Variable* code = new Variable(types->IntType(), "transactionCode");
+    getDefaultTransactionName->parameters.push_back(code);
+    getDefaultTransactionName->statements = new StatementBlock;
+    this->code_to_method_name_switch = new SwitchStatement(code);
+    getDefaultTransactionName->statements->Add(this->code_to_method_name_switch);
+    this->elements.push_back(getDefaultTransactionName);
+
+    // getTransactionName
     Method* getTransactionName = new Method;
     getTransactionName->modifiers = PUBLIC;
     getTransactionName->returnType = types->StringType();
     getTransactionName->name = "getTransactionName";
-    Variable* code = new Variable(types->IntType(), "transactionCode");
-    getTransactionName->parameters.push_back(code);
+    Variable* code2 = new Variable(types->IntType(), "transactionCode");
+    getTransactionName->parameters.push_back(code2);
     getTransactionName->statements = new StatementBlock;
-    this->code_to_method_name_switch = new SwitchStatement(code);
-    getTransactionName->statements->Add(this->code_to_method_name_switch);
+    getTransactionName->statements->Add(
+        new ReturnStatement(new MethodCall(THIS_VALUE, "getDefaultTransactionName", 1, code2)));
     this->elements.push_back(getTransactionName);
   }
 
