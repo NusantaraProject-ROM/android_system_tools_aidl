@@ -488,14 +488,6 @@ class AidlInterface final : public AidlDefinedType {
     return constants_;
   }
 
-  void SetGenerateTraces(bool generate_traces) {
-    generate_traces_ = generate_traces;
-  }
-
-  bool ShouldGenerateTraces() const {
-    return generate_traces_;
-  }
-
   const AidlInterface* AsInterface() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "interface"; }
 
@@ -505,8 +497,6 @@ class AidlInterface final : public AidlDefinedType {
   bool oneway_;
   std::vector<std::unique_ptr<AidlMethod>> methods_;
   std::vector<std::unique_ptr<AidlConstantDeclaration>> constants_;
-
-  bool generate_traces_ = false;
 
   DISALLOW_COPY_AND_ASSIGN(AidlInterface);
 };

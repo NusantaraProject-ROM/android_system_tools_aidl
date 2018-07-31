@@ -252,7 +252,7 @@ string BuildHeaderGuard(const AidlDefinedType& defined_type, ClassNames header_t
 
 unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
                                                 const AidlInterface& interface,
-                                                const AidlMethod& method) {
+                                                const AidlMethod& method, const Options& options) {
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
   unique_ptr<MethodImpl> ret{new MethodImpl{
@@ -272,7 +272,7 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
   // We unconditionally return a Status object.
   b->AddLiteral(StringPrintf("%s %s", kBinderStatusLiteral, kStatusVarName));
 
-  if (interface.ShouldGenerateTraces()) {
+  if (options.GenTraces()) {
     b->AddLiteral(
         StringPrintf("ScopedTrace %s(ATRACE_TAG_AIDL, \"%s::%s::cppClient\")",
         kTraceVarName, interface.GetName().c_str(), method.GetName().c_str()));
@@ -411,8 +411,8 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
 
 }  // namespace
 
-unique_ptr<Document> BuildClientSource(const TypeNamespace& types,
-                                       const AidlInterface& interface) {
+unique_ptr<Document> BuildClientSource(const TypeNamespace& types, const AidlInterface& interface,
+                                       const Options& options) {
   vector<string> include_list = {
       HeaderFile(interface, ClassNames::CLIENT, false),
       kParcelHeader,
@@ -431,8 +431,7 @@ unique_ptr<Document> BuildClientSource(const TypeNamespace& types,
 
   // Clients define a method per transaction.
   for (const auto& method : interface.GetMethods()) {
-    unique_ptr<Declaration> m = DefineClientTransaction(
-        types, interface, *method);
+    unique_ptr<Declaration> m = DefineClientTransaction(types, interface, *method, options);
     if (!m) { return nullptr; }
     file_decls.push_back(std::move(m));
   }
@@ -443,10 +442,8 @@ unique_ptr<Document> BuildClientSource(const TypeNamespace& types,
 
 namespace {
 
-bool HandleServerTransaction(const TypeNamespace& types,
-                             const AidlInterface& interface,
-                             const AidlMethod& method,
-                             StatementBlock* b) {
+bool HandleServerTransaction(const TypeNamespace& types, const AidlInterface& interface,
+                             const AidlMethod& method, const Options& options, StatementBlock* b) {
   // Declare all the parameters now.  In the common case, we expect no errors
   // in serialization.
   for (const unique_ptr<AidlArgument>& a : method.GetArguments()) {
@@ -499,7 +496,7 @@ bool HandleServerTransaction(const TypeNamespace& types,
     }
   }
 
-  if (interface.ShouldGenerateTraces()) {
+  if (options.GenTraces()) {
     b->AddStatement(new Statement(new MethodCall("atrace_begin",
         ArgList{{"ATRACE_TAG_AIDL",
         StringPrintf("\"%s::%s::cppServer\"",
@@ -516,7 +513,7 @@ bool HandleServerTransaction(const TypeNamespace& types,
       StringPrintf("%s %s", kBinderStatusLiteral, kStatusVarName),
       ArgList(std::move(status_args)))));
 
-  if (interface.ShouldGenerateTraces()) {
+  if (options.GenTraces()) {
     b->AddStatement(new Statement(new MethodCall("atrace_end",
                                                  "ATRACE_TAG_AIDL")));
   }
@@ -564,8 +561,8 @@ bool HandleServerTransaction(const TypeNamespace& types,
 
 }  // namespace
 
-unique_ptr<Document> BuildServerSource(const TypeNamespace& types,
-                                       const AidlInterface& interface) {
+unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInterface& interface,
+                                       const Options& options) {
   const string bn_name = ClassName(interface, ClassNames::SERVER);
   vector<string> include_list{
       HeaderFile(interface, ClassNames::SERVER, false),
@@ -594,7 +591,9 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types,
     StatementBlock* b = s->AddCase("Call::" + UpperCase(method->GetName()));
     if (!b) { return nullptr; }
 
-    if (!HandleServerTransaction(types, interface, *method, b)) { return nullptr; }
+    if (!HandleServerTransaction(types, interface, *method, options, b)) {
+      return nullptr;
+    }
   }
 
   // The switch statement has a default case which defers to the super class.
@@ -627,7 +626,7 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types,
 }
 
 unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
-                                          const AidlInterface& interface) {
+                                          const AidlInterface& interface, const Options&) {
   vector<string> include_list{
       HeaderFile(interface, ClassNames::INTERFACE, false),
       HeaderFile(interface, ClassNames::CLIENT, false),
@@ -689,8 +688,8 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
       NestInNamespaces(std::move(decls), interface.GetSplitPackage())}};
 }
 
-unique_ptr<Document> BuildClientHeader(const TypeNamespace& types,
-                                       const AidlInterface& interface) {
+unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInterface& interface,
+                                       const Options&) {
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
 
@@ -730,7 +729,7 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types,
 }
 
 unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
-                                       const AidlInterface& interface) {
+                                       const AidlInterface& interface, const Options&) {
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bn_name = ClassName(interface, ClassNames::SERVER);
 
@@ -762,7 +761,7 @@ unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
 }
 
 unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
-                                          const AidlInterface& interface) {
+                                          const AidlInterface& interface, const Options& options) {
   set<string> includes = {kIBinderHeader, kIInterfaceHeader, kStatusHeader, kStrongPointerHeader};
 
   for (const auto& method : interface.GetMethods()) {
@@ -813,7 +812,7 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
     }
   }
 
-  if (interface.ShouldGenerateTraces()) {
+  if (options.GenTraces()) {
     includes.insert(kTraceHeader);
   }
 
@@ -854,7 +853,8 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
 }
 
 std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
-                                            const AidlStructuredParcelable& parcel) {
+                                            const AidlStructuredParcelable& parcel,
+                                            const Options&) {
   unique_ptr<ClassDecl> parcel_class{new ClassDecl{parcel.GetName(), "::android::Parcelable"}};
 
   set<string> includes = {kStatusHeader, kParcelHeader};
@@ -891,7 +891,8 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
       NestInNamespaces(std::move(parcel_class), parcel.GetSplitPackage())}};
 }
 std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
-                                            const AidlStructuredParcelable& parcel) {
+                                            const AidlStructuredParcelable& parcel,
+                                            const Options&) {
   unique_ptr<MethodImpl> read{new MethodImpl{kAndroidStatusLiteral, parcel.GetName(),
                                              "readFromParcel",
                                              ArgList("const ::android::Parcel* _aidl_parcel")}};
@@ -941,13 +942,13 @@ bool WriteHeader(const Options& options, const TypeNamespace& types, const AidlI
   unique_ptr<Document> header;
   switch (header_type) {
     case ClassNames::INTERFACE:
-      header = BuildInterfaceHeader(types, interface);
+      header = BuildInterfaceHeader(types, interface, options);
       break;
     case ClassNames::CLIENT:
-      header = BuildClientHeader(types, interface);
+      header = BuildClientHeader(types, interface, options);
       break;
     case ClassNames::SERVER:
-      header = BuildServerHeader(types, interface);
+      header = BuildServerHeader(types, interface, options);
       break;
     default:
       LOG(FATAL) << "aidl internal error";
@@ -993,9 +994,9 @@ string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_type, bo
 bool GenerateCppInterface(const string& output_file, const Options& options,
                           const TypeNamespace& types, const AidlInterface& interface,
                           const IoDelegate& io_delegate) {
-  auto interface_src = BuildInterfaceSource(types, interface);
-  auto client_src = BuildClientSource(types, interface);
-  auto server_src = BuildServerSource(types, interface);
+  auto interface_src = BuildInterfaceSource(types, interface, options);
+  auto client_src = BuildClientSource(types, interface, options);
+  auto server_src = BuildServerSource(types, interface, options);
 
   if (!interface_src || !client_src || !server_src) {
     return false;
@@ -1032,8 +1033,8 @@ bool GenerateCppInterface(const string& output_file, const Options& options,
 bool GenerateCppParcel(const string& output_file, const Options& options,
                        const cpp::TypeNamespace& types, const AidlStructuredParcelable& parcelable,
                        const IoDelegate& io_delegate) {
-  auto header = BuildParcelHeader(types, parcelable);
-  auto source = BuildParcelSource(types, parcelable);
+  auto header = BuildParcelHeader(types, parcelable, options);
+  auto source = BuildParcelSource(types, parcelable, options);
 
   if (!header || !source) {
     return false;
