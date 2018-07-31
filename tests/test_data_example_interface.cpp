@@ -656,7 +656,7 @@ public interface IExampleInterface extends android.os.IInterface
     {
       return this;
     }
-    public java.lang.String getTransactionName(int transactionCode)
+    public static java.lang.String getDefaultTransactionName(int transactionCode)
     {
       switch (transactionCode)
       {
@@ -701,6 +701,10 @@ public interface IExampleInterface extends android.os.IInterface
           return null;
         }
       }
+    }
+    public java.lang.String getTransactionName(int transactionCode)
+    {
+      return this.getDefaultTransactionName(transactionCode);
     }
     @Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException
     {
