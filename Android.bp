@@ -40,6 +40,7 @@ cc_library_host_static {
 
     srcs: [
         "aidl.cpp",
+        "aidl_apicheck.cpp",
         "aidl_language.cpp",
         "aidl_language_l.ll",
         "aidl_language_y.yy",
