@@ -44,10 +44,9 @@ int main(int argc, char* argv[]) {
     case Options::Task::COMPILE:
       return android::aidl::compile_aidl(options, io_delegate);
     case Options::Task::PREPROCESS:
-      if (android::aidl::preprocess_aidl(options, io_delegate)) return 0;
-      return 1;
+      return android::aidl::preprocess_aidl(options, io_delegate) ? 0 : 1;
     case Options::Task::DUMPAPI:
-      return android::aidl::dump_api(options, io_delegate);
+      return android::aidl::dump_api(options, io_delegate) ? 0 : 1;
     default:
       LOG(FATAL) << "aidl: internal error" << std::endl;
       return 1;
