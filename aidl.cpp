@@ -69,7 +69,12 @@ namespace {
 // android.os.IBinder.FIRST_CALL_TRANSACTION=1 and
 // android.os.IBinder.LAST_CALL_TRANSACTION=16777215
 const int kMinUserSetMethodId = 0;
-const int kMaxUserSetMethodId = 16777214;
+const int kMaxUserSetMethodId = 0x00ffffff;
+
+// IDs for meta transactions. Most of the meta transactions are implemented in
+// the framework side (Binder.java or Binder.cpp). But these are the ones that
+// are auto-implemented by the AIDL compiler.
+const int kGetInterfaceVersionId = ('_' << 24) | ('V' << 16) | ('E' << 8) | 'R';
 
 bool check_filename(const std::string& filename, const AidlDefinedType& defined_type) {
     const char* p;
@@ -253,6 +258,14 @@ int check_types(const AidlInterface* c, TypeNamespace* types) {
       AIDL_ERROR(it->second) << "previously defined here.";
       err = 1;
     }
+
+    static set<string> reserved_methods{"asBinder()", "getInterfaceVersion()",
+                                        "getTransactionName(int)"};
+
+    if (reserved_methods.find(m->Signature()) != reserved_methods.end()) {
+      AIDL_ERROR(m) << " method " << m->Signature() << " is reserved for internal use." << endl;
+      err = 1;
+    }
   }
   return err;
 }
@@ -341,52 +354,63 @@ string generate_outputFileName(const Options& options, const AidlDefinedType& de
   return result;
 }
 
-int check_and_assign_method_ids(const char * filename,
-                                const std::vector<std::unique_ptr<AidlMethod>>& items) {
-    // Check whether there are any methods with manually assigned id's and any that are not.
-    // Either all method id's must be manually assigned or all of them must not.
-    // Also, check for duplicates of user set id's and that the id's are within the proper bounds.
-    set<int> usedIds;
-    bool hasUnassignedIds = false;
-    bool hasAssignedIds = false;
+bool check_and_assign_method_ids(const char* filename,
+                                 const std::vector<std::unique_ptr<AidlMethod>>& items) {
+  // Check whether there are any methods with manually assigned id's and any
+  // that are not. Either all method id's must be manually assigned or all of
+  // them must not. Also, check for uplicates of user set ID's and that the
+  // ID's are within the proper bounds.
+  set<int> usedIds;
+  bool hasUnassignedIds = false;
+  bool hasAssignedIds = false;
+  for (const auto& item : items) {
+    // However, meta transactions that are added by the AIDL compiler are
+    // exceptions. They have fixed IDs but allowed to be with user-defined
+    // methods having auto-assigned IDs. This is because the Ids of the meta
+    // transactions must be stable during the entire lifetime of an interface.
+    // In other words, their IDs must be the same even when new user-defined
+    // methods are added.
+    if (item->HasId() && item->IsUserDefined()) {
+      hasAssignedIds = true;
+      // Ensure that the user set id is not duplicated.
+      if (usedIds.find(item->GetId()) != usedIds.end()) {
+        // We found a duplicate id, so throw an error.
+        AIDL_ERROR(item) << "Found duplicate method id (" << item->GetId() << ") for method "
+                         << item->GetName();
+        return false;
+      }
+      // Ensure that the user set id is within the appropriate limits
+      if (item->GetId() < kMinUserSetMethodId || item->GetId() > kMaxUserSetMethodId) {
+        AIDL_ERROR(item) << "Found out of bounds id (" << item->GetId() << ") for method "
+                         << item->GetName() << ". Value for id must be between "
+                         << kMinUserSetMethodId << " and " << kMaxUserSetMethodId << " inclusive.";
+        return false;
+      }
+      usedIds.insert(item->GetId());
+    } else {
+      hasUnassignedIds = true;
+    }
+    if (hasAssignedIds && hasUnassignedIds) {
+      fprintf(stderr, "%s: You must either assign id's to all methods or to none of them.\n",
+              filename);
+      return false;
+    }
+  }
+
+  // In the case that all methods have unassigned id's, set a unique id for them.
+  if (hasUnassignedIds) {
+    int newId = kMinUserSetMethodId;
     for (const auto& item : items) {
-        if (item->HasId()) {
-            hasAssignedIds = true;
-            // Ensure that the user set id is not duplicated.
-            if (usedIds.find(item->GetId()) != usedIds.end()) {
-              AIDL_ERROR(item) << "Found duplicate method id (" << item->GetId() << ") for method "
-                               << item->GetName();
-              return 1;
-            }
-            // Ensure that the user set id is within the appropriate limits
-            if (item->GetId() < kMinUserSetMethodId ||
-                    item->GetId() > kMaxUserSetMethodId) {
-              AIDL_ERROR(item) << "Found out of bounds id (" << item->GetId() << ") for method "
-                               << item->GetName() << ". Value for id must be between "
-                               << kMinUserSetMethodId << " and " << kMaxUserSetMethodId
-                               << " inclusive.";
-              return 1;
-            }
-            usedIds.insert(item->GetId());
-        } else {
-            hasUnassignedIds = true;
-        }
-        if (hasAssignedIds && hasUnassignedIds) {
-          AIDL_ERROR(filename) << "You must either assign id's to all methods or to none of them.";
-          return 1;
-        }
+      assert(newId <= kMaxUserSetMethoId);
+      if (item->IsUserDefined()) {
+        item->SetId(newId++);
+      } else {
+        // Meta transactions have fixed IDs. Don't auto-assign IDs to them.
+        continue;
+      }
     }
-
-    // In the case that all methods have unassigned id's, set a unique id for them.
-    if (hasUnassignedIds) {
-        int newId = 0;
-        for (const auto& item : items) {
-            item->SetId(newId++);
-        }
-    }
-
-    // success
-    return 0;
+  }
+  return true;
 }
 
 bool validate_constants(const AidlInterface& interface) {
@@ -659,9 +683,19 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     return err;
   }
 
+  // add the meta-method 'int getInterfaceVersion()' if version is specified.
+  if (options.Version() > 0 && interface) {
+    AidlTypeSpecifier* ret =
+        new AidlTypeSpecifier(AidlLocation::nowhere(), "int", false, nullptr, "");
+    vector<unique_ptr<AidlArgument>>* args = new vector<unique_ptr<AidlArgument>>();
+    AidlMethod* method = new AidlMethod(AidlLocation::nowhere(), false, ret, "getInterfaceVersion",
+                                        args, "", kGetInterfaceVersionId);
+    method->MarkAsCompilerDefined();
+    interface->GetMutableMethods().emplace_back(method);
+  }
+
   // assign method ids and validate.
-  if (interface &&
-      check_and_assign_method_ids(input_file_name.c_str(), interface->GetMethods()) != 0) {
+  if (interface && !check_and_assign_method_ids(input_file_name.c_str(), interface->GetMethods())) {
     return AidlError::BAD_METHOD_ID;
   }
   if (interface && !validate_constants(*interface)) {

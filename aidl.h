@@ -51,6 +51,8 @@ int compile_aidl_to_java(const Options& options, const IoDelegate& io_delegate);
 bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate);
 bool dump_api(const Options& options, const IoDelegate& io_delegate);
 
+const string kGetInterfaceVersion("getInterfaceVersion");
+
 namespace internals {
 
 AidlError load_and_validate_aidl(const std::string& input_file_name, const Options& options,

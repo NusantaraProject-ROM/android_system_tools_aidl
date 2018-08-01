@@ -110,6 +110,8 @@ class Options final {
 
   bool FailOnParcelable() const { return fail_on_parcelable_; }
 
+  int Version() const { return version_; }
+
   bool Ok() const { return error_message_.stream_.str().empty(); }
 
   string GetErrorMessage() const { return error_message_.stream_.str(); }
@@ -141,6 +143,7 @@ class Options final {
   bool auto_dep_file_ = false;
   vector<string> input_files_;
   string output_file_;
+  int version_ = 0;
   ErrorMessage error_message_;
 };
 
