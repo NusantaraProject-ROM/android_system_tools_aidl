@@ -346,6 +346,12 @@ class AidlMethod : public AidlMember {
   int GetId() { return id_; }
   void SetId(unsigned id) { id_ = id; }
 
+  // A method marked as compiler-defined is the one that is not coming from
+  // an input AIDL file, but is automatically added by the AIDL compiler for
+  // common meta-functionalities like the version querying.
+  void MarkAsCompilerDefined() { is_user_defined_ = false; }
+  bool IsUserDefined() const { return is_user_defined_; }
+
   const std::vector<std::unique_ptr<AidlArgument>>& GetArguments() const {
     return arguments_;
   }
@@ -359,7 +365,13 @@ class AidlMethod : public AidlMember {
     return out_arguments_;
   }
 
+  // name + type parameter types
+  // i.e, foo(int, String)
   std::string Signature() const;
+
+  // return type + name + type parameter types + annotations
+  // i.e, boolean foo(int, @Nullable String)
+  std::string ToString() const;
 
  private:
   bool oneway_;
@@ -371,6 +383,7 @@ class AidlMethod : public AidlMember {
   std::vector<const AidlArgument*> out_arguments_;
   bool has_id_;
   int id_;
+  bool is_user_defined_ = true;
 
   DISALLOW_COPY_AND_ASSIGN(AidlMethod);
 };
@@ -535,6 +548,7 @@ class AidlInterface final : public AidlDefinedType {
   bool IsOneway() const { return oneway_; }
   const std::vector<std::unique_ptr<AidlMethod>>& GetMethods() const
       { return methods_; }
+  std::vector<std::unique_ptr<AidlMethod>>& GetMutableMethods() { return methods_; }
   const std::vector<std::unique_ptr<AidlConstantDeclaration>>& GetConstantDeclarations() const {
     return constants_;
   }

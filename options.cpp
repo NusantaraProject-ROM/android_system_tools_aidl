@@ -86,6 +86,9 @@ string Options::GetUsage() const {
        << "          tool, that part will not be traced." << endl
        << "  --transaction_names" << endl
        << "          Generate transaction names." << endl
+       << "  -v VER, --version=VER" << endl
+       << "          Set the version of the interface and parcelable to VER." << endl
+       << "          VER must be an interger greater than 0." << endl
        << "  --help" << endl
        << "          Show this help." << endl
        << endl
@@ -142,11 +145,12 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"structured", no_argument, 0, 'S'},
         {"trace", no_argument, 0, 't'},
         {"transaction_names", no_argument, 0, 'c'},
+        {"version", required_argument, 0, 'v'},
         {"help", no_argument, 0, 'e'},
         {0, 0, 0, 0},
     };
     const int c =
-        getopt_long(argc, const_cast<char* const*>(argv), "I:p:d:o:h:abt", long_options, nullptr);
+        getopt_long(argc, const_cast<char* const*>(argv), "I:p:d:o:h:abtv:", long_options, nullptr);
     if (c == -1) {
       // no more options
       break;
@@ -160,7 +164,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           return;
         } else {
           lang_option_found = true;
-          string lang = Trim(string(optarg));
+          string lang = Trim(optarg);
           if (lang == "java") {
             language_ = Options::Language::JAVA;
             task_ = Options::Task::COMPILE;
@@ -184,19 +188,19 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         }
         break;
       case 'I':
-        import_paths_.emplace_back(Trim(string(optarg)));
+        import_paths_.emplace_back(Trim(optarg));
         break;
       case 'p':
-        preprocessed_files_.emplace_back(Trim(string(optarg)));
+        preprocessed_files_.emplace_back(Trim(optarg));
         break;
       case 'd':
-        dependency_file_ = Trim(string(optarg));
+        dependency_file_ = Trim(optarg);
         break;
       case 'o':
-        output_dir_ = Trim(string(optarg));
+        output_dir_ = Trim(optarg);
         break;
       case 'h':
-        output_header_dir_ = Trim(string(optarg));
+        output_header_dir_ = Trim(optarg);
         break;
       case 'n':
         dependency_file_ninja_ = true;
@@ -216,6 +220,18 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       case 'c':
         gen_transaction_names_ = true;
         break;
+      case 'v': {
+        const string ver_str = Trim(optarg);
+        int ver = atoi(ver_str.c_str());
+        if (ver > 0) {
+          version_ = ver;
+        } else {
+          error_message_ << "Invalid version number: '" << ver_str << "'. "
+                         << "Version must be a positive natural number." << endl;
+          return;
+        }
+        break;
+      }
       case 'e':
         std::cerr << GetUsage();
         exit(0);
@@ -326,7 +342,12 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       return;
     }
   }
-
+  if (task_ == Options::Task::PREPROCESS) {
+    if (version_ > 0) {
+      error_message_ << "--version should not be used with '--preprocess'." << endl;
+      return;
+    }
+  }
 }
 
 }  // namespace android

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "aidl.h"
 #include "aidl_to_java.h"
 #include "generate_java.h"
 #include "options.h"
@@ -308,8 +309,8 @@ void StubClass::make_as_interface(const InterfaceType* interfaceType,
 // =================================================
 class ProxyClass : public Class {
  public:
-  ProxyClass(const JavaTypeNamespace* types, const Type* type,
-             const InterfaceType* interfaceType);
+  ProxyClass(const JavaTypeNamespace* types, const Type* type, const InterfaceType* interfaceType,
+             const Options& options);
   virtual ~ProxyClass();
 
   Variable* mRemote;
@@ -317,7 +318,7 @@ class ProxyClass : public Class {
 };
 
 ProxyClass::ProxyClass(const JavaTypeNamespace* types, const Type* type,
-                       const InterfaceType* interfaceType)
+                       const InterfaceType* interfaceType, const Options& options)
     : Class() {
   this->modifiers = PRIVATE | STATIC;
   this->what = Class::CLASS;
@@ -338,6 +339,12 @@ ProxyClass::ProxyClass(const JavaTypeNamespace* types, const Type* type,
   ctor->parameters.push_back(remote);
   ctor->statements->Add(new Assignment(mRemote, remote));
   this->elements.push_back(ctor);
+
+  if (options.Version() > 0) {
+    std::ostringstream code;
+    code << "private int mCachedVersion = -1;\n";
+    this->elements.emplace_back(new LiteralClassElement(code.str()));
+  }
 
   // IBinder asBinder()
   Method* asBinder = new Method;
@@ -779,23 +786,74 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
   }
 
   // == the declaration in the interface ===================================
-  Method* decl = generate_interface_method(method, types).release();
+  ClassElement* decl;
+  if (method.IsUserDefined()) {
+    decl = generate_interface_method(method, types).release();
+  } else {
+    if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      std::ostringstream code;
+      code << "public int " << kGetInterfaceVersion << "() "
+           << "throws android.os.RemoteException;\n";
+      decl = new LiteralClassElement(code.str());
+    }
+  }
   interface->elements.push_back(decl);
 
   // == the stub method ====================================================
-  bool outline_stub = stubClass->transact_outline &&
-      stubClass->outline_methods.count(&method) != 0;
-  if (outline_stub) {
-    generate_stub_case_outline(iface, method, transactCodeName, oneway, stubClass, types, options);
+  if (method.IsUserDefined()) {
+    bool outline_stub =
+        stubClass->transact_outline && stubClass->outline_methods.count(&method) != 0;
+    if (outline_stub) {
+      generate_stub_case_outline(iface, method, transactCodeName, oneway, stubClass, types,
+                                 options);
+    } else {
+      generate_stub_case(iface, method, transactCodeName, oneway, stubClass, types, options);
+    }
   } else {
-    generate_stub_case(iface, method, transactCodeName, oneway, stubClass, types, options);
+    if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      Case* c = new Case(transactCodeName);
+      std::ostringstream code;
+      code << "reply.writeInt(" << kGetInterfaceVersion << "());\n"
+           << "return true;\n";
+      c->statements->Add(new LiteralStatement(code.str()));
+      stubClass->transact_switch->cases.push_back(c);
+    }
   }
 
   // == the proxy method ===================================================
-  Method* proxy =
-      generate_proxy_method(iface, method, transactCodeName, oneway, proxyClass, types, options)
-          .release();
-  proxyClass->elements.push_back(proxy);
+  ClassElement* proxy = nullptr;
+  if (method.IsUserDefined()) {
+    proxy =
+        generate_proxy_method(iface, method, transactCodeName, oneway, proxyClass, types, options)
+            .release();
+
+  } else {
+    if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      std::ostringstream code;
+      code << "@Override\n"
+           << "public int " << kGetInterfaceVersion << "()"
+           << " throws "
+           << "android.os.RemoteException {\n"
+           << "  if (mCachedVersion == -1) {\n"
+           << "    android.os.Parcel data = android.os.Parcel.obtain();\n"
+           << "    android.os.Parcel reply = android.os.Parcel.obtain();\n"
+           << "    try {\n"
+           << "      mRemote.transact(Stub." << transactCodeName << ", "
+           << "data, reply, 0);\n"
+           << "      mCachedVersion = reply.readInt();\n"
+           << "    } finally {\n"
+           << "      reply.recycle();\n"
+           << "      data.recycle();\n"
+           << "    }\n"
+           << "  }\n"
+           << "  return mCachedVersion;\n"
+           << "}\n";
+      proxy = new LiteralClassElement(code.str());
+    }
+  }
+  if (proxy != nullptr) {
+    proxyClass->elements.push_back(proxy);
+  }
 }
 
 static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy,
@@ -881,7 +939,8 @@ static unique_ptr<ClassElement> generate_default_impl_method(const AidlMethod& m
   return default_method;
 }
 
-static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface) {
+static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
+                                                     const Options& options) {
   unique_ptr<Class> default_class(new Class);
   default_class->comment = "/** Default implementation for " + iface.GetName() + ". */";
   default_class->modifiers = PUBLIC | STATIC;
@@ -890,7 +949,18 @@ static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface)
   default_class->interfaces.emplace_back(iface.GetLanguageType<InterfaceType>());
 
   for (const auto& m : iface.GetMethods()) {
-    default_class->elements.emplace_back(generate_default_impl_method(*(m.get())).release());
+    if (m->IsUserDefined()) {
+      default_class->elements.emplace_back(generate_default_impl_method(*(m.get())).release());
+    } else {
+      if (m->GetName() == kGetInterfaceVersion && options.Version() > 0) {
+        std::ostringstream code;
+        code << "@Override\n"
+             << "public int " << kGetInterfaceVersion << "() {\n"
+             << "  return 0;\n"
+             << "}\n";
+        default_class->elements.emplace_back(new LiteralClassElement(code.str()));
+      }
+    }
   }
 
   default_class->elements.emplace_back(
@@ -914,8 +984,21 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
   interface->type = interfaceType;
   interface->interfaces.push_back(types->IInterfaceType());
 
+  if (options.Version()) {
+    std::ostringstream code;
+    code << "/**\n"
+         << " * The version of this interface that the caller is built against.\n"
+         << " * This might be different from what {@link #getInterfaceVersion()\n"
+         << " * getInterfaceVersion} returns as that is the version of the interface\n"
+         << " * that the remote object is implementing.\n"
+         << " */\n"
+         << "public static final int VERSION = " << options.Version() << ";\n";
+    interface->elements.emplace_back(new LiteralClassElement(code.str()));
+  }
+
   // the default impl class
-  interface->elements.emplace_back(generate_default_impl_class(*iface).release());
+  Class* default_impl = generate_default_impl_class(*iface, options).release();
+  interface->elements.emplace_back(default_impl);
 
   // the stub inner class
   StubClass* stub =
@@ -928,8 +1011,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
                           options.onTransact_non_outline_count_);
 
   // the proxy inner class
-  ProxyClass* proxy =
-      new ProxyClass(types, interfaceType->GetProxy(), interfaceType);
+  ProxyClass* proxy = new ProxyClass(types, interfaceType->GetProxy(), interfaceType, options);
   stub->elements.push_back(proxy);
 
   // stub and proxy support for getInterfaceDescriptor()

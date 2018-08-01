@@ -562,5 +562,33 @@ TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
   EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options2, io_delegate_));
 }
 
+TEST_F(AidlTest, ConflictWithMetaTransactions) {
+  Options options = Options::From("aidl --lang=java -o place/for/output p/IFoo.aidl");
+  // int getInterfaceVersion() is one of the meta transactions
+  io_delegate_.SetFileContents(options.InputFiles().front(),
+                               "package p; interface IFoo {"
+                               "int getInterfaceVersion(); }");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  // boolean getInterfaceVersion() is not, but should be prevented
+  // because return type is not part of a method signature
+  io_delegate_.SetFileContents(options.InputFiles().front(),
+                               "package p; interface IFoo {"
+                               "boolean getInterfaceVersion(); }");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  // this is another reserved name
+  io_delegate_.SetFileContents(options.InputFiles().front(),
+                               "package p; interface IFoo {"
+                               "String getTransactionName(int code); }");
+  EXPECT_NE(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+
+  // this is not a meta interface method as it differs type arguments
+  io_delegate_.SetFileContents(options.InputFiles().front(),
+                               "package p; interface IFoo {"
+                               "String getTransactionName(); }");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl_to_java(options, io_delegate_));
+}
+
 }  // namespace aidl
 }  // namespace android
