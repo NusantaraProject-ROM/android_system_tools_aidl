@@ -38,18 +38,20 @@ class ErrorMessage {
   ErrorMessage() = default;
   ErrorMessage(const ErrorMessage&) {}
   std::ostringstream stream_;
-  ErrorMessage& operator<<(int i) {
-    stream_ << i;
+
+  template <typename T>
+  ErrorMessage& operator<<(T& t) {
+    stream_ << t;
     return *this;
   }
-  ErrorMessage& operator<<(const char* s) {
-    stream_ << s;
+
+  template <typename T>
+  ErrorMessage& operator<<(const T& t) {
+    stream_ << t;
     return *this;
   }
-  ErrorMessage& operator<<(const std::string& str) {
-    stream_ << str;
-    return *this;
-  }
+
+  // for "<< endl"
   ErrorMessage& operator<<(std::ostream& (*f)(std::ostream&)) {
     f(stream_);
     return *this;
