@@ -15,6 +15,7 @@
  */
 
 #include "generate_cpp.h"
+#include "aidl.h"
 
 #include <cctype>
 #include <cstring>
@@ -169,6 +170,25 @@ unique_ptr<Declaration> BuildMethodDecl(const AidlMethod& method,
                      method.GetName(),
                      BuildArgList(types, method, true /* for method decl */),
                      modifiers}};
+}
+
+unique_ptr<Declaration> BuildMetaMethodDecl(const AidlMethod& method, const TypeNamespace&,
+                                            const Options& options, bool for_interface) {
+  CHECK(!method.IsUserDefined());
+  if (method.GetName() == kGetInterfaceVersion && options.Version()) {
+    std::ostringstream code;
+    if (for_interface) {
+      code << "virtual ";
+    }
+    code << "int32_t " << kGetInterfaceVersion << "()";
+    if (for_interface) {
+      code << " = 0;\n";
+    } else {
+      code << " override;\n";
+    }
+    return unique_ptr<Declaration>(new LiteralDecl(code.str()));
+  }
+  return nullptr;
 }
 
 unique_ptr<CppNamespace> NestInNamespaces(
@@ -409,6 +429,36 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
   return unique_ptr<Declaration>(ret.release());
 }
 
+unique_ptr<Declaration> DefineClientMetaTransaction(const TypeNamespace&,
+                                                    const AidlInterface& interface,
+                                                    const AidlMethod& method,
+                                                    const Options& options) {
+  CHECK(!method.IsUserDefined());
+  if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+    const string iface = ClassName(interface, ClassNames::INTERFACE);
+    const string proxy = ClassName(interface, ClassNames::CLIENT);
+    // Note: race condition can happen here, but no locking is required
+    // because 1) writing an interger is atomic and 2) this transaction
+    // will always return the same value, i.e., competing threads will
+    // give write the same value to cached_version_.
+    std::ostringstream code;
+    code << "int32_t " << proxy << "::" << kGetInterfaceVersion << "() {\n"
+         << "  if (cached_version_ != -1) {\n"
+         << "    ::android::Parcel data;\n"
+         << "    ::android::Parcel reply;\n"
+         << "    ::android::status_t err = remote()->transact(" << iface
+         << "::" << UpperCase(kGetInterfaceVersion) << ", data, &reply);\n"
+         << "    if (err == ::android::OK) {\n"
+         << "      cached_version_ = reply.readInt32();\n"
+         << "    }\n"
+         << "  }\n"
+         << "  return cached_version_;\n"
+         << "}\n";
+    return unique_ptr<Declaration>(new LiteralDecl(code.str()));
+  }
+  return nullptr;
+}
+
 }  // namespace
 
 unique_ptr<Document> BuildClientSource(const TypeNamespace& types, const AidlInterface& interface,
@@ -431,7 +481,12 @@ unique_ptr<Document> BuildClientSource(const TypeNamespace& types, const AidlInt
 
   // Clients define a method per transaction.
   for (const auto& method : interface.GetMethods()) {
-    unique_ptr<Declaration> m = DefineClientTransaction(types, interface, *method, options);
+    unique_ptr<Declaration> m;
+    if (method->IsUserDefined()) {
+      m = DefineClientTransaction(types, interface, *method, options);
+    } else {
+      m = DefineClientMetaTransaction(types, interface, *method, options);
+    }
     if (!m) { return nullptr; }
     file_decls.push_back(std::move(m));
   }
@@ -559,6 +614,21 @@ bool HandleServerTransaction(const TypeNamespace& types, const AidlInterface& in
   return true;
 }
 
+bool HandleServerMetaTransaction(const TypeNamespace&, const AidlInterface& interface,
+                                 const AidlMethod& method, const Options& options,
+                                 StatementBlock* b) {
+  CHECK(!method.IsUserDefined());
+
+  if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+    std::ostringstream code;
+    code << "_aidl_reply->writeInt32(" << ClassName(interface, ClassNames::INTERFACE)
+         << "::VERSION)";
+    b->AddLiteral(code.str());
+    return true;
+  }
+  return false;
+}
+
 }  // namespace
 
 unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInterface& interface,
@@ -591,7 +661,13 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInt
     StatementBlock* b = s->AddCase("Call::" + UpperCase(method->GetName()));
     if (!b) { return nullptr; }
 
-    if (!HandleServerTransaction(types, interface, *method, options, b)) {
+    bool success = false;
+    if (method->IsUserDefined()) {
+      success = HandleServerTransaction(types, interface, *method, options, b);
+    } else {
+      success = HandleServerMetaTransaction(types, interface, *method, options, b);
+    }
+    if (!success) {
       return nullptr;
     }
   }
@@ -626,7 +702,7 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInt
 }
 
 unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
-                                          const AidlInterface& interface, const Options&) {
+                                          const AidlInterface& interface, const Options& options) {
   vector<string> include_list{
       HeaderFile(interface, ClassNames::INTERFACE, false),
       HeaderFile(interface, ClassNames::CLIENT, false),
@@ -675,12 +751,22 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
   // methods do nothing; they only exist to aid making a real default
   // impl class without having to override all methods in an interface.
   for (const auto& method : interface.GetMethods()) {
-    decls.emplace_back(new LiteralDecl(StringPrintf(
-        "::android::binder::Status %s::%s%s {\n"
-        "  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);\n"
-        "}\n",
-        default_impl.c_str(), method->GetName().c_str(),
-        BuildArgList(types, *method, true, true).ToString().c_str())));
+    if (method->IsUserDefined()) {
+      std::ostringstream code;
+      code << "::android::binder::Status " << default_impl << "::" << method->GetName()
+           << BuildArgList(types, *method, true, true).ToString() << " {\n"
+           << "  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);\n"
+           << "}\n";
+      decls.emplace_back(new LiteralDecl(code.str()));
+    } else {
+      if (method->GetName() == kGetInterfaceVersion && options.Version() > 0) {
+        std::ostringstream code;
+        code << "int32_t " << default_impl << "::" << kGetInterfaceVersion << "() {\n"
+             << "  return 0;\n"
+             << "}\n";
+        decls.emplace_back(new LiteralDecl(code.str()));
+      }
+    }
   }
 
   return unique_ptr<Document>{new CppSource{
@@ -689,7 +775,7 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
 }
 
 unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInterface& interface,
-                                       const Options&) {
+                                       const Options& options) {
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
 
@@ -709,15 +795,25 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   publics.push_back(std::move(destructor));
 
   for (const auto& method: interface.GetMethods()) {
-    publics.push_back(BuildMethodDecl(*method, types, false));
+    if (method->IsUserDefined()) {
+      publics.push_back(BuildMethodDecl(*method, types, false));
+    } else {
+      publics.push_back(BuildMetaMethodDecl(*method, types, options, false));
+    }
   }
 
-  unique_ptr<ClassDecl> bp_class{
-      new ClassDecl{bp_name,
-                    "::android::BpInterface<" + i_name + ">",
-                    std::move(publics),
-                    {}
-      }};
+  vector<unique_ptr<Declaration>> privates;
+
+  if (options.Version() > 0) {
+    privates.emplace_back(new LiteralDecl("int32_t cached_version_ = -1;\n"));
+  }
+
+  unique_ptr<ClassDecl> bp_class{new ClassDecl{
+      bp_name,
+      "::android::BpInterface<" + i_name + ">",
+      std::move(publics),
+      std::move(privates),
+  }};
 
   return unique_ptr<Document>{new CppHeader{
       BuildHeaderGuard(interface, ClassNames::CLIENT),
@@ -780,6 +876,13 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
       "DECLARE_META_INTERFACE",
       ArgList{vector<string>{ClassName(interface, ClassNames::BASE)}}}});
 
+  if (options.Version() > 0) {
+    std::ostringstream code;
+    code << "const int32_t VERSION = " << options.Version() << ";\n";
+
+    if_class->AddPublic(unique_ptr<Declaration>(new LiteralDecl(code.str())));
+  }
+
   std::vector<std::unique_ptr<Declaration>> string_constants;
   unique_ptr<Enum> int_constant_enum{new Enum{"", "int32_t"}};
   for (const auto& constant : interface.GetConstantDeclarations()) {
@@ -819,12 +922,16 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
   if (!interface.GetMethods().empty()) {
     unique_ptr<Enum> call_enum{new Enum{"Call"}};
     for (const auto& method : interface.GetMethods()) {
-      // Each method gets an enum entry and pure virtual declaration.
-      if_class->AddPublic(BuildMethodDecl(*method, types, true));
-      call_enum->AddValue(
-          UpperCase(method->GetName()),
-          StringPrintf("::android::IBinder::FIRST_CALL_TRANSACTION + %d",
-                       method->GetId()));
+      if (method->IsUserDefined()) {
+        // Each method gets an enum entry and pure virtual declaration.
+        if_class->AddPublic(BuildMethodDecl(*method, types, true));
+        call_enum->AddValue(
+            UpperCase(method->GetName()),
+            StringPrintf("::android::IBinder::FIRST_CALL_TRANSACTION + %d", method->GetId()));
+      } else {
+        if_class->AddPublic(BuildMetaMethodDecl(*method, types, options, true));
+        call_enum->AddValue(UpperCase(method->GetName()), std::to_string(method->GetId()));
+      }
     }
     if_class->AddPublic(std::move(call_enum));
   }
@@ -835,8 +942,13 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
   // Base class for the default implementation.
   vector<string> method_decls;
   for (const auto& method : interface.GetMethods()) {
-    method_decls.emplace_back(BuildMethodDecl(*method, types, false)->ToString());
+    if (method->IsUserDefined()) {
+      method_decls.emplace_back(BuildMethodDecl(*method, types, false)->ToString());
+    } else {
+      method_decls.emplace_back(BuildMetaMethodDecl(*method, types, options, false)->ToString());
+    }
   }
+
   decls.emplace_back(new LiteralDecl(
       android::base::StringPrintf("class %s : public %s {\n"
                                   "public:\n"
