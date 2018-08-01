@@ -372,9 +372,17 @@ AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecif
 string AidlMethod::Signature() const {
   vector<string> arg_signatures;
   for (const auto& arg : GetArguments()) {
-    arg_signatures.emplace_back(arg->Signature());
+    arg_signatures.emplace_back(arg->GetType().ToString());
   }
-  return GetType().Signature() + " " + GetName() + "(" + Join(arg_signatures, ", ") + ")";
+  return GetName() + "(" + Join(arg_signatures, ", ") + ")";
+}
+
+string AidlMethod::ToString() const {
+  vector<string> arg_strings;
+  for (const auto& arg : GetArguments()) {
+    arg_strings.emplace_back(arg->Signature());
+  }
+  return GetType().Signature() + " " + GetName() + "(" + Join(arg_strings, ", ") + ")";
 }
 
 AidlDefinedType::AidlDefinedType(const AidlLocation& location, const std::string& name,
@@ -453,7 +461,7 @@ void AidlInterface::Write(CodeWriter* writer) const {
   writer->Write("interface %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& method : GetMethods()) {
-    writer->Write("%s;\n", method->Signature().c_str());
+    writer->Write("%s;\n", method->ToString().c_str());
   }
   writer->Dedent();
   writer->Write("}\n");
