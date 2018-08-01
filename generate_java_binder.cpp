@@ -953,10 +953,16 @@ static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
       default_class->elements.emplace_back(generate_default_impl_method(*(m.get())).release());
     } else {
       if (m->GetName() == kGetInterfaceVersion && options.Version() > 0) {
+        // This is called only when the remote side is not implementing this
+        // method, which is impossible in normal case, because this method is
+        // automatically declared in the interface class and not implementing
+        // it in the remote side is causing compilation error. But if the remote
+        // side somehow managed to not implement it, that's an error and we
+        // report the case by returning -1 here.
         std::ostringstream code;
         code << "@Override\n"
              << "public int " << kGetInterfaceVersion << "() {\n"
-             << "  return 0;\n"
+             << "  return -1;\n"
              << "}\n";
         default_class->elements.emplace_back(new LiteralClassElement(code.str()));
       }
