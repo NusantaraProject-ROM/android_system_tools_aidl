@@ -781,8 +781,6 @@ bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate) {
 }
 
 bool dump_api(const Options& options, const IoDelegate& io_delegate) {
-  ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
-
   map<string, vector<AidlDefinedType*>> types_by_package;
 
   // This vector is to keep namespaces for each input file so that
