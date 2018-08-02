@@ -100,7 +100,6 @@ class TypeNamespace : public ::android::aidl::LanguageTypeNamespace<Type> {
   bool AddMapType(const std::string& key_type_name,
                   const std::string& value_type_name) override;
 
-  bool IsValidPackage(const std::string& package) const override;
   const ValidatableType* GetArgType(const AidlArgument& a, int arg_index,
                                     const AidlDefinedType& context) const override;
 

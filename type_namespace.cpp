@@ -93,10 +93,6 @@ string ValidatableType::HumanReadableKind() const {
   return "unknown";
 }
 
-bool TypeNamespace::IsValidPackage(const string& /* package */) const {
-  return true;
-}
-
 const ValidatableType* TypeNamespace::GetReturnType(const AidlTypeSpecifier& raw_type,
                                                     const AidlDefinedType& context) const {
   string error_msg;
@@ -107,6 +103,26 @@ const ValidatableType* TypeNamespace::GetReturnType(const AidlTypeSpecifier& raw
   }
 
   return return_type;
+}
+
+bool TypeNamespace::AddDefinedTypes(vector<AidlDefinedType*>& types, const string& filename) {
+  bool success = true;
+  for (const auto type : types) {
+    const AidlInterface* interface = type->AsInterface();
+    if (interface != nullptr) {
+      success &= AddBinderType(*interface, filename);
+      continue;
+    }
+
+    const AidlParcelable* parcelable = type->AsParcelable();
+    if (parcelable != nullptr) {
+      success &= AddParcelableType(*parcelable, filename);
+      continue;
+    }
+
+    CHECK(false) << "aidl internal error: unrecognized type";
+  }
+  return success;
 }
 
 const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_index,

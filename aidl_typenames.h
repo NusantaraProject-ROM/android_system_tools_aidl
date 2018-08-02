@@ -51,7 +51,8 @@ namespace aidl {
 class AidlTypenames final {
  public:
   AidlTypenames() = default;
-  bool AddDefinedType(const AidlDefinedType* type);
+  void Reset();
+  bool AddDefinedType(unique_ptr<AidlDefinedType> type);
   bool AddPreprocessedType(unique_ptr<AidlDefinedType> type);
   static bool IsBuiltinTypename(const string& type_name);
   const AidlDefinedType* TryGetDefinedType(const string& type_name) const;
@@ -62,7 +63,7 @@ class AidlTypenames final {
   void IterateTypes(const std::function<void(const AidlDefinedType&)>& body) const;
 
  private:
-  map<string, const AidlDefinedType*> defined_types_;
+  map<string, unique_ptr<AidlDefinedType>> defined_types_;
   map<string, unique_ptr<AidlDefinedType>> preprocessed_types_;
 };
 
