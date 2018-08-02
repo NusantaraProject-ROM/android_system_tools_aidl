@@ -47,26 +47,6 @@ const char kNoValidMethod[] = "";
 Type* const kNoArrayType = nullptr;
 Type* const kNoNullableType = nullptr;
 
-bool is_cpp_keyword(const std::string& str) {
-  static const std::vector<std::string> kCppKeywords{
-    "alignas", "alignof", "and", "and_eq", "asm", "auto", "bitand", "bitor",
-    "bool", "break", "case", "catch", "char", "char16_t", "char32_t", "class",
-    "compl", "concept", "const", "constexpr", "const_cast", "continue",
-    "decltype", "default", "delete", "do", "double", "dynamic_cast", "else",
-    "enum", "explicit", "export", "extern", "false", "float", "for", "friend",
-    "goto", "if", "inline", "int", "long", "mutable", "namespace", "new",
-    "noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq",
-    "private", "protected", "public", "register", "reinterpret_cast",
-    "requires", "return", "short", "signed", "sizeof", "static",
-    "static_assert", "static_cast", "struct", "switch", "template", "this",
-    "thread_local", "throw", "true", "try", "typedef", "typeid", "typename",
-    "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t",
-    "while", "xor", "xor_eq",
-  };
-  return std::find(kCppKeywords.begin(), kCppKeywords.end(), str) !=
-      kCppKeywords.end();
-}
-
 class VoidType : public Type {
  public:
   VoidType() : Type(ValidatableType::KIND_BUILT_IN, kNoPackage, "void",
@@ -539,30 +519,8 @@ bool TypeNamespace::AddMapType(const std::string& /* key_type_name */,
   return false;
 }
 
-bool TypeNamespace::IsValidPackage(const string& package) const {
-  if (package.empty()) {
-    return false;
-  }
-
-  auto pieces = Split(package, ".");
-  for (const string& piece : pieces) {
-    if (is_cpp_keyword(piece)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 const ValidatableType* TypeNamespace::GetArgType(const AidlArgument& a, int arg_index,
                                                  const AidlDefinedType& context) const {
-  // check that the name doesn't match a keyword
-  if (is_cpp_keyword(a.GetName().c_str())) {
-    const string error_prefix = StringPrintf("parameter %s (%d): ", a.GetName().c_str(), arg_index);
-    AIDL_ERROR(a) << error_prefix << "Argument name is a C++ keyword";
-    return nullptr;
-  }
-
   return ::android::aidl::TypeNamespace::GetArgType(a, arg_index, context);
 }
 

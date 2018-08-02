@@ -346,14 +346,27 @@ bool AidlConstantDeclaration::CheckValid() const {
 
 AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
                        const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
+                       const std::string& comments)
+    : AidlMethod(location, oneway, type, name, args, comments, 0, true) {
+  has_id_ = false;
+}
+
+AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
+                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
                        const std::string& comments, int id)
+    : AidlMethod(location, oneway, type, name, args, comments, id, true) {}
+
+AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
+                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
+                       const std::string& comments, int id, bool is_user_defined)
     : AidlMember(location),
       oneway_(oneway),
       comments_(comments),
       type_(type),
       name_(name),
       arguments_(std::move(*args)),
-      id_(id) {
+      id_(id),
+      is_user_defined_(is_user_defined) {
   has_id_ = true;
   delete args;
   for (const unique_ptr<AidlArgument>& a : arguments_) {
@@ -362,12 +375,6 @@ AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecif
   }
 }
 
-AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
-                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-                       const std::string& comments)
-    : AidlMethod(location, oneway, type, name, args, comments, 0) {
-  has_id_ = false;
-}
 
 string AidlMethod::Signature() const {
   vector<string> arg_signatures;
@@ -467,19 +474,6 @@ void AidlInterface::Write(CodeWriter* writer) const {
   writer->Write("}\n");
 }
 
-AidlDefinedType* AidlDocument::ReleaseDefinedType() {
-  if (defined_types_.size() == 0) {
-    return nullptr;
-  }
-
-  if (defined_types_.size() > 1) {
-    AIDL_ERROR(*defined_types_[1]) << "AIDL only supports compiling one defined type per file.";
-    return nullptr;
-  }
-
-  return defined_types_[0].release();
-}
-
 AidlQualifiedName::AidlQualifiedName(const AidlLocation& location, const std::string& term,
                                      const std::string& comments)
     : AidlNode(location), terms_({term}), comments_(comments) {
@@ -534,16 +528,12 @@ bool Parser::ParseFile(const string& filename) {
   filename_ = filename;
   package_.reset();
   error_ = 0;
-  document_.reset();
 
   buffer_ = yy_scan_buffer(&(*raw_buffer_)[0], raw_buffer_->length(), scanner_);
 
   if (yy::parser(this).parse() != 0 || error_ != 0)
     return false;
 
-  if (document_.get() == nullptr) {
-    AIDL_FATAL(filename) << "Parser succeeded but yielded no document!";
-  }
   return true;
 }
 

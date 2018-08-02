@@ -89,7 +89,7 @@ TEST_F(EndToEndTest, IExampleInterface) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutput);
   CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
@@ -114,7 +114,7 @@ TEST_F(EndToEndTest, IExampleInterface_WithTrace) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithTrace);
   CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
@@ -139,7 +139,7 @@ TEST_F(EndToEndTest, IExampleInterface_WithTransactionNames) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithTransactionNames);
   CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
@@ -165,7 +165,7 @@ TEST_F(EndToEndTest, IExampleInterface_Outlining) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputOutlining);
   CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
@@ -192,7 +192,7 @@ TEST_F(EndToEndTest, IExampleInterface_WithVersion) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithVersion);
   CheckFileContents(options.DependencyFile(), kExpectedJavaDepsOutput);
 }
@@ -215,7 +215,7 @@ TEST_F(EndToEndTest, IPingResponderCpp) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces, kCppParcelableHeader);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kCppOutputPath, kExpectedCppOutput);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutput);
   CheckFileContents(kGenClientHeaderPath, kExpectedBpHeaderOutput);
@@ -241,7 +241,7 @@ TEST_F(EndToEndTest, IPingResponderCpp_WithVersion) {
   AddStubAidls(kImportedParcelables, kImportedInterfaces, kCppParcelableHeader);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kCppOutputPath, kExpectedCppOutputWithVersion);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutputWithVersion);
   CheckFileContents(kGenClientHeaderPath, kExpectedBpHeaderOutputWithVersion);
@@ -263,7 +263,7 @@ TEST_F(EndToEndTest, StringConstantsInCpp) {
   io_delegate_.SetFileContents(CanonicalNameToPath(kCanonicalName, ".aidl"), kInterfaceDefinition);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kCppOutputPath, kExpectedCppOutput);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutput);
 }
@@ -282,7 +282,7 @@ TEST_F(EndToEndTest, StringConstantsInJava) {
   io_delegate_.SetFileContents(CanonicalNameToPath(kCanonicalName, ".aidl"), kInterfaceDefinition);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutput);
 }
 
@@ -301,7 +301,7 @@ TEST_F(EndToEndTest, StringConstantsInCpp_WithVersion) {
   io_delegate_.SetFileContents(CanonicalNameToPath(kCanonicalName, ".aidl"), kInterfaceDefinition);
 
   // Check that we parse and generate code correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_cpp(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kCppOutputPath, kExpectedCppOutputWithVersion);
   CheckFileContents(kGenInterfaceHeaderPath, kExpectedIHeaderOutputWithVersion);
 }
@@ -321,7 +321,7 @@ TEST_F(EndToEndTest, StringConstantsInJava_WithVersion) {
   io_delegate_.SetFileContents(CanonicalNameToPath(kCanonicalName, ".aidl"), kInterfaceDefinition);
 
   // Check that we parse correctly.
-  EXPECT_EQ(android::aidl::compile_aidl_to_java(options, io_delegate_), 0);
+  EXPECT_EQ(android::aidl::compile_aidl(options, io_delegate_), 0);
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithVersion);
 }
 
