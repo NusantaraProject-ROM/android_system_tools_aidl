@@ -628,10 +628,10 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
       // add the meta-method 'int getInterfaceVersion()' if version is specified.
       if (options.Version() > 0) {
         AidlTypeSpecifier* ret =
-            new AidlTypeSpecifier(AidlLocation::nowhere(), "int", false, nullptr, "");
+            new AidlTypeSpecifier(AIDL_LOCATION_HERE, "int", false, nullptr, "");
         vector<unique_ptr<AidlArgument>>* args = new vector<unique_ptr<AidlArgument>>();
         AidlMethod* method =
-            new AidlMethod(AidlLocation::nowhere(), false, ret, "getInterfaceVersion", args, "",
+            new AidlMethod(AIDL_LOCATION_HERE, false, ret, "getInterfaceVersion", args, "",
                            kGetInterfaceVersionId, false /* is_user_defined */);
         interface->GetMutableMethods().emplace_back(method);
       }
