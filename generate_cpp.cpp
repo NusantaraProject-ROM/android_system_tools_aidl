@@ -867,7 +867,9 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
     }
 
     const Type* return_type = method->GetType().GetLanguageType<Type>();
-    return_type->GetHeaders(&includes);
+    if (return_type != nullptr) {
+      return_type->GetHeaders(&includes);
+    }
   }
 
   const string i_name = ClassName(interface, ClassNames::INTERFACE);

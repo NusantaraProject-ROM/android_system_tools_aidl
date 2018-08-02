@@ -40,5 +40,5 @@ int main(int argc, char* argv[]) {
   }
 
   android::aidl::IoDelegate io_delegate;
-  return android::aidl::compile_aidl_to_cpp(options, io_delegate);
+  return android::aidl::compile_aidl(options, io_delegate);
 }

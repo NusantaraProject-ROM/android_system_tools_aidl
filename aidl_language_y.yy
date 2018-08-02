@@ -63,7 +63,6 @@ AidlLocation loc(const yy::parser::location_type& l) {
     AidlInterface* interface;
     AidlParcelable* parcelable;
     AidlDefinedType* declaration;
-    AidlDocument* declaration_list;
     std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_args;
 }
 
@@ -86,7 +85,6 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token PACKAGE "package"
 %token PARCELABLE "parcelable"
 
-%type<declaration_list> decls
 %type<declaration> decl
 %type<variable_list> variable_decls
 %type<variable> variable_decl
@@ -110,9 +108,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<token> identifier error
 %%
 document
- : package imports decls
-  { ps->SetDocument($3); }
- ;
+ : package imports decls {};
 
 /* A couple of tokens that are keywords elsewhere are identifiers when
  * occurring in the identifier position. Therefore identifier is a
@@ -129,7 +125,7 @@ identifier
 package
  : {}
  | PACKAGE qualified_name ';'
-  { ps->SetPackage($2); };
+  { ps->SetPackage(unique_ptr<AidlQualifiedName>($2)); };
 
 imports
  : {}
@@ -153,13 +149,12 @@ qualified_name
   };
 
 decls
- : /* empty */
-  { $$ = new AidlDocument(); }
- | decls decl {
-   $$ = $1;
-   $$->AddDefinedType($2);
+ : decl {
+    ps->AddDefinedType(unique_ptr<AidlDefinedType>($1));
   }
- ;
+ | decls decl {
+    ps->AddDefinedType(unique_ptr<AidlDefinedType>($2));
+  };
 
 decl
  : annotation_list unannotated_decl
@@ -186,16 +181,13 @@ unannotated_decl
 parcelable_decl
  : PARCELABLE qualified_name ';' {
     $$ = new AidlParcelable(loc(@2), $2, ps->Package());
-    ps->GetTypenames().AddDefinedType($$);
   }
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
     $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $4->GetText());
-    ps->GetTypenames().AddDefinedType($$);
   }
  | PARCELABLE identifier '{' variable_decls '}' {
     AidlQualifiedName* name = new AidlQualifiedName(loc(@2), $2->GetText(), $2->GetComments());
     $$ = new AidlStructuredParcelable(loc(@2), name, ps->Package(), $4);
-    ps->GetTypenames().AddDefinedType($$);
  }
  | PARCELABLE error ';' {
     ps->AddError();
@@ -226,14 +218,12 @@ variable_decl
 
 interface_decl
  : INTERFACE identifier '{' interface_members '}' {
-    $$ = new AidlInterface(loc(@1),$2->GetText(), $1->GetComments(), false, $4, ps->Package());
-    ps->GetTypenames().AddDefinedType($$);
+    $$ = new AidlInterface(loc(@1), $2->GetText(), $1->GetComments(), false, $4, ps->Package());
     delete $1;
     delete $2;
   }
  | ONEWAY INTERFACE identifier '{' interface_members '}' {
     $$ = new AidlInterface(loc(@2), $3->GetText(),  $1->GetComments(), true, $5, ps->Package());
-    ps->GetTypenames().AddDefinedType($$);
     delete $1;
     delete $2;
     delete $3;

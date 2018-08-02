@@ -40,14 +40,9 @@ int main(int argc, char* argv[]) {
   }
 
   android::aidl::IoDelegate io_delegate;
-  Options::Language lang = options.TargetLanguage();
   switch (options.GetTask()) {
     case Options::Task::COMPILE:
-      if (lang == Options::Language::JAVA) {
-        return android::aidl::compile_aidl_to_java(options, io_delegate);
-      } else if (lang == Options::Language::CPP) {
-        return android::aidl::compile_aidl_to_cpp(options, io_delegate);
-      }
+      return android::aidl::compile_aidl(options, io_delegate);
     case Options::Task::PREPROCESS:
       if (android::aidl::preprocess_aidl(options, io_delegate)) return 0;
       return 1;
