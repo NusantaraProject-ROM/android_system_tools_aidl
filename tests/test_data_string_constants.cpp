@@ -243,7 +243,7 @@ public interface IStringConstants extends android.os.IInterface
   {
     @Override
     public int getInterfaceVersion() {
-      return 0;
+      return -1;
     }
     @Override
     public android.os.IBinder asBinder() {
