@@ -93,6 +93,8 @@ class TypeNamespace {
   // constructor because many of the useful methods are virtual.
   virtual void Init() = 0;
 
+  bool AddDefinedTypes(vector<AidlDefinedType*>& types, const string& filename);
+
   // Load this TypeNamespace with user defined types.
   virtual bool AddParcelableType(const AidlParcelable& p,
                                  const std::string& filename) = 0;
@@ -105,9 +107,6 @@ class TypeNamespace {
 
   // Returns true iff this has a type for |import|.
   virtual bool HasImportType(const AidlImport& import) const = 0;
-
-  // Returns true iff |package| is a valid package name.
-  virtual bool IsValidPackage(const std::string& package) const;
 
   // Returns a pointer to a type corresponding to |raw_type| or nullptr
   // if this is an invalid return type.
