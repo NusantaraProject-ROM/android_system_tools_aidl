@@ -43,9 +43,6 @@ class AidlLocation {
     unsigned int column;
   };
 
-  // For tests
-  static AidlLocation nowhere() { return {"nowhere", {0, 0}, {0, 0}}; }
-
   AidlLocation(const std::string& file, Point begin, Point end);
 
   friend std::ostream& operator<<(std::ostream& os, const AidlLocation& l);
@@ -55,6 +52,11 @@ class AidlLocation {
   Point begin_;
   Point end_;
 };
+
+#define AIDL_LOCATION_HERE                   \
+  AidlLocation {                             \
+    __FILE__, {__LINE__, 0}, { __LINE__, 0 } \
+  }
 
 std::ostream& operator<<(std::ostream& os, const AidlLocation& l);
 
