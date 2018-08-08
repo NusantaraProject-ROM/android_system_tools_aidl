@@ -353,11 +353,6 @@ AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecif
 
 AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
                        const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-                       const std::string& comments, int id)
-    : AidlMethod(location, oneway, type, name, args, comments, id, true) {}
-
-AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
-                       const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
                        const std::string& comments, int id, bool is_user_defined)
     : AidlMember(location),
       oneway_(oneway),
