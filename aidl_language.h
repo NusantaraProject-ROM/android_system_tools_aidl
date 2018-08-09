@@ -335,10 +335,7 @@ class AidlMethod : public AidlMember {
              const std::string& comments);
   AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
              const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-             const std::string& comments, int id);
-  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
-             const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-             const std::string& comments, int id, bool is_user_defined);
+             const std::string& comments, int id, bool is_user_defined = true);
   virtual ~AidlMethod() = default;
 
   AidlMethod* AsMethod() override { return this; }
