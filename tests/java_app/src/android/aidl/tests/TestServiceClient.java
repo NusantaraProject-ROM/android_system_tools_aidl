@@ -728,6 +728,13 @@ public class TestServiceClient extends Activity {
       if (parcelable.charDefaultsToC != 'C') {
         mLog.logAndThrow("charDefaultsToC is " + parcelable.charDefaultsToC);
       }
+      if (parcelable.floatDefaultsToPi != 3.14f) {
+        mLog.logAndThrow("floatDefaultsToPi is " + parcelable.floatDefaultsToPi);
+      }
+      if (parcelable.doubleWithDefault != -3.14e17) {
+        mLog.logAndThrow(
+            "doubleWithDefault is " + parcelable.doubleWithDefault + " but should be -3.14e17");
+      }
 
       try {
         service.FillOutStructuredParcelable(parcelable);

@@ -22,6 +22,7 @@ identifier  [_a-zA-Z][_a-zA-Z0-9]*
 whitespace  ([ \t\r]+)
 intvalue    [-+]?(0|[1-9][0-9]*)
 hexvalue    0[x|X][0-9a-fA-F]+
+floatvalue  [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?f?
 
 %%
 %{
@@ -98,6 +99,8 @@ oneway                { yylval->token = new AidlToken("oneway", extra_text);
                       }
 {intvalue}            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::INTVALUE; }
+{floatvalue}          { yylval->token = new AidlToken(yytext, extra_text);
+                        return yy::parser::token::FLOATVALUE; }
 {hexvalue}            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::HEXVALUE; }
 

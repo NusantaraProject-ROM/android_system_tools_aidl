@@ -73,6 +73,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token<token> ONEWAY "oneway"
 
 %token<character> CHARVALUE "char literal"
+%token<token> FLOATVALUE "float literal"
 %token<token> HEXVALUE "hex literal"
 %token<token> INTVALUE "int literal"
 
@@ -278,6 +279,10 @@ constant_value
  | CHARVALUE { $$ = AidlConstantValue::Character(loc(@1), $1); }
  | INTVALUE {
     $$ = AidlConstantValue::Integral(loc(@1), $1->GetText());
+    delete $1;
+  }
+ | FLOATVALUE {
+    $$ = AidlConstantValue::Floating(loc(@1), $1->GetText());
     delete $1;
   }
  | HEXVALUE {
