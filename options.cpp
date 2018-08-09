@@ -236,8 +236,8 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         std::cerr << GetUsage();
         exit(0);
       default:
-        error_message_ << "Invalid argument: '" << argv[optind] << "'" << endl;
-        return;
+        std::cerr << GetUsage();
+        exit(1);
     }
   }  // while
 
@@ -256,7 +256,11 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         // when output is omitted, output is by default set to the input
         // file path with .aidl is replaced to .java.
         output_file_ = input_files_.front();
-        output_file_.replace(output_file_.length() - strlen(".aidl"), strlen(".aidl"), ".java");
+        if (android::base::EndsWith(output_file_, ".aidl")) {
+          output_file_ = output_file_.substr(0, output_file_.length() - strlen(".aidl"));
+        }
+        output_file_ += ".java";
+
         if (!output_dir_.empty()) {
           output_file_ = output_dir_ + OS_PATH_SEPARATOR + output_file_;
         }
@@ -277,7 +281,6 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       }
       error_message_ << endl;
     }
-    return;
   } else {
     // the new arguments format
     if (task_ == Options::Task::COMPILE) {
@@ -305,26 +308,28 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       return;
     }
   }
-  if (language_ == Options::Language::CPP && task_ == Options::Task::COMPILE) {
-    if (output_dir_.empty()) {
-      error_message_ << "Output directory is not set. Set with --out." << endl;
-      return;
+  if (lang_option_found) {
+    if (language_ == Options::Language::CPP && task_ == Options::Task::COMPILE) {
+      if (output_dir_.empty()) {
+        error_message_ << "Output directory is not set. Set with --out." << endl;
+        return;
+      }
+      if (output_header_dir_.empty()) {
+        error_message_ << "Header output directory is not set. Set with "
+                       << "--header_out." << endl;
+        return;
+      }
     }
-    if (output_header_dir_.empty()) {
-      error_message_ << "Header output directory is not set. Set with "
-                     << "--header_out." << endl;
-      return;
-    }
-  }
-  if (language_ == Options::Language::JAVA && task_ == Options::Task::COMPILE) {
-    if (output_dir_.empty()) {
-      error_message_ << "Output directory is not set. Set with --out." << endl;
-      return;
-    }
-    if (!output_header_dir_.empty()) {
-      error_message_ << "Header output directory is set, which does not make "
-                     << "sense for Java." << endl;
-      return;
+    if (language_ == Options::Language::JAVA && task_ == Options::Task::COMPILE) {
+      if (output_dir_.empty()) {
+        error_message_ << "Output directory is not set. Set with --out." << endl;
+        return;
+      }
+      if (!output_header_dir_.empty()) {
+        error_message_ << "Header output directory is set, which does not make "
+                       << "sense for Java." << endl;
+        return;
+      }
     }
   }
   if (task_ == Options::Task::COMPILE) {
