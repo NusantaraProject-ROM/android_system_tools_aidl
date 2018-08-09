@@ -95,13 +95,12 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
 
   for (const auto& variable : parcel->GetFields()) {
     const Type* type = variable->GetType().GetLanguageType<Type>();
-    const AidlConstantValue* default_value = variable->GetDefaultValue();
 
     std::ostringstream out;
     out << "public " << type->JavaType() << (variable->GetType().IsArray() ? "[]" : "") << " "
         << variable->GetName();
-    if (default_value) {
-      out << " = " << default_value->ToString();
+    if (variable->GetDefaultValue()) {
+      out << " = " << variable->ValueString();
     }
     out << ";\n";
     parcel_class->elements.push_back(new LiteralClassElement(out.str()));

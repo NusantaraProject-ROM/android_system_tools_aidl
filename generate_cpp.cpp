@@ -730,8 +730,8 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
         ClassName(interface, ClassNames::INTERFACE),
         constant->GetName(),
         {}));
-    getter->GetStatementBlock()->AddLiteral(
-        StringPrintf("static const ::android::String16 value(%s)", value.ToString().c_str()));
+    getter->GetStatementBlock()->AddLiteral(StringPrintf(
+        "static const ::android::String16 value(%s)", constant->ValueString().c_str()));
     getter->GetStatementBlock()->AddLiteral("return value");
     decls.push_back(std::move(getter));
   }
@@ -897,8 +897,9 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
         string_constants.push_back(std::move(getter));
         break;
       }
-      case AidlConstantValue::Type::INTEGER: {
-        int_constant_enum->AddValue(constant->GetName(), value.ToString());
+      case AidlConstantValue::Type::INTEGRAL:
+      case AidlConstantValue::Type::HEXIDECIMAL: {
+        int_constant_enum->AddValue(constant->GetName(), constant->ValueString());
         break;
       }
       default: {
@@ -979,12 +980,11 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
 
   for (const auto& variable : parcel.GetFields()) {
     const Type* type = variable->GetType().GetLanguageType<Type>();
-    const AidlConstantValue* default_value = variable->GetDefaultValue();
 
     std::ostringstream out;
     out << type->CppType().c_str() << " " << variable->GetName().c_str();
-    if (default_value) {
-      out << " = " << type->CppType().c_str() << "(" << default_value->ToString() << ")";
+    if (variable->GetDefaultValue()) {
+      out << " = " << type->CppType().c_str() << "(" << variable->ValueString() << ")";
     }
     out << ";\n";
 

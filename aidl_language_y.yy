@@ -44,7 +44,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 
 %union {
     AidlToken* token;
-    int integer;
+    char character;
     std::string *str;
     AidlAnnotation* annotation;
     std::set<std::unique_ptr<AidlAnnotation>>* annotation_list;
@@ -68,11 +68,13 @@ AidlLocation loc(const yy::parser::location_type& l) {
 
 %token<token> ANNOTATION "annotation"
 %token<token> C_STR "string literal"
-%token<token> HEXVALUE "hex literal"
 %token<token> IDENTIFIER "identifier"
 %token<token> INTERFACE "interface"
 %token<token> ONEWAY "oneway"
-%token<integer> INTVALUE "int literal"
+
+%token<character> CHARVALUE "char literal"
+%token<token> HEXVALUE "hex literal"
+%token<token> INTVALUE "int literal"
 
 %token '(' ')' ',' '=' '[' ']' '<' '>' '.' '{' '}' ';'
 %token CONST "const"
@@ -84,6 +86,8 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token OUT "out"
 %token PACKAGE "package"
 %token PARCELABLE "parcelable"
+%token TRUE_LITERAL "true"
+%token FALSE_LITERAL "false"
 
 %type<declaration> decl
 %type<variable_list> variable_decls
@@ -269,13 +273,19 @@ interface_members
   };
 
 constant_value
- : INTVALUE { $$ = AidlConstantValue::LiteralInt(loc(@1), $1); }
+ : TRUE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), true); }
+ | FALSE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), false); }
+ | CHARVALUE { $$ = AidlConstantValue::Character(loc(@1), $1); }
+ | INTVALUE {
+    $$ = AidlConstantValue::Integral(loc(@1), $1->GetText());
+    delete $1;
+  }
  | HEXVALUE {
-    $$ = AidlConstantValue::ParseHex(loc(@1), $1->GetText());
+    $$ = AidlConstantValue::Hex(loc(@1), $1->GetText());
     delete $1;
   }
  | C_STR {
-    $$ = AidlConstantValue::ParseString(loc(@1), $1->GetText());
+    $$ = AidlConstantValue::String(loc(@1), $1->GetText());
     delete $1;
   }
  ;
@@ -298,11 +308,11 @@ method_decl
     delete $3;
   }
  | type identifier '(' arg_list ')' '=' INTVALUE ';' {
-    $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments(), $7);
+    $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments(), std::stoi($7->GetText()));
     delete $2;
   }
  | ONEWAY type identifier '(' arg_list ')' '=' INTVALUE ';' {
-    $$ = new AidlMethod(loc(@3), true, $2, $3->GetText(), $5, $1->GetComments(), $8);
+    $$ = new AidlMethod(loc(@3), true, $2, $3->GetText(), $5, $1->GetComments(), std::stoi($8->GetText()));
     delete $1;
     delete $3;
   };

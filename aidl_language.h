@@ -242,6 +242,8 @@ class AidlVariableDeclaration : public AidlNode {
   std::string ToString() const;
   std::string Signature() const;
 
+  std::string ValueString() const;
+
  private:
   std::unique_ptr<AidlTypeSpecifier> type_;
   std::string name_;
@@ -291,22 +293,27 @@ class AidlMember : public AidlNode {
 
 class AidlConstantValue : public AidlNode {
  public:
-  enum class Type { ERROR, INTEGER, STRING };
-  static string ToString(Type type);
+  enum class Type { ERROR, BOOLEAN, CHARACTER, HEXIDECIMAL, INTEGRAL, STRING };
 
   virtual ~AidlConstantValue() = default;
 
-  static AidlConstantValue* LiteralInt(const AidlLocation& location, const int32_t value);
+  static AidlConstantValue* Boolean(const AidlLocation& location, bool value);
+  static AidlConstantValue* Character(const AidlLocation& location, char value);
   // example: "0x4f"
-  static AidlConstantValue* ParseHex(const AidlLocation& location, const std::string& value);
+  static AidlConstantValue* Hex(const AidlLocation& location, const std::string& value);
+  // example: 123, -5498, maybe any size
+  static AidlConstantValue* Integral(const AidlLocation& location, const std::string& value);
   // example: "\"asdf\""
-  static AidlConstantValue* ParseString(const AidlLocation& location, const std::string& value);
+  static AidlConstantValue* String(const AidlLocation& location, const std::string& value);
 
   Type GetType() const { return type_; }
-  string ToString() const;
+
+  bool CheckValid() const;
+  string As(const AidlTypeSpecifier& type) const;
 
  private:
   AidlConstantValue(const AidlLocation& location, Type type, const std::string& checked_value);
+  static string ToString(Type type);
 
   const Type type_ = Type::ERROR;
   const std::string value_;
@@ -324,6 +331,8 @@ class AidlConstantDeclaration : public AidlMember {
   const std::string& GetName() const { return name_; }
   const AidlConstantValue& GetValue() const { return *value_; }
   bool CheckValid() const;
+
+  string ValueString() const { return GetValue().As(GetType()); }
 
   AidlConstantDeclaration* AsConstantDeclaration() override { return this; }
 
