@@ -69,13 +69,6 @@ bool FakeIoDelegate::FileIsReadable(const string& path) const {
   return file_contents_.find(CleanPath(path)) != file_contents_.end();
 }
 
-bool FakeIoDelegate::CreatedNestedDirs(
-    const std::string& /* base_dir */,
-    const std::vector<std::string>& /* nested_subdirs */) const {
-  // We don't test directory creation explicitly.
-  return true;
-}
-
 std::unique_ptr<CodeWriter> FakeIoDelegate::GetCodeWriter(
     const std::string& file_path) const {
   if (broken_files_.count(file_path) > 0) {
