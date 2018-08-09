@@ -60,7 +60,7 @@ class Options final {
  public:
   enum class Language { UNSPECIFIED, JAVA, CPP };
 
-  enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMPAPI };
+  enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMP_API, CHECK_API };
 
   Options(int argc, const char* const argv[], Language default_lang = Language::UNSPECIFIED);
 

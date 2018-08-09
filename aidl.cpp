@@ -570,6 +570,17 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   // Validation phase
   //////////////////////////////////////////////////////////////////////////
 
+  if (options.GetTask() == Options::Task::CHECK_API && !main_parser.IsApiDump()) {
+    AIDL_ERROR(input_file_name) << "Input is not an API dump";
+    return AidlError::BAD_INPUT;
+  }
+
+  if (options.GetTask() != Options::Task::CHECK_API && main_parser.IsApiDump()) {
+    AIDL_ERROR(input_file_name) << "Input is not AIDL source code, but "
+                                << "an AIDL dump file";
+    return AidlError::BAD_INPUT;
+  }
+
   // Resolve the unresolved type references found from the input file
   if (!main_parser.Resolve()) {
     return AidlError::BAD_TYPE;
@@ -605,7 +616,8 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     // Ensure that foo.bar.IFoo is defined in <some_path>/foo/bar/IFoo.aidl
     // Do this only when there is only one type defined in the input file.
     // When there are multiple types in a file, we can't satisfy the convention.
-    if (num_defined_types == 1 && !check_filename(input_file_name, *defined_type)) {
+    if (options.GetTask() != Options::Task::CHECK_API && num_defined_types == 1 &&
+        !check_filename(input_file_name, *defined_type)) {
       return AidlError::BAD_PACKAGE;
     }
 
