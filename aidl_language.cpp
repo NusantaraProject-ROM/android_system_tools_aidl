@@ -494,47 +494,25 @@ void AidlQualifiedName::AddTerm(const std::string& term) {
 AidlImport::AidlImport(const AidlLocation& location, const std::string& needed_class)
     : AidlNode(location), needed_class_(needed_class) {}
 
-Parser::Parser(const IoDelegate& io_delegate, android::aidl::AidlTypenames& typenames)
-    : io_delegate_(io_delegate), typenames_(typenames) {
-  yylex_init(&scanner_);
-}
-
-Parser::~Parser() {
-  if (raw_buffer_) {
-    yy_delete_buffer(buffer_, scanner_);
-    raw_buffer_.reset();
-  }
-  yylex_destroy(scanner_);
-}
-
-bool Parser::ParseFile(const string& filename) {
+std::unique_ptr<Parser> Parser::Parse(const std::string& filename,
+                                      const android::aidl::IoDelegate& io_delegate,
+                                      AidlTypenames& typenames) {
   // Make sure we can read the file first, before trashing previous state.
-  unique_ptr<string> new_buffer = io_delegate_.GetFileContents(filename);
-  if (!new_buffer) {
+  unique_ptr<string> raw_buffer = io_delegate.GetFileContents(filename);
+  if (raw_buffer == nullptr) {
     AIDL_ERROR(filename) << "Error while opening file for parsing";
-    return false;
+    return nullptr;
   }
 
-  // Throw away old parsing state if we have any.
-  if (raw_buffer_) {
-    yy_delete_buffer(buffer_, scanner_);
-    raw_buffer_.reset();
-  }
-
-  raw_buffer_ = std::move(new_buffer);
   // We're going to scan this buffer in place, and yacc demands we put two
   // nulls at the end.
-  raw_buffer_->append(2u, '\0');
-  filename_ = filename;
-  package_.reset();
-  error_ = 0;
+  raw_buffer->append(2u, '\0');
 
-  buffer_ = yy_scan_buffer(&(*raw_buffer_)[0], raw_buffer_->length(), scanner_);
+  std::unique_ptr<Parser> parser(new Parser(filename, *raw_buffer, typenames));
 
-  if (yy::parser(this).parse() != 0 || error_ != 0)
-    return false;
+  if (yy::parser(parser.get()).parse() != 0 || parser->HasError()) return nullptr;
 
-  return true;
+  return parser;
 }
 
 std::vector<std::string> Parser::Package() const {
@@ -558,4 +536,16 @@ bool Parser::Resolve() {
     }
   }
   return success;
+}
+
+Parser::Parser(const std::string& filename, std::string& raw_buffer,
+               android::aidl::AidlTypenames& typenames)
+    : filename_(filename), typenames_(typenames) {
+  yylex_init(&scanner_);
+  buffer_ = yy_scan_buffer(&raw_buffer[0], raw_buffer.length(), scanner_);
+}
+
+Parser::~Parser() {
+  yy_delete_buffer(buffer_, scanner_);
+  yylex_destroy(scanner_);
 }
