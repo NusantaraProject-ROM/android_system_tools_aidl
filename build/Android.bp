@@ -55,6 +55,7 @@ aidl_interface {
         "tests_1/some_package/IFoo.aidl",
         "tests_1/some_package/Thing.aidl",
         "tests_1/some_package/sub_package/SubThing.aidl",
+        "tests_1/some_package/sub_package/IFoo.aidl",
     ],
 }
 
