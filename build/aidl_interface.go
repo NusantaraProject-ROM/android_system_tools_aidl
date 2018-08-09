@@ -15,6 +15,8 @@
 package aidl
 
 import (
+	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -58,6 +60,18 @@ var (
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL Java ${in} => ${outDir}",
 	}, "imports", "outDir")
+
+	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
+		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
+			`${aidlCmd} --dumpapi --structured ${imports} ${out} ${in}`,
+		CommandDeps: []string{"${aidlCmd}"},
+		Description: "AIDL API Dump to ${out}",
+	}, "imports", "outDir")
+
+	aidlUpdateApiRule = pctx.AndroidStaticRule("aidlUpdateApiRule",
+		blueprint.RuleParams{
+			Command: `cp -f $updated_api $current_api && touch $out`,
+		}, "updated_api", "current_api")
 )
 
 func init() {
@@ -203,6 +217,79 @@ func aidlGenFactory() android.Module {
 	return g
 }
 
+type aidlApiProperties struct {
+	Inputs  []string
+	Imports []string
+	Api_dir *string
+}
+
+type aidlApi struct {
+	android.ModuleBase
+
+	properties aidlApiProperties
+
+	updateApiTimestamp android.WritablePath
+}
+
+func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
+	var importPaths []string
+	ctx.VisitDirectDeps(func(dep android.Module) {
+		importPaths = append(importPaths, dep.(*aidlInterface).properties.Full_import_path)
+	})
+
+	updatedApi := android.PathForModuleOut(ctx, "current.aidl")
+	imports := strings.Join(wrap("-I", importPaths, ""), " ")
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:   aidlDumpApiRule,
+		Inputs: android.PathsForModuleSrc(ctx, m.properties.Inputs),
+		Output: updatedApi,
+		Args: map[string]string{
+			"imports": imports,
+			"outDir":  android.PathForModuleOut(ctx).String(),
+		},
+	})
+
+	m.updateApiTimestamp = android.PathForModuleOut(ctx, "current.aidl.timestamp")
+	var apiDir string
+	if m.properties.Api_dir != nil {
+		apiDir = *(m.properties.Api_dir)
+	} else {
+		apiDir = "api"
+	}
+	currentApi := android.PathForModuleSrc(ctx, apiDir, "current.aidl")
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:        aidlUpdateApiRule,
+		Description: "Update AIDL API",
+		Output:      m.updateApiTimestamp,
+		Implicits:   append(android.Paths{}, updatedApi, currentApi),
+		Args: map[string]string{
+			"updated_api": updatedApi.String(),
+			"current_api": currentApi.String(),
+		},
+	})
+}
+
+func (m *aidlApi) AndroidMk() android.AndroidMkData {
+	return android.AndroidMkData{
+		Custom: func(w io.Writer, name, prefix, moduleDir string, data android.AndroidMkData) {
+			android.WriteAndroidMkData(w, data)
+			fmt.Fprintln(w, ".PHONY:", m.Name()+"-update-current")
+			fmt.Fprintln(w, m.Name()+"-update-current:", m.updateApiTimestamp.String())
+		},
+	}
+}
+
+func (m *aidlApi) DepsMutator(ctx android.BottomUpMutatorContext) {
+	ctx.AddDependency(ctx.Module(), nil, wrap("", m.properties.Imports, aidlInterfaceSuffix)...)
+}
+
+func aidlApiFactory() android.Module {
+	m := &aidlApi{}
+	m.AddProperties(&m.properties)
+	android.InitAndroidModule(m)
+	return m
+}
+
 type aidlInterfaceProperties struct {
 	// Vndk properties for interface library only.
 	cc.VndkProperties
@@ -228,6 +315,9 @@ type aidlInterfaceProperties struct {
 
 	// Used by gen dependency to fill out aidl include path
 	Full_import_path string `blueprint:"mutated"`
+
+	// Directory where API dumps are. Default is "api".
+	Api_dir *string
 }
 
 type aidlInterface struct {
@@ -304,6 +394,8 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	}
 
 	libs = append(libs, addJavaLibrary(mctx, i))
+
+	addDumpApiModule(mctx, i)
 
 	// Reserve this module name for future use
 	mctx.CreateModule(android.ModuleFactoryAdaptor(phony.PhonyFactory), &phonyProperties{
@@ -384,6 +476,18 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 	})
 
 	return javaModuleGen
+}
+
+func addDumpApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
+	dumpApiModule := i.ModuleBase.Name() + "-api"
+	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlApiFactory), &nameProperties{
+		Name: proptools.StringPtr(dumpApiModule),
+	}, &aidlApiProperties{
+		Inputs:  i.properties.Srcs,
+		Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+		Api_dir: i.properties.Api_dir,
+	})
+	return dumpApiModule
 }
 
 func (i *aidlInterface) Name() string {

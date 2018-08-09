@@ -57,6 +57,7 @@ aidl_interface {
         "tests_1/some_package/sub_package/SubThing.aidl",
         "tests_1/some_package/sub_package/IFoo.aidl",
     ],
+    api_dir: "api/test-piece-1",
 }
 
 aidl_interface {
@@ -68,6 +69,7 @@ aidl_interface {
     imports: [
         "test-piece-1",
     ],
+    api_dir: "api/test-piece-2",
 }
 
 aidl_interface {
@@ -79,6 +81,7 @@ aidl_interface {
     imports: [
         "test-piece-2",
     ],
+    api_dir: "api/test-piece-3",
 }
 
 aidl_interface {
@@ -90,6 +93,7 @@ aidl_interface {
     imports: [
         "test-piece-1",
     ],
+    api_dir: "api/test-piece-4",
 }
 
 aidl_interface {
