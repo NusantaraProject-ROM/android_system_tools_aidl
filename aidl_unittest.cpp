@@ -604,7 +604,7 @@ TEST_F(AidlTest, MultipleTypesInSingleFileCpp) {
 
   string content;
   for (const auto file : {
-    "out/IFoo1.cpp", "out/IFoo2.cpp", "out/Data.cpp",
+    "out/foo/bar/IFoo1.cpp", "out/foo/bar/IFoo2.cpp", "out/foo/bar/Data.cpp",
     "out/include/foo/bar/IFoo1.h", "out/include/foo/bar/IFoo2.h", "out/include/foo/bar/Data.h",
     "out/include/foo/bar/BpFoo1.h", "out/include/foo/bar/BpFoo2.h", "out/include/foo/bar/BpData.h",
     "out/include/foo/bar/BnFoo1.h", "out/include/foo/bar/BnFoo2.h", "out/include/foo/bar/BnData.h"}) {
@@ -657,7 +657,7 @@ TEST_F(AidlTest, MultipleInputFilesCpp) {
 
   string content;
   for (const auto file : {
-    "out/IFoo.cpp", "out/Data.cpp",
+    "out/foo/bar/IFoo.cpp", "out/foo/bar/Data.cpp",
     "out/include/foo/bar/IFoo.h", "out/include/foo/bar/Data.h",
     "out/include/foo/bar/BpFoo.h", "out/include/foo/bar/BpData.h",
     "out/include/foo/bar/BnFoo.h", "out/include/foo/bar/BnData.h"}) {

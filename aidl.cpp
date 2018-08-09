@@ -315,7 +315,14 @@ string generate_outputFileName(const Options& options, const AidlDefinedType& de
   const string& name = defined_type.GetName();
   result += OS_PATH_SEPARATOR;
   result.append(name, 0, name.find('.'));
-  result += ".java";
+  if (options.TargetLanguage() == Options::Language::JAVA) {
+    result += ".java";
+  } else if (options.TargetLanguage() == Options::Language::CPP) {
+    result += ".cpp";
+  } else {
+    LOG(FATAL) << "Should not reach here" << endl;
+    return "";
+  }
 
   return result;
 }
@@ -717,15 +724,8 @@ int compile_aidl(const Options& options, const IoDelegate& io_delegate) {
       string output_file_name = options.OutputFile();
       // if needed, generate the output file name from the base folder
       if (output_file_name.empty() && !options.OutputDir().empty()) {
-        if (lang == Options::Language::CPP) {
-          // For C++, output file is <out_dir>/IFoo.cpp
-          output_file_name =
-              options.OutputDir() + OS_PATH_SEPARATOR + defined_type->GetName() + ".cpp";
-          // For Java, output file is <out_dir>/path/to/package/IFoo.java
-        } else if (lang == Options::Language::JAVA) {
-          output_file_name = generate_outputFileName(options, *defined_type);
-        } else {
-          LOG(FATAL) << "Should not reach here" << endl;
+        output_file_name = generate_outputFileName(options, *defined_type);
+        if (output_file_name.empty()) {
           return 1;
         }
       }
