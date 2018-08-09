@@ -22,5 +22,9 @@ parcelable StructuredParcelable {
     @utf8InCpp String shouldBeJerry;
 
     String stringDefaultsToFoo = "foo";
+    byte byteDefaultsToFour = 4;
     int intDefaultsToFive = 5;
+    long longDefaultsToNegativeSeven = -7;
+    boolean booleanDefaultsToTrue = true;
+    char charDefaultsToC = 'C';
 }

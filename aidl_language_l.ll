@@ -79,6 +79,8 @@ out                   { return yy::parser::token::OUT; }
 inout                 { return yy::parser::token::INOUT; }
 cpp_header            { return yy::parser::token::CPP_HEADER; }
 const                 { return yy::parser::token::CONST; }
+true                  { return yy::parser::token::TRUE_LITERAL; }
+false                 { return yy::parser::token::FALSE_LITERAL; }
 
 interface             { yylval->token = new AidlToken("interface", extra_text);
                         return yy::parser::token::INTERFACE;
@@ -91,7 +93,10 @@ oneway                { yylval->token = new AidlToken("oneway", extra_text);
 {identifier}          { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::IDENTIFIER;
                       }
-{intvalue}            { yylval->integer = std::stoi(yytext);
+'.'                   { yylval->character = yytext[1];
+                        return yy::parser::token::CHARVALUE;
+                      }
+{intvalue}            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::INTVALUE; }
 {hexvalue}            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::HEXVALUE; }
