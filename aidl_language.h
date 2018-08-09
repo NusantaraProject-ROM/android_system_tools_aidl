@@ -573,13 +573,15 @@ class AidlImport : public AidlNode {
 
 class Parser {
  public:
-  explicit Parser(const android::aidl::IoDelegate& io_delegate, AidlTypenames& typenames);
   ~Parser();
 
-  // Parse contents of file |filename|.
-  bool ParseFile(const std::string& filename);
+  // Parse contents of file |filename|. Should only be called once.
+  static std::unique_ptr<Parser> Parse(const std::string& filename,
+                                       const android::aidl::IoDelegate& io_delegate,
+                                       AidlTypenames& typenames);
 
   void AddError() { error_++; }
+  bool HasError() { return error_ != 0; }
 
   const std::string& FileName() const { return filename_; }
   void* Scanner() const { return scanner_; }
@@ -619,18 +621,21 @@ class Parser {
   vector<AidlDefinedType*>& GetDefinedTypes() { return defined_types_; }
 
  private:
-  const android::aidl::IoDelegate& io_delegate_;
-  int error_ = 0;
+  explicit Parser(const std::string& filename, std::string& raw_buffer,
+                  android::aidl::AidlTypenames& typenames);
+
   std::string filename_;
   std::unique_ptr<AidlQualifiedName> package_;
-  void* scanner_ = nullptr;
-  std::vector<std::unique_ptr<AidlImport>> imports_;
-  std::unique_ptr<std::string> raw_buffer_;
-  YY_BUFFER_STATE buffer_;
   AidlTypenames& typenames_;
+  bool is_apidump_ = false;
+
+  void* scanner_ = nullptr;
+  YY_BUFFER_STATE buffer_;
+  int error_ = 0;
+
+  std::vector<std::unique_ptr<AidlImport>> imports_;
   vector<AidlDefinedType*> defined_types_;
   vector<AidlTypeSpecifier*> unresolved_typespecs_;
-  bool is_apidump_ = false;
 
   DISALLOW_COPY_AND_ASSIGN(Parser);
 };
