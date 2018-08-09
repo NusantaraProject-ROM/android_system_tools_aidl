@@ -15,6 +15,7 @@
  */
 
 #include "aidl.h"
+#include "aidl_apicheck.h"
 #include "io_delegate.h"
 #include "logging.h"
 #include "options.h"
@@ -45,8 +46,10 @@ int main(int argc, char* argv[]) {
       return android::aidl::compile_aidl(options, io_delegate);
     case Options::Task::PREPROCESS:
       return android::aidl::preprocess_aidl(options, io_delegate) ? 0 : 1;
-    case Options::Task::DUMPAPI:
+    case Options::Task::DUMP_API:
       return android::aidl::dump_api(options, io_delegate) ? 0 : 1;
+    case Options::Task::CHECK_API:
+      return android::aidl::check_api(options, io_delegate);
     default:
       LOG(FATAL) << "aidl: internal error" << std::endl;
       return 1;

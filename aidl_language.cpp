@@ -100,6 +100,11 @@ static bool HasAnnotation(const set<unique_ptr<AidlAnnotation>>& annotations, co
   return false;
 }
 
+bool operator==(const unique_ptr<AidlAnnotation>& lhs,
+                const unique_ptr<AidlAnnotation>& rhs) {
+  return lhs->GetName() == rhs->GetName();
+}
+
 AidlAnnotatable::AidlAnnotatable(const AidlLocation& location) : AidlNode(location) {}
 
 bool AidlAnnotatable::IsNullable() const {
