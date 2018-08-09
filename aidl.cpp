@@ -514,11 +514,12 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   //////////////////////////////////////////////////////////////////////////
 
   // Parse the main input file
-  Parser main_parser{io_delegate, types->typenames_};
-  if (!main_parser.ParseFile(input_file_name)) {
+  std::unique_ptr<Parser> main_parser =
+      Parser::Parse(input_file_name, io_delegate, types->typenames_);
+  if (main_parser == nullptr) {
     return AidlError::PARSE_ERROR;
   }
-  if (!types->AddDefinedTypes(main_parser.GetDefinedTypes(), input_file_name)) {
+  if (!types->AddDefinedTypes(main_parser->GetDefinedTypes(), input_file_name)) {
     return AidlError::BAD_TYPE;
   }
 
@@ -535,7 +536,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   // Find files to import and parse them
   vector<string> imports;
   ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
-  for (const auto& import : main_parser.GetImports()) {
+  for (const auto& import : main_parser->GetImports()) {
     if (types->HasImportType(*import)) {
       // There are places in the Android tree where an import doesn't resolve,
       // but we'll pick the type up through the preprocessed types.
@@ -551,14 +552,15 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
     imports.emplace_back(import_path);
 
-    Parser import_parser{io_delegate, types->typenames_};
-    if (!import_parser.ParseFile(import_path)) {
+    std::unique_ptr<Parser> import_parser =
+        Parser::Parse(import_path, io_delegate, types->typenames_);
+    if (import_parser == nullptr) {
       cerr << "error while importing " << import_path << " for " << import->GetNeededClass()
            << endl;
       err = AidlError::BAD_IMPORT;
       continue;
     }
-    if (!types->AddDefinedTypes(import_parser.GetDefinedTypes(), import_path)) {
+    if (!types->AddDefinedTypes(import_parser->GetDefinedTypes(), import_path)) {
       return AidlError::BAD_TYPE;
     }
   }
@@ -570,26 +572,26 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   // Validation phase
   //////////////////////////////////////////////////////////////////////////
 
-  if (options.GetTask() == Options::Task::CHECK_API && !main_parser.IsApiDump()) {
+  if (options.GetTask() == Options::Task::CHECK_API && !main_parser->IsApiDump()) {
     AIDL_ERROR(input_file_name) << "Input is not an API dump";
     return AidlError::BAD_INPUT;
   }
 
-  if (options.GetTask() != Options::Task::CHECK_API && main_parser.IsApiDump()) {
+  if (options.GetTask() != Options::Task::CHECK_API && main_parser->IsApiDump()) {
     AIDL_ERROR(input_file_name) << "Input is not AIDL source code, but "
                                 << "an AIDL dump file";
     return AidlError::BAD_INPUT;
   }
 
   // Resolve the unresolved type references found from the input file
-  if (!main_parser.Resolve()) {
+  if (!main_parser->Resolve()) {
     return AidlError::BAD_TYPE;
   }
 
   // Make sure that there is no unstructured parcelable in the input file,
   // because we can generate code only for structured parcelables.
   bool has_only_unstructured_parcelables = true;
-  for (const auto defined_type : main_parser.GetDefinedTypes()) {
+  for (const auto defined_type : main_parser->GetDefinedTypes()) {
     if (defined_type->AsStructuredParcelable() != nullptr ||
         defined_type->AsInterface() != nullptr) {
       has_only_unstructured_parcelables = false;
@@ -600,14 +602,14 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
     // return this so that dependency file can be created
     if (defined_types != nullptr) {
-      *defined_types = main_parser.GetDefinedTypes();
+      *defined_types = main_parser->GetDefinedTypes();
     }
 
     return AidlError::FOUND_PARCELABLE;
   }
 
-  const int num_defined_types = main_parser.GetDefinedTypes().size();
-  for (const auto defined_type : main_parser.GetDefinedTypes()) {
+  const int num_defined_types = main_parser->GetDefinedTypes().size();
+  for (const auto defined_type : main_parser->GetDefinedTypes()) {
     // Ensure that a type is either an interface or a structured parcelable
     AidlInterface* interface = defined_type->AsInterface();
     AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
@@ -677,7 +679,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   }
 
   if (defined_types != nullptr) {
-    *defined_types = main_parser.GetDefinedTypes();
+    *defined_types = main_parser->GetDefinedTypes();
   }
 
   if (imported_files != nullptr) {
@@ -776,12 +778,10 @@ bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate) {
 
   for (const auto& file : options.InputFiles()) {
     AidlTypenames typenames;
-    Parser p{io_delegate, typenames};
-    if (!p.ParseFile(file))
-      return false;
-    string line;
+    std::unique_ptr<Parser> p = Parser::Parse(file, io_delegate, typenames);
+    if (p == nullptr) return false;
 
-    for (const auto& defined_type : p.GetDefinedTypes()) {
+    for (const auto& defined_type : p->GetDefinedTypes()) {
       if (!writer->Write("%s %s;\n", defined_type->GetPreprocessDeclarationName().c_str(),
                          defined_type->GetCanonicalName().c_str())) {
         return false;
