@@ -16,10 +16,12 @@ package aidl
 
 import (
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/google/blueprint"
+	"github.com/google/blueprint/pathtools"
 	"github.com/google/blueprint/proptools"
 
 	"android/soong/android"
@@ -31,27 +33,35 @@ import (
 
 var (
 	aidlInterfaceSuffix = "_interface"
+	langCpp             = "cpp"
+	langJava            = "java"
 
 	pctx = android.NewPackageContext("android/aidl")
 
-	aidlCpp     = pctx.HostBinToolVariable("aidlCpp", "aidl-cpp")
 	aidlCppRule = pctx.StaticRule("aidlCppRule", blueprint.RuleParams{
-		Command:     "${aidlCpp} --structured ${imports} ${in} ${headerDir} ${cppFile}",
-		CommandDeps: []string{"${aidlCpp}"},
-		Description: "AIDL CPP ${in} => ${out}",
-	}, "imports", "headerDir", "cppFile")
-
-	aidlJava     = pctx.HostBinToolVariable("aidlJava", "aidl")
-	aidlJavaRule = pctx.StaticRule("aidlJavaRule", blueprint.RuleParams{
+		Command: `rm -rf "${outDir}" && ` +
+			`mkdir -p "${outDir}" "${headerDir}" && ` +
+			`${aidlCmd} --lang=cpp --structured --ninja -d ${out}.d ` +
+			`-h ${headerDir} -o ${outDir} ${imports} ${in}`,
 		Depfile:     "${out}.d",
 		Deps:        blueprint.DepsGCC,
-		Command:     "${aidlJava} --structured --ninja -d${out}.d ${imports} ${in} ${out}",
-		CommandDeps: []string{"${aidlJava}"},
-		Description: "AIDL Java ${in} => ${out}",
-	}, "imports")
+		CommandDeps: []string{"${aidlCmd}"},
+		Description: "AIDL CPP ${in} => ${outDir}",
+	}, "imports", "headerDir", "outDir")
+
+	aidlJavaRule = pctx.StaticRule("aidlJavaRule", blueprint.RuleParams{
+		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
+			`${aidlCmd} --lang=java --structured --ninja -d ${out}.d ` +
+			`-o ${outDir} ${imports} ${in}`,
+		Depfile:     "${out}.d",
+		Deps:        blueprint.DepsGCC,
+		CommandDeps: []string{"${aidlCmd}"},
+		Description: "AIDL Java ${in} => ${outDir}",
+	}, "imports", "outDir")
 )
 
 func init() {
+	pctx.HostBinToolVariable("aidlCmd", "aidl")
 	android.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
 }
 
@@ -82,10 +92,10 @@ func isRelativePath(path string) bool {
 }
 
 type aidlGenProperties struct {
-	Input   string // a single aidl file
-	Outputs []string
-	Imports []string
-	CppFile *string // if specified, generates cpp
+	Input    string // a single aidl file
+	AidlRoot string // base directory for the input aidl file
+	Imports  []string
+	Lang     string // target language [java|cpp]
 }
 
 type aidlGenRule struct {
@@ -93,8 +103,7 @@ type aidlGenRule struct {
 
 	properties aidlGenProperties
 
-	genHeaderDir android.Path
-	genInput     android.Path
+	genHeaderDir android.ModuleGenPath
 	genOutputs   android.WritablePaths
 }
 
@@ -102,12 +111,20 @@ var _ android.SourceFileProducer = (*aidlGenRule)(nil)
 var _ genrule.SourceFileGenerator = (*aidlGenRule)(nil)
 
 func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
-	g.genInput = android.PathForModuleSrc(ctx, g.properties.Input)
-	g.genHeaderDir = android.PathForModuleGen(ctx)
-
-	for _, output := range g.properties.Outputs {
-		g.genOutputs = append(g.genOutputs, android.PathForModuleGen(ctx, output))
+	// g.properties.Input = some_dir/pkg/to/IFoo.aidl
+	// g.properties.AidlRoot = some_dir
+	// input = <module_root>/some_dir/pkg/to/IFoo.aidl
+	// outDir = out/soong/.intermediate/..../gen/
+	// outFile = out/soong/.intermediates/..../gen/pkg/to/IFoo.{java|cpp}
+	input := android.PathForModuleSrc(ctx, g.properties.Input).WithSubDir(ctx, g.properties.AidlRoot)
+	outDir := android.PathForModuleGen(ctx)
+	var outFile android.WritablePath
+	if g.properties.Lang == langJava {
+		outFile = android.PathForModuleGen(ctx, pathtools.ReplaceExtension(input.Rel(), "java"))
+	} else {
+		outFile = android.PathForModuleGen(ctx, pathtools.ReplaceExtension(input.Rel(), "cpp"))
 	}
+	g.genOutputs = []android.WritablePath{outFile}
 
 	var importPaths []string
 	ctx.VisitDirectDeps(func(dep android.Module) {
@@ -116,24 +133,44 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
 
-	if g.properties.CppFile == nil {
+	if g.properties.Lang == langJava {
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:    aidlJavaRule,
-			Input:   g.genInput,
+			Input:   input,
 			Outputs: g.genOutputs,
 			Args: map[string]string{
 				"imports": imports,
+				"outDir":  outDir.String(),
 			},
 		})
 	} else {
+		g.genHeaderDir = android.PathForModuleGen(ctx, "include")
+		typeName := strings.TrimSuffix(filepath.Base(input.Rel()), ".aidl")
+		packagePath := filepath.Dir(input.Rel())
+		baseName := typeName
+		// TODO(b/111362593): generate_cpp.cpp uses heuristics to figure out if
+		//   an interface name has a leading I. Those same heuristics have been
+		//   moved here.
+		if len(baseName) >= 2 && baseName[0] == 'I' &&
+			strings.ToUpper(baseName)[1] == baseName[1] {
+			baseName = strings.TrimPrefix(typeName, "I")
+		}
+		var headers android.WritablePaths
+		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+			typeName+".h"))
+		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+			"Bp"+baseName+".h"))
+		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+			"Bn"+baseName+".h"))
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
-			Rule:    aidlCppRule,
-			Input:   g.genInput,
-			Outputs: g.genOutputs,
+			Rule:            aidlCppRule,
+			Input:           input,
+			Outputs:         g.genOutputs,
+			ImplicitOutputs: headers,
 			Args: map[string]string{
 				"imports":   imports,
 				"headerDir": g.genHeaderDir.String(),
-				"cppFile":   android.PathForModuleGen(ctx, *g.properties.CppFile).String(),
+				"outDir":    outDir.String(),
 			},
 		})
 	}
@@ -277,50 +314,23 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 
 func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 	cppSourceGen := i.ModuleBase.Name() + "-cpp-gen"
-	cppHeaderGen := i.ModuleBase.Name() + "-cpp-gen-headers"
 	cppModuleGen := i.ModuleBase.Name() + "-cpp"
 
 	var cppGeneratedSources []string
-	var cppGeneratedHeaders []string
 
 	for idx, source := range i.properties.Srcs {
-		packagePath := i.packagePaths[idx]
-		typeName := i.types[idx]
-
-		// TODO(b/111362593): generate_cpp.cpp uses heuristics to figure out if
-		//   an interface name has a leading I. Those same heuristics have been
-		//   moved here.
-		baseName := typeName
-		if len(baseName) >= 2 && baseName[0] == 'I' && strings.ToUpper(baseName)[1] == baseName[1] {
-			baseName = strings.TrimPrefix(typeName, "I")
-		}
-
-		cppFile := filepath.Join(packagePath, typeName+".cpp")
-		headerFile := filepath.Join(packagePath, typeName+".h")
-		bpFile := filepath.Join(packagePath, "Bp"+baseName+".h")
-		bnFile := filepath.Join(packagePath, "Bn"+baseName+".h")
-
-		cppSourceGenName := cppSourceGen + "-" + typeName
+		// Use idx to distinguish genrule modules. typename is not appropriate
+		// as it is possible to have identical type names in different packages.
+		cppSourceGenName := cppSourceGen + "-" + strconv.Itoa(idx)
 		mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
 			Name: proptools.StringPtr(cppSourceGenName),
 		}, &aidlGenProperties{
-			Input:   source,
-			Outputs: []string{cppFile},
-			Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-			CppFile: proptools.StringPtr(cppFile),
+			Input:    source,
+			AidlRoot: i.properties.Local_include_dir,
+			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+			Lang:     langCpp,
 		})
 		cppGeneratedSources = append(cppGeneratedSources, cppSourceGenName)
-
-		cppHeaderGenName := cppHeaderGen + "-" + typeName
-		mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
-			Name: proptools.StringPtr(cppHeaderGenName),
-		}, &aidlGenProperties{
-			Input:   source,
-			Outputs: []string{headerFile, bpFile, bnFile},
-			Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-			CppFile: proptools.StringPtr(cppFile),
-		})
-		cppGeneratedHeaders = append(cppGeneratedHeaders, cppHeaderGenName)
 	}
 
 	importExportDependencies := concat([]string{
@@ -334,8 +344,8 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 		Vendor_available:          i.properties.Vendor_available,
 		Defaults:                  []string{"aidl-cpp-module-defaults"},
 		Generated_sources:         cppGeneratedSources,
-		Generated_headers:         cppGeneratedHeaders,
-		Export_generated_headers:  cppGeneratedHeaders,
+		Generated_headers:         cppGeneratedSources,
+		Export_generated_headers:  cppGeneratedSources,
 		Shared_libs:               importExportDependencies,
 		Export_shared_lib_headers: importExportDependencies,
 	}, &i.properties.VndkProperties)
@@ -350,18 +360,14 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 	var javaGeneratedSources []string
 
 	for idx, source := range i.properties.Srcs {
-		packagePath := i.packagePaths[idx]
-		typeName := i.types[idx]
-
-		javaFile := filepath.Join(packagePath, typeName+".java")
-
-		javaSourceGenName := javaSourceGen + "-" + typeName
+		javaSourceGenName := javaSourceGen + "-" + strconv.Itoa(idx)
 		mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
 			Name: proptools.StringPtr(javaSourceGenName),
 		}, &aidlGenProperties{
-			Input:   source,
-			Outputs: []string{javaFile},
-			Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+			Input:    source,
+			AidlRoot: i.properties.Local_include_dir,
+			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+			Lang:     langJava,
 		})
 		javaGeneratedSources = append(javaGeneratedSources, javaSourceGenName)
 	}
