@@ -249,6 +249,7 @@ bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
   if (dep_file_name.empty()) {
     return true;  // nothing to do
   }
+
   CodeWriterPtr writer = io_delegate.GetCodeWriter(dep_file_name);
   if (!writer) {
     LOG(ERROR) << "Could not open dependency file: " << dep_file_name;
@@ -280,7 +281,7 @@ bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
       using ::android::aidl::cpp::HeaderFile;
       vector<string> headers;
       for (ClassNames c : {ClassNames::CLIENT, ClassNames::SERVER, ClassNames::INTERFACE}) {
-        headers.push_back(options.OutputHeaderDir() + '/' +
+        headers.push_back(options.OutputHeaderDir() +
                           HeaderFile(defined_type, c, false /* use_os_sep */));
       }
 
@@ -299,7 +300,6 @@ string generate_outputFileName(const Options& options, const AidlDefinedType& de
   // create the path to the destination folder based on the
   // defined_type package name
   string result = options.OutputDir();
-  result += OS_PATH_SEPARATOR;
 
   string package = defined_type.GetPackage();
   size_t len = package.length();
@@ -742,11 +742,6 @@ int compile_aidl(const Options& options, const IoDelegate& io_delegate) {
         if (output_file_name.empty()) {
           return 1;
         }
-      }
-
-      // make sure the folders of the output file all exists
-      if (!io_delegate.CreatePathForFile(output_file_name)) {
-        return 1;
       }
 
       if (!write_dep_file(options, *defined_type, imported_files, io_delegate, input_file,
