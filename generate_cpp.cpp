@@ -1072,8 +1072,7 @@ bool WriteHeader(const Options& options, const TypeNamespace& types, const AidlI
     return false;
   }
 
-  const string header_path = options.OutputHeaderDir() + OS_PATH_SEPARATOR +
-                             HeaderFile(interface, header_type);
+  const string header_path = options.OutputHeaderDir() + HeaderFile(interface, header_type);
   unique_ptr<CodeWriter> code_writer(io_delegate.GetCodeWriter(header_path));
   header->Write(code_writer.get());
 
@@ -1116,12 +1115,6 @@ bool GenerateCppInterface(const string& output_file, const Options& options,
     return false;
   }
 
-  if (!io_delegate.CreatedNestedDirs(options.OutputHeaderDir(),
-                                     interface.GetSplitPackage())) {
-    LOG(ERROR) << "Failed to create directory structure for headers.";
-    return false;
-  }
-
   if (!WriteHeader(options, types, interface, io_delegate,
                    ClassNames::INTERFACE) ||
       !WriteHeader(options, types, interface, io_delegate,
@@ -1154,24 +1147,17 @@ bool GenerateCppParcel(const string& output_file, const Options& options,
     return false;
   }
 
-  if (!io_delegate.CreatedNestedDirs(options.OutputHeaderDir(), parcelable.GetSplitPackage())) {
-    LOG(ERROR) << "Failed to create directory structure for headers.";
-  }
-
-  const string header_path =
-      options.OutputHeaderDir() + OS_PATH_SEPARATOR + HeaderFile(parcelable, ClassNames::BASE);
+  const string header_path = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::BASE);
   unique_ptr<CodeWriter> header_writer(io_delegate.GetCodeWriter(header_path));
   header->Write(header_writer.get());
   CHECK(header_writer->Close());
 
   // TODO(b/111362593): no unecessary files just to have consistent output with interfaces
-  const string bp_header =
-      options.OutputHeaderDir() + OS_PATH_SEPARATOR + HeaderFile(parcelable, ClassNames::CLIENT);
+  const string bp_header = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::CLIENT);
   unique_ptr<CodeWriter> bp_writer(io_delegate.GetCodeWriter(bp_header));
   bp_writer->Write("#error TODO(b/111362593) parcelables do not have bp classes");
   CHECK(bp_writer->Close());
-  const string bn_header =
-      options.OutputHeaderDir() + OS_PATH_SEPARATOR + HeaderFile(parcelable, ClassNames::SERVER);
+  const string bn_header = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::SERVER);
   unique_ptr<CodeWriter> bn_writer(io_delegate.GetCodeWriter(bn_header));
   bn_writer->Write("#error TODO(b/111362593) parcelables do not have bn classes");
   CHECK(bn_writer->Close());
