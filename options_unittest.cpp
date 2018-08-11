@@ -68,7 +68,7 @@ const char* kCompileJavaCommandNinja[] = {
 };
 
 const char kCompileDepFile[] = "-doutput.deps";
-const char kCompileCommandHeaderDir[] = "output/dir";
+const char kCompileCommandHeaderDir[] = "output/dir/";
 const char kCompileCommandCppOutput[] = "some/file.cpp";
 const char* kCompileCppCommand[] = {
     "aidl-cpp",
@@ -196,7 +196,7 @@ TEST(OptionsTests, ParsesCompileJavaMultiInput) {
   EXPECT_EQ(false, options->AutoDepFile());
   EXPECT_EQ(false, options->DependencyFileNinja());
   EXPECT_EQ(string{""}, options->OutputHeaderDir());
-  EXPECT_EQ(string{"src_out"}, options->OutputDir());
+  EXPECT_EQ(string{"src_out/"}, options->OutputDir());
 }
 
 TEST(OptionsTests, ParsesCompileJavaInvalid) {
@@ -245,8 +245,8 @@ TEST(OptionsTests, ParsesCompileCppMultiInput) {
   EXPECT_EQ(string{""}, options->OutputFile());
   EXPECT_EQ(false, options->AutoDepFile());
   EXPECT_EQ(false, options->DependencyFileNinja());
-  EXPECT_EQ(string{"header_out"}, options->OutputHeaderDir());
-  EXPECT_EQ(string{"src_out"}, options->OutputDir());
+  EXPECT_EQ(string{"header_out/"}, options->OutputHeaderDir());
+  EXPECT_EQ(string{"src_out/"}, options->OutputDir());
 }
 
 TEST(OptionsTests, ParsesCompileCppInvalid) {

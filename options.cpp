@@ -15,6 +15,7 @@
  */
 
 #include "options.h"
+#include "logging.h"
 #include "os.h"
 
 #include <getopt.h>
@@ -210,9 +211,15 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         break;
       case 'o':
         output_dir_ = Trim(optarg);
+        if (output_dir_.back() != OS_PATH_SEPARATOR) {
+          output_dir_.push_back(OS_PATH_SEPARATOR);
+        }
         break;
       case 'h':
         output_header_dir_ = Trim(optarg);
+        if (output_header_dir_.back() != OS_PATH_SEPARATOR) {
+          output_header_dir_.push_back(OS_PATH_SEPARATOR);
+        }
         break;
       case 'n':
         dependency_file_ninja_ = true;
@@ -274,7 +281,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         output_file_ += ".java";
 
         if (!output_dir_.empty()) {
-          output_file_ = output_dir_ + OS_PATH_SEPARATOR + output_file_;
+          output_file_ = output_dir_ + output_file_;
         }
       }
     } else if (language_ == Options::Language::CPP) {
@@ -284,6 +291,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         return;
       }
       output_header_dir_ = argv[optind++];
+      if (output_header_dir_.back() != OS_PATH_SEPARATOR) {
+        output_header_dir_.push_back(OS_PATH_SEPARATOR);
+      }
       output_file_ = argv[optind++];
     }
     if (argc - optind > 0) {
@@ -374,6 +384,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       return;
     }
   }
+
+  CHECK(output_dir_.empty() || output_dir_.back() == OS_PATH_SEPARATOR);
+  CHECK(output_header_dir_.empty() || output_header_dir_.back() == OS_PATH_SEPARATOR);
 }
 
 }  // namespace android
