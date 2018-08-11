@@ -51,18 +51,16 @@ class IoDelegate {
 
   virtual bool FileIsReadable(const std::string& path) const;
 
-  virtual bool CreatedNestedDirs(
-      const std::string& base_dir,
-      const std::vector<std::string>& nested_subdirs) const;
-
-  bool CreatePathForFile(const std::string& path) const;
-
   virtual std::unique_ptr<CodeWriter> GetCodeWriter(
       const std::string& file_path) const;
 
   virtual void RemovePath(const std::string& file_path) const;
 
  private:
+  // Create the directory when path is a dir or the parent directory when
+  // path is a file. Path is a dir if it ends with the path separator.
+  bool CreateDirForPath(const std::string& path) const;
+
   DISALLOW_COPY_AND_ASSIGN(IoDelegate);
 };  // class IoDelegate
 
