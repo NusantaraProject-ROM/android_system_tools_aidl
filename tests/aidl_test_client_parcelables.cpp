@@ -177,6 +177,16 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
     return false;
   }
 
+  if (parcelable.floatDefaultsToPi != 3.14f) {
+    cout << "floatDefaultsToPi is " << parcelable.floatDefaultsToPi << endl;
+    return false;
+  }
+  if (parcelable.doubleWithDefault != -3.14e17) {
+    cout << "doubleWithDefault is " << parcelable.doubleWithDefault << " but should be -3.14e17"
+         << endl;
+    return false;
+  }
+
   s->FillOutStructuredParcelable(&parcelable);
 
   if (parcelable.shouldContainThreeFs.size() != 3) {

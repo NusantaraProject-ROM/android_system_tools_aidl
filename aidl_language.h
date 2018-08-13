@@ -293,13 +293,14 @@ class AidlMember : public AidlNode {
 
 class AidlConstantValue : public AidlNode {
  public:
-  enum class Type { ERROR, BOOLEAN, CHARACTER, HEXIDECIMAL, INTEGRAL, STRING };
+  enum class Type { ERROR, BOOLEAN, CHARACTER, FLOATING, HEXIDECIMAL, INTEGRAL, STRING };
 
   virtual ~AidlConstantValue() = default;
 
   static AidlConstantValue* Boolean(const AidlLocation& location, bool value);
   static AidlConstantValue* Character(const AidlLocation& location, char value);
   // example: "0x4f"
+  static AidlConstantValue* Floating(const AidlLocation& location, const std::string& value);
   static AidlConstantValue* Hex(const AidlLocation& location, const std::string& value);
   // example: 123, -5498, maybe any size
   static AidlConstantValue* Integral(const AidlLocation& location, const std::string& value);
