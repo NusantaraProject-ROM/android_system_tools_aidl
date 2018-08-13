@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 
+#include <android-base/parsedouble.h>
 #include <android-base/parseint.h>
 #include <android-base/strings.h>
 
@@ -277,7 +278,9 @@ AidlMember::AidlMember(const AidlLocation& location) : AidlNode(location) {}
 
 AidlConstantValue::AidlConstantValue(const AidlLocation& location, Type type,
                                      const std::string& checked_value)
-    : AidlNode(location), type_(type), value_(checked_value) {}
+    : AidlNode(location), type_(type), value_(checked_value) {
+  CHECK(!value_.empty() || type_ == Type::ERROR);
+}
 
 static bool isValidLiteralChar(char c) {
   return !(c <= 0x1f ||  // control characters are < 0x20
@@ -295,6 +298,11 @@ AidlConstantValue* AidlConstantValue::Character(const AidlLocation& location, ch
     return new AidlConstantValue(location, Type::ERROR, "");
   }
   return new AidlConstantValue(location, Type::CHARACTER, std::string("'") + value + "'");
+}
+
+AidlConstantValue* AidlConstantValue::Floating(const AidlLocation& location,
+                                               const std::string& value) {
+  return new AidlConstantValue(location, Type::FLOATING, value);
 }
 
 AidlConstantValue* AidlConstantValue::Hex(const AidlLocation& location, const std::string& value) {
@@ -324,24 +332,40 @@ bool AidlConstantValue::CheckValid() const {
   return type_ != AidlConstantValue::Type::ERROR;
 }
 
+static string TrimIfSuffix(const string& str, const string& suffix) {
+  if (str.size() > suffix.size() &&
+      0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix)) {
+    return str.substr(0, str.size() - suffix.size());
+  }
+  return str;
+}
+
 string AidlConstantValue::As(const AidlTypeSpecifier& type) const {
   const std::string type_string = type.ToString();
 
   switch (type_) {
-    case AidlConstantValue::Type::INTEGRAL:
-      if (type_string == "byte") {
-        if (!android::base::ParseInt<int8_t>(value_, nullptr)) goto parse_error;
-        return value_;
+    case AidlConstantValue::Type::BOOLEAN:
+      if (type_string == "boolean") return value_;
+      goto mismatch_error;
+    case AidlConstantValue::Type::CHARACTER:
+      if (type_string == "char") return value_;
+      goto mismatch_error;
+    case AidlConstantValue::Type::FLOATING: {
+      bool is_float_literal = value_.back() == 'f';
+      const std::string raw_value = TrimIfSuffix(value_, "f");
+
+      if (type_string == "double") {
+        double parsed_value;
+        if (!android::base::ParseDouble(raw_value, &parsed_value)) goto parse_error;
+        return std::to_string(parsed_value);
       }
-      if (type_string == "int") {
-        if (!android::base::ParseInt<int32_t>(value_, nullptr)) goto parse_error;
-        return value_;
-      }
-      if (type_string == "long") {
-        if (!android::base::ParseInt<int64_t>(value_, nullptr)) goto parse_error;
-        return value_;
+      if (is_float_literal && type_string == "float") {
+        float parsed_value;
+        if (!android::base::ParseFloat(raw_value, &parsed_value)) goto parse_error;
+        return std::to_string(parsed_value) + "f";
       }
       goto mismatch_error;
+    }
     case AidlConstantValue::Type::HEXIDECIMAL:
       // For historical reasons, a hexidecimal int needs to have the specified bits interpreted
       // as the signed type, so the other types are made consistent with it.
@@ -361,11 +385,19 @@ string AidlConstantValue::As(const AidlTypeSpecifier& type) const {
         return std::to_string((int64_t)unsigned_value);
       }
       goto mismatch_error;
-    case AidlConstantValue::Type::BOOLEAN:
-      if (type_string == "boolean") return value_;
-      goto mismatch_error;
-    case AidlConstantValue::Type::CHARACTER:
-      if (type_string == "char") return value_;
+    case AidlConstantValue::Type::INTEGRAL:
+      if (type_string == "byte") {
+        if (!android::base::ParseInt<int8_t>(value_, nullptr)) goto parse_error;
+        return value_;
+      }
+      if (type_string == "int") {
+        if (!android::base::ParseInt<int32_t>(value_, nullptr)) goto parse_error;
+        return value_;
+      }
+      if (type_string == "long") {
+        if (!android::base::ParseInt<int64_t>(value_, nullptr)) goto parse_error;
+        return value_;
+      }
       goto mismatch_error;
     case AidlConstantValue::Type::STRING:
       if (type_string == "String") return value_;
@@ -388,6 +420,10 @@ string AidlConstantValue::ToString(Type type) {
       return "a literal boolean";
     case Type::CHARACTER:
       return "a literal char";
+    case Type::FLOATING:
+      return "a floating-point literal";
+    case Type::HEXIDECIMAL:
+      return "a hexidecimal literal";
     case Type::INTEGRAL:
       return "an integral literal";
     case Type::STRING:
