@@ -72,6 +72,12 @@ var (
 		blueprint.RuleParams{
 			Command: `cp -f $updated_api $current_api && touch $out`,
 		}, "updated_api", "current_api")
+
+	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
+		Command:     `${aidlCmd} --checkapi ${old} ${in} && touch $out`,
+		CommandDeps: []string{"${aidlCmd}"},
+		Description: "Check AIDL: ${in} against ${old}",
+	}, "old")
 )
 
 func init() {
@@ -229,6 +235,7 @@ type aidlApi struct {
 	properties aidlApiProperties
 
 	updateApiTimestamp android.WritablePath
+	checkApiTimestamp  android.WritablePath
 }
 
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
@@ -249,7 +256,7 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		},
 	})
 
-	m.updateApiTimestamp = android.PathForModuleOut(ctx, "current.aidl.timestamp")
+	m.updateApiTimestamp = android.PathForModuleOut(ctx, "updateapi.timestamp")
 	var apiDir string
 	if m.properties.Api_dir != nil {
 		apiDir = *(m.properties.Api_dir)
@@ -267,6 +274,17 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			"current_api": currentApi.String(),
 		},
 	})
+
+	m.checkApiTimestamp = android.PathForModuleOut(ctx, "checkapi.timestamp")
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:      aidlCheckApiRule,
+		Input:     updatedApi,
+		Implicits: []android.Path{currentApi},
+		Output:    m.checkApiTimestamp,
+		Args: map[string]string{
+			"old": currentApi.String(),
+		},
+	})
 }
 
 func (m *aidlApi) AndroidMk() android.AndroidMkData {
@@ -275,6 +293,15 @@ func (m *aidlApi) AndroidMk() android.AndroidMkData {
 			android.WriteAndroidMkData(w, data)
 			fmt.Fprintln(w, ".PHONY:", m.Name()+"-update-current")
 			fmt.Fprintln(w, m.Name()+"-update-current:", m.updateApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", "updateaidlapi")
+			fmt.Fprintln(w, "updateaidlapi:", m.updateApiTimestamp.String())
+
+			fmt.Fprintln(w, ".PHONY:", m.Name()+"-checkapi")
+			fmt.Fprintln(w, m.Name()+"-checkapi:", m.checkApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", "checkaidlapi")
+			fmt.Fprintln(w, "checkaidlapi:", m.checkApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", "droidcore")
+			fmt.Fprintln(w, "droidcore: checkaidlapi")
 		},
 	}
 }
