@@ -730,8 +730,9 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
         ClassName(interface, ClassNames::INTERFACE),
         constant->GetName(),
         {}));
-    getter->GetStatementBlock()->AddLiteral(StringPrintf(
-        "static const ::android::String16 value(%s)", constant->ValueString().c_str()));
+    getter->GetStatementBlock()->AddLiteral(
+        StringPrintf("static const ::android::String16 value(%s)",
+                     constant->ValueString(ConstantValueDecorator).c_str()));
     getter->GetStatementBlock()->AddLiteral("return value");
     decls.push_back(std::move(getter));
   }
@@ -899,7 +900,8 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
       }
       case AidlConstantValue::Type::INTEGRAL:
       case AidlConstantValue::Type::HEXIDECIMAL: {
-        int_constant_enum->AddValue(constant->GetName(), constant->ValueString());
+        int_constant_enum->AddValue(constant->GetName(),
+                                    constant->ValueString(ConstantValueDecorator));
         break;
       }
       default: {
@@ -984,7 +986,8 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
     std::ostringstream out;
     out << type->CppType().c_str() << " " << variable->GetName().c_str();
     if (variable->GetDefaultValue()) {
-      out << " = " << type->CppType().c_str() << "(" << variable->ValueString() << ")";
+      out << " = " << type->CppType().c_str() << "("
+          << variable->ValueString(ConstantValueDecorator) << ")";
     }
     out << ";\n";
 
