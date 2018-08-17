@@ -571,20 +571,23 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   //////////////////////////////////////////////////////////////////////////
   // Validation phase
   //////////////////////////////////////////////////////////////////////////
+  const bool is_check_api = options.GetTask() == Options::Task::CHECK_API;
 
-  if (options.GetTask() == Options::Task::CHECK_API && !main_parser->IsApiDump()) {
+  if (is_check_api && !main_parser->IsApiDump()) {
     AIDL_ERROR(input_file_name) << "Input is not an API dump";
     return AidlError::BAD_INPUT;
   }
 
-  if (options.GetTask() != Options::Task::CHECK_API && main_parser->IsApiDump()) {
+  if (!is_check_api && main_parser->IsApiDump()) {
     AIDL_ERROR(input_file_name) << "Input is not AIDL source code, but "
                                 << "an AIDL dump file";
     return AidlError::BAD_INPUT;
   }
 
   // Resolve the unresolved type references found from the input file
-  if (!main_parser->Resolve()) {
+  if (!is_check_api && !main_parser->Resolve()) {
+    // Resolution is not need for check api because all typespecs are
+    // using fully qualified names.
     return AidlError::BAD_TYPE;
   }
 
@@ -618,7 +621,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     // Ensure that foo.bar.IFoo is defined in <some_path>/foo/bar/IFoo.aidl
     // Do this only when there is only one type defined in the input file.
     // When there are multiple types in a file, we can't satisfy the convention.
-    if (options.GetTask() != Options::Task::CHECK_API && num_defined_types == 1 &&
+    if (!is_check_api && num_defined_types == 1 &&
         !check_filename(input_file_name, *defined_type)) {
       return AidlError::BAD_PACKAGE;
     }
@@ -638,11 +641,15 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     }
 
     // Check the referenced types in parsed_doc to make sure we've imported them
-    if (interface != nullptr && check_types(interface, types) != 0) {
-      return AidlError::BAD_TYPE;
-    }
-    if (parcelable != nullptr && check_types(parcelable, types) != 0) {
-      return AidlError::BAD_TYPE;
+    if (!is_check_api) {
+      // No need to do this for check api because all typespecs are already
+      // using fully qualified name and we don't import in AIDL files.
+      if (interface != nullptr && check_types(interface, types) != 0) {
+        return AidlError::BAD_TYPE;
+      }
+      if (parcelable != nullptr && check_types(parcelable, types) != 0) {
+        return AidlError::BAD_TYPE;
+      }
     }
 
     if (interface != nullptr) {
