@@ -42,6 +42,8 @@ using std::string;
 using std::vector;
 
 const string& JavaNameOf(const AidlTypeSpecifier& aidl) {
+  CHECK(aidl.IsResolved()) << aidl.ToString();
+
   // map from AIDL built-in type name to the corresponding Java type name
   static map<string, string> m = {
       {"void", "void"},
