@@ -92,18 +92,13 @@ AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string
 AidlAnnotation::AidlAnnotation(const AidlLocation& location, const string& name)
     : AidlNode(location), name_(name) {}
 
-static bool HasAnnotation(const set<unique_ptr<AidlAnnotation>>& annotations, const string& name) {
+static bool HasAnnotation(const set<AidlAnnotation>& annotations, const string& name) {
   for (const auto& a : annotations) {
-    if (a->GetName() == name) {
+    if (a.GetName() == name) {
       return true;
     }
   }
   return false;
-}
-
-bool operator==(const unique_ptr<AidlAnnotation>& lhs,
-                const unique_ptr<AidlAnnotation>& rhs) {
-  return lhs->GetName() == rhs->GetName();
 }
 
 AidlAnnotatable::AidlAnnotatable(const AidlLocation& location) : AidlNode(location) {}
@@ -123,7 +118,7 @@ bool AidlAnnotatable::IsUtf8InCpp() const {
 string AidlAnnotatable::ToString() const {
   vector<string> ret;
   for (const auto& a : annotations_) {
-    ret.emplace_back(a->ToString());
+    ret.emplace_back(a.ToString());
   }
   std::sort(ret.begin(), ret.end());
   return Join(ret, " ");
