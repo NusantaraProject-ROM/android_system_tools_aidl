@@ -64,6 +64,7 @@ std::ostream& operator<<(std::ostream& os, const AidlLocation& l);
 class AidlNode {
  public:
   AidlNode(const AidlLocation& location);
+  AidlNode(AidlNode&&) = default;
   virtual ~AidlNode() = default;
 
   // DO NOT ADD. This is intentionally omitted. Nothing should refer to the location
@@ -75,8 +76,6 @@ class AidlNode {
 
  private:
   const AidlLocation location_;
-
-  DISALLOW_COPY_AND_ASSIGN(AidlNode);
 };
 
 // Generic point for printing any error in the AIDL compiler.
@@ -122,7 +121,9 @@ class AidlAnnotation : public AidlNode {
  public:
   static AidlAnnotation* Parse(const AidlLocation& location, const string& name);
 
+  AidlAnnotation(AidlAnnotation&&) = default;
   virtual ~AidlAnnotation() = default;
+
   const string& GetName() const { return name_; }
   string ToString() const { return "@" + name_; }
 
@@ -131,28 +132,28 @@ class AidlAnnotation : public AidlNode {
   const string name_;
 };
 
-bool operator==(const unique_ptr<AidlAnnotation>& lhs,
-                const unique_ptr<AidlAnnotation>& rhs);
+static inline bool operator<(const AidlAnnotation& lhs, const AidlAnnotation& rhs) {
+  return lhs.GetName() < rhs.GetName();
+}
+static inline bool operator==(const AidlAnnotation& lhs, const AidlAnnotation& rhs) {
+  return lhs.GetName() == rhs.GetName();
+}
 
 class AidlAnnotatable : public AidlNode {
  public:
   AidlAnnotatable(const AidlLocation& location);
   virtual ~AidlAnnotatable() = default;
 
-  void Annotate(set<unique_ptr<AidlAnnotation>>&& annotations) {
-    annotations_ = std::move(annotations);
-  }
+  void Annotate(set<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
   bool IsNullable() const;
   bool IsUtf8() const;
   bool IsUtf8InCpp() const;
   std::string ToString() const;
 
-  const set<unique_ptr<AidlAnnotation>>& GetAnnotations() const {
-    return annotations_;
-  }
+  const set<AidlAnnotation>& GetAnnotations() const { return annotations_; }
 
  private:
-  set<unique_ptr<AidlAnnotation>> annotations_;
+  set<AidlAnnotation> annotations_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlAnnotatable);
 };
