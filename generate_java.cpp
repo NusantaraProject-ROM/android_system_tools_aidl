@@ -100,7 +100,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     out << "public " << type->JavaType() << (variable->GetType().IsArray() ? "[]" : "") << " "
         << variable->GetName();
     if (variable->GetDefaultValue()) {
-      out << " = " << variable->ValueString();
+      out << " = " << variable->ValueString(AidlConstantValueDecorator);
     }
     out << ";\n";
     parcel_class->elements.push_back(new LiteralClassElement(out.str()));

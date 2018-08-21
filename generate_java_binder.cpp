@@ -1029,12 +1029,14 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
 
     switch (value.GetType()) {
       case AidlConstantValue::Type::STRING: {
-        generate_string_constant(interface, constant->GetName(), constant->ValueString());
+        generate_string_constant(interface, constant->GetName(),
+                                 constant->ValueString(ConstantValueDecorator));
         break;
       }
       case AidlConstantValue::Type::INTEGRAL:
       case AidlConstantValue::Type::HEXIDECIMAL: {
-        generate_int_constant(interface, constant->GetName(), constant->ValueString());
+        generate_int_constant(interface, constant->GetName(),
+                              constant->ValueString(ConstantValueDecorator));
         break;
       }
       default: {

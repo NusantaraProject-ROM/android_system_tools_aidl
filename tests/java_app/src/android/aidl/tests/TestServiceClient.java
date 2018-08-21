@@ -735,6 +735,14 @@ public class TestServiceClient extends Activity {
         mLog.logAndThrow(
             "doubleWithDefault is " + parcelable.doubleWithDefault + " but should be -3.14e17");
       }
+      if (!Arrays.equals(parcelable.arrayDefaultsTo123, new int[] {1, 2, 3})) {
+        mLog.logAndThrow("arrayDefaultsTo123 should be [1,2,3] but is "
+            + Arrays.toString(parcelable.arrayDefaultsTo123));
+      }
+      if (parcelable.arrayDefaultsToEmpty.length != 0) {
+        mLog.logAndThrow("arrayDefaultsToEmpty should be empty but is "
+            + Arrays.toString(parcelable.arrayDefaultsToEmpty));
+      }
 
       try {
         service.FillOutStructuredParcelable(parcelable);
@@ -743,15 +751,10 @@ public class TestServiceClient extends Activity {
         mLog.logAndThrow("Service failed to handle structured parcelable.");
       }
 
-      if (parcelable.shouldContainThreeFs.length != 3) {
+      if (!Arrays.equals(parcelable.shouldContainThreeFs,
+              new int[] {kDesiredFValue, kDesiredFValue, kDesiredFValue})) {
         mLog.logAndThrow(
-            "shouldContainThreeFs is of length " + parcelable.shouldContainThreeFs.length);
-      }
-      for (int i = 0; i < 3; i++) {
-        if (parcelable.shouldContainThreeFs[i] != kDesiredFValue) {
-          mLog.logAndThrow("shouldContainThreeFs[" + i + "] is "
-              + parcelable.shouldContainThreeFs[i] + " but should be " + kDesiredFValue);
-        }
+            "shouldContainThreeFs is " + Arrays.toString(parcelable.shouldContainThreeFs));
       }
 
       if (!parcelable.shouldBeJerry.equals("Jerry")) {
