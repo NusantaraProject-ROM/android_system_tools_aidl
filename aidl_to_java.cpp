@@ -41,6 +41,12 @@ using std::map;
 using std::string;
 using std::vector;
 
+std::string ConstantValueDecorator(const AidlTypeSpecifier& /*type*/,
+                                   const std::string& raw_value) {
+  // no difference
+  return raw_value;
+};
+
 const string& JavaNameOf(const AidlTypeSpecifier& aidl) {
   CHECK(aidl.IsResolved()) << aidl.ToString();
 

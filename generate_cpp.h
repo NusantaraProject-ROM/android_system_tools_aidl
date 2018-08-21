@@ -21,6 +21,7 @@
 #include <string>
 
 #include "aidl_language.h"
+#include "aidl_to_cpp.h"
 #include "ast_cpp.h"
 #include "options.h"
 #include "type_cpp.h"

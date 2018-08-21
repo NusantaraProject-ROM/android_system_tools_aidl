@@ -52,6 +52,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
     AidlArgument* arg;
     AidlArgument::Direction direction;
     AidlConstantValue* constant_value;
+    std::vector<std::unique_ptr<AidlConstantValue>>* constant_value_list;
     std::vector<std::unique_ptr<AidlArgument>>* arg_list;
     AidlVariableDeclaration* variable;
     std::vector<std::unique_ptr<AidlVariableDeclaration>>* variable_list;
@@ -108,6 +109,8 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<type_args> type_args
 %type<qname> qualified_name
 %type<constant_value> constant_value
+%type<constant_value_list> constant_value_list
+%type<constant_value_list> constant_value_non_empty_list
 
 %type<token> identifier error
 %%
@@ -220,7 +223,8 @@ parcelable_decl
 
 variable_decls
  : /* empty */ {
-    $$ = new std::vector<std::unique_ptr<AidlVariableDeclaration>>; }
+    $$ = new std::vector<std::unique_ptr<AidlVariableDeclaration>>;
+ }
  | variable_decls variable_decl {
     $$ = $1;
     if ($2 != nullptr) {
@@ -292,6 +296,30 @@ constant_value
     $$ = AidlConstantValue::String(loc(@1), $1->GetText());
     delete $1;
   }
+ | '{' constant_value_list '}' {
+    $$ = AidlConstantValue::Array(loc(@1), $2);
+    delete $2;
+  }
+ ;
+
+constant_value_list
+ : /* empty */ {
+    $$ = new std::vector<std::unique_ptr<AidlConstantValue>>;
+ }
+ | constant_value_non_empty_list {
+    $$ = $1;
+ }
+ ;
+
+constant_value_non_empty_list
+ : constant_value {
+    $$ = new std::vector<std::unique_ptr<AidlConstantValue>>;
+    $$->push_back(std::unique_ptr<AidlConstantValue>($1));
+ }
+ | constant_value_non_empty_list ',' constant_value {
+    $$ = $1;
+    $$->push_back(std::unique_ptr<AidlConstantValue>($3));
+ }
  ;
 
 constant_decl

@@ -176,7 +176,6 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
     cout << "charDefaultsToC is " << parcelable.charDefaultsToC << endl;
     return false;
   }
-
   if (parcelable.floatDefaultsToPi != 3.14f) {
     cout << "floatDefaultsToPi is " << parcelable.floatDefaultsToPi << endl;
     return false;
@@ -184,6 +183,21 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
   if (parcelable.doubleWithDefault != -3.14e17) {
     cout << "doubleWithDefault is " << parcelable.doubleWithDefault << " but should be -3.14e17"
          << endl;
+    return false;
+  }
+  if (parcelable.arrayDefaultsTo123.size() != 3) {
+    cout << "arrayDefaultsTo123 is of length " << parcelable.arrayDefaultsTo123.size() << endl;
+    return false;
+  }
+  for (int i = 0; i < 3; i++) {
+    if (parcelable.arrayDefaultsTo123[i] != i + 1) {
+      cout << "arrayDefaultsTo123[" << i << "] is " << parcelable.arrayDefaultsTo123[i]
+           << " but should be " << i + 1 << endl;
+      return false;
+    }
+  }
+  if (!parcelable.arrayDefaultsToEmpty.empty()) {
+    cout << "arrayDefaultsToEmpty is not empty " << parcelable.arrayDefaultsToEmpty.size() << endl;
     return false;
   }
 

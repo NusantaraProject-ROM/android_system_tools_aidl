@@ -237,6 +237,14 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   const android::aidl::ValidatableType* language_type_ = nullptr;
 };
 
+// Transforms a value string into a language specific form. Raw value as produced by
+// AidlConstantValue.
+using ConstantValueDecorator =
+    std::function<std::string(const AidlTypeSpecifier& type, const std::string& raw_value)>;
+
+// Returns the universal value unaltered.
+std::string AidlConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
+
 class AidlConstantValue;
 class AidlVariableDeclaration : public AidlNode {
  public:
@@ -256,7 +264,7 @@ class AidlVariableDeclaration : public AidlNode {
   std::string ToString() const;
   std::string Signature() const;
 
-  std::string ValueString() const;
+  std::string ValueString(const ConstantValueDecorator& decorator) const;
 
  private:
   std::unique_ptr<AidlTypeSpecifier> type_;
@@ -307,7 +315,7 @@ class AidlMember : public AidlNode {
 
 class AidlConstantValue : public AidlNode {
  public:
-  enum class Type { ERROR, BOOLEAN, CHARACTER, FLOATING, HEXIDECIMAL, INTEGRAL, STRING };
+  enum class Type { ERROR, ARRAY, BOOLEAN, CHARACTER, FLOATING, HEXIDECIMAL, INTEGRAL, STRING };
 
   virtual ~AidlConstantValue() = default;
 
@@ -318,20 +326,27 @@ class AidlConstantValue : public AidlNode {
   static AidlConstantValue* Hex(const AidlLocation& location, const std::string& value);
   // example: 123, -5498, maybe any size
   static AidlConstantValue* Integral(const AidlLocation& location, const std::string& value);
+  static AidlConstantValue* Array(const AidlLocation& location,
+                                  std::vector<std::unique_ptr<AidlConstantValue>>* values);
   // example: "\"asdf\""
   static AidlConstantValue* String(const AidlLocation& location, const std::string& value);
 
   Type GetType() const { return type_; }
 
   bool CheckValid() const;
-  string As(const AidlTypeSpecifier& type) const;
+
+  // Raw value of type (currently valid in C++ and Java). Empty string on error.
+  string As(const AidlTypeSpecifier& type, const ConstantValueDecorator& decorator) const;
 
  private:
   AidlConstantValue(const AidlLocation& location, Type type, const std::string& checked_value);
+  AidlConstantValue(const AidlLocation& location, Type type,
+                    std::vector<std::unique_ptr<AidlConstantValue>>* values);
   static string ToString(Type type);
 
   const Type type_ = Type::ERROR;
-  const std::string value_;
+  const std::vector<std::unique_ptr<AidlConstantValue>> values_;  // if type_ == ARRAY
+  const std::string value_;                                       // otherwise
 
   DISALLOW_COPY_AND_ASSIGN(AidlConstantValue);
 };
@@ -347,7 +362,9 @@ class AidlConstantDeclaration : public AidlMember {
   const AidlConstantValue& GetValue() const { return *value_; }
   bool CheckValid() const;
 
-  string ValueString() const { return GetValue().As(GetType()); }
+  string ValueString(const ConstantValueDecorator& decorator) const {
+    return GetValue().As(GetType(), decorator);
+  }
 
   AidlConstantDeclaration* AsConstantDeclaration() override { return this; }
 

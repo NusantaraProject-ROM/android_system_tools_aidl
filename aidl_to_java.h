@@ -38,7 +38,9 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-// This header provides functions that translate AIDL thing to Java thing.
+// This header provides functions that translate AIDL things to Java things.
+
+std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
 
 // Returns the corresponding Java type name for an AIDL type spec
 // This excludes generic type parameters and array modifiers.
