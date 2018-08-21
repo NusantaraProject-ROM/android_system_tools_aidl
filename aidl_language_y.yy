@@ -47,9 +47,8 @@ AidlLocation loc(const yy::parser::location_type& l) {
     char character;
     std::string *str;
     AidlAnnotation* annotation;
-    std::set<std::unique_ptr<AidlAnnotation>>* annotation_list;
+    std::set<AidlAnnotation>* annotation_list;
     AidlTypeSpecifier* type;
-    AidlTypeSpecifier* unannotated_type;
     AidlArgument* arg;
     AidlArgument::Direction direction;
     AidlConstantValue* constant_value;
@@ -102,7 +101,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<annotation> annotation
 %type<annotation_list>annotation_list
 %type<type> type
-%type<unannotated_type> unannotated_type
+%type<type> unannotated_type
 %type<arg_list> arg_list
 %type<arg> arg
 %type<direction> direction
@@ -382,11 +381,12 @@ type_args
 
 annotation_list
  :
-  { $$ = new std::set<unique_ptr<AidlAnnotation>>(); }
+  { $$ = new std::set<AidlAnnotation>(); }
  | annotation_list annotation
   {
     if ($2 != nullptr) {
-      $1->insert(std::unique_ptr<AidlAnnotation>($2));
+      $1->insert(std::move(*$2));
+      delete $2;
     }
   };
 
