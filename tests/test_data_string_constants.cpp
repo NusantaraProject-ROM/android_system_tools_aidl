@@ -170,7 +170,7 @@ namespace os {
 IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
 
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
-  static const ::android::String16 value("foo");
+  static const ::android::String16 value(::android::String16("foo"));
   return value;
 }
 
@@ -389,7 +389,7 @@ public:
 )";
 
 const char kExpectedCppOutputWithVersion[] =
-R"(#include <android/os/IStringConstants.h>
+    R"(#include <android/os/IStringConstants.h>
 #include <android/os/BpStringConstants.h>
 
 namespace android {
@@ -399,7 +399,7 @@ namespace os {
 IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
 
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
-  static const ::android::String16 value("foo");
+  static const ::android::String16 value(::android::String16("foo"));
   return value;
 }
 

@@ -25,6 +25,7 @@
 #include "aidl.h"
 #include "aidl_apicheck.h"
 #include "aidl_language.h"
+#include "aidl_to_cpp.h"
 #include "tests/fake_io_delegate.h"
 #include "type_cpp.h"
 #include "type_java.h"
@@ -361,7 +362,7 @@ TEST_F(AidlTest, ParsePositiveConstHexValue) {
   const auto& cpp_constants = interface->GetConstantDeclarations();
   EXPECT_EQ((size_t)1, cpp_constants.size());
   EXPECT_EQ("POSITIVE_HEX_VALUE", cpp_constants[0]->GetName());
-  EXPECT_EQ("245", cpp_constants[0]->ValueString());
+  EXPECT_EQ("245", cpp_constants[0]->ValueString(cpp::ConstantValueDecorator));
 }
 
 TEST_F(AidlTest, ParseNegativeConstHexValue) {
@@ -381,7 +382,7 @@ TEST_F(AidlTest, ParseNegativeConstHexValue) {
   const auto& cpp_constants = interface->GetConstantDeclarations();
   EXPECT_EQ((size_t)1, cpp_constants.size());
   EXPECT_EQ("NEGATIVE_HEX_VALUE", cpp_constants[0]->GetName());
-  EXPECT_EQ("-1", cpp_constants[0]->ValueString());
+  EXPECT_EQ("-1", cpp_constants[0]->ValueString(cpp::ConstantValueDecorator));
 }
 
 TEST_F(AidlTest, UnderstandsNestedParcelables) {

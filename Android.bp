@@ -45,6 +45,7 @@ cc_library_host_static {
         "aidl_language_l.ll",
         "aidl_language_y.yy",
         "aidl_typenames.cpp",
+        "aidl_to_cpp.cpp",
         "aidl_to_java.cpp",
         "ast_cpp.cpp",
         "ast_java.cpp",
