@@ -134,6 +134,14 @@ AidlTypeSpecifier::AidlTypeSpecifier(const AidlLocation& location, const string&
       type_params_(type_params),
       comments_(comments) {}
 
+AidlTypeSpecifier AidlTypeSpecifier::ArrayBase() const {
+  AIDL_FATAL_IF(!is_array_, this);
+
+  AidlTypeSpecifier arrayBase = *this;
+  arrayBase.is_array_ = false;
+  return arrayBase;
+}
+
 string AidlTypeSpecifier::ToString() const {
   string ret = GetName();
   if (IsGeneric()) {
