@@ -35,6 +35,7 @@ import (
 
 var (
 	aidlInterfaceSuffix = "_interface"
+	aidlApiSuffix       = "-api"
 	langCpp             = "cpp"
 	langJava            = "java"
 
@@ -116,6 +117,7 @@ type aidlGenProperties struct {
 	AidlRoot string // base directory for the input aidl file
 	Imports  []string
 	Lang     string // target language [java|cpp]
+	BaseName string
 }
 
 type aidlGenRule struct {
@@ -147,17 +149,27 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	g.genOutputs = []android.WritablePath{outFile}
 
 	var importPaths []string
+	var checkApiTimestamp android.WritablePath
 	ctx.VisitDirectDeps(func(dep android.Module) {
-		importPaths = append(importPaths, dep.(*aidlInterface).properties.Full_import_path)
+		if importedAidl, ok := dep.(*aidlInterface); ok {
+			importPaths = append(importPaths, importedAidl.properties.Full_import_path)
+		} else if api, ok := dep.(*aidlApi); ok {
+			if checkApiTimestamp == nil {
+				checkApiTimestamp = api.checkApiTimestamp
+			} else {
+				panic(fmt.Errorf("%q is depending on two APIs, which can't happen", g))
+			}
+		}
 	})
 
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
 
 	if g.properties.Lang == langJava {
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
-			Rule:    aidlJavaRule,
-			Input:   input,
-			Outputs: g.genOutputs,
+			Rule:      aidlJavaRule,
+			Input:     input,
+			Implicits: android.Paths{checkApiTimestamp},
+			Outputs:   g.genOutputs,
 			Args: map[string]string{
 				"imports": imports,
 				"outDir":  outDir.String(),
@@ -185,6 +197,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:            aidlCppRule,
 			Input:           input,
+			Implicits:       android.Paths{checkApiTimestamp},
 			Outputs:         g.genOutputs,
 			ImplicitOutputs: headers,
 			Args: map[string]string{
@@ -214,6 +227,7 @@ func (g *aidlGenRule) GeneratedHeaderDirs() android.Paths {
 
 func (g *aidlGenRule) DepsMutator(ctx android.BottomUpMutatorContext) {
 	ctx.AddDependency(ctx.Module(), nil, wrap("", g.properties.Imports, aidlInterfaceSuffix)...)
+	ctx.AddDependency(ctx.Module(), nil, g.properties.BaseName+aidlApiSuffix)
 }
 
 func aidlGenFactory() android.Module {
@@ -241,7 +255,9 @@ type aidlApi struct {
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	var importPaths []string
 	ctx.VisitDirectDeps(func(dep android.Module) {
-		importPaths = append(importPaths, dep.(*aidlInterface).properties.Full_import_path)
+		if importedAidl, ok := dep.(*aidlInterface); ok {
+			importPaths = append(importPaths, importedAidl.properties.Full_import_path)
+		}
 	})
 
 	updatedApi := android.PathForModuleOut(ctx, "current.aidl")
@@ -293,15 +309,15 @@ func (m *aidlApi) AndroidMk() android.AndroidMkData {
 			android.WriteAndroidMkData(w, data)
 			fmt.Fprintln(w, ".PHONY:", m.Name()+"-update-current")
 			fmt.Fprintln(w, m.Name()+"-update-current:", m.updateApiTimestamp.String())
-			fmt.Fprintln(w, ".PHONY:", "updateaidlapi")
-			fmt.Fprintln(w, "updateaidlapi:", m.updateApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", "update-aidl-api")
+			fmt.Fprintln(w, "update-aidl-api:", m.updateApiTimestamp.String())
 
-			fmt.Fprintln(w, ".PHONY:", m.Name()+"-checkapi")
-			fmt.Fprintln(w, m.Name()+"-checkapi:", m.checkApiTimestamp.String())
-			fmt.Fprintln(w, ".PHONY:", "checkaidlapi")
-			fmt.Fprintln(w, "checkaidlapi:", m.checkApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", m.Name()+"-check-api")
+			fmt.Fprintln(w, m.Name()+"-check-api:", m.checkApiTimestamp.String())
+			fmt.Fprintln(w, ".PHONY:", "check-aidl-api")
+			fmt.Fprintln(w, "check-aidl-api:", m.checkApiTimestamp.String())
 			fmt.Fprintln(w, ".PHONY:", "droidcore")
-			fmt.Fprintln(w, "droidcore: checkaidlapi")
+			fmt.Fprintln(w, "droidcore: check-aidl-api")
 		},
 	}
 }
@@ -422,7 +438,7 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 
 	libs = append(libs, addJavaLibrary(mctx, i))
 
-	addDumpApiModule(mctx, i)
+	addApiModule(mctx, i)
 
 	// Reserve this module name for future use
 	mctx.CreateModule(android.ModuleFactoryAdaptor(phony.PhonyFactory), &phonyProperties{
@@ -448,6 +464,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 			AidlRoot: i.properties.Local_include_dir,
 			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 			Lang:     langCpp,
+			BaseName: i.ModuleBase.Name(),
 		})
 		cppGeneratedSources = append(cppGeneratedSources, cppSourceGenName)
 	}
@@ -487,6 +504,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 			AidlRoot: i.properties.Local_include_dir,
 			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 			Lang:     langJava,
+			BaseName: i.ModuleBase.Name(),
 		})
 		javaGeneratedSources = append(javaGeneratedSources, javaSourceGenName)
 	}
@@ -505,16 +523,16 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface) string {
 	return javaModuleGen
 }
 
-func addDumpApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
-	dumpApiModule := i.ModuleBase.Name() + "-api"
+func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
+	apiModule := i.ModuleBase.Name() + aidlApiSuffix
 	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlApiFactory), &nameProperties{
-		Name: proptools.StringPtr(dumpApiModule),
+		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
 		Inputs:  i.properties.Srcs,
 		Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 		Api_dir: i.properties.Api_dir,
 	})
-	return dumpApiModule
+	return apiModule
 }
 
 func (i *aidlInterface) Name() string {
