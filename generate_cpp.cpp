@@ -1134,7 +1134,7 @@ bool GenerateCppInterface(const string& output_file, const Options& options,
 
   const bool success = writer->Close();
   if (!success) {
-    io_delegate.RemovePath(options.OutputFile());
+    io_delegate.RemovePath(output_file);
   }
 
   return success;
