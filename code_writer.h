@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_CODE_WRITER_H_
-#define AIDL_CODE_WRITER_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -61,5 +60,3 @@ class CodeWriter {
 
 }  // namespace aidl
 }  // namespace android
-
-#endif // AIDL_CODE_WRITER_H_

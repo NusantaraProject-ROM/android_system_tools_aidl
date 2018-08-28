@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_OPTIONS_H_
-#define AIDL_OPTIONS_H_
+#pragma once
 
 #include <sstream>
 #include <string>
@@ -149,5 +148,3 @@ class Options final {
 
 }  // namespace android
 }  // namespace aidl
-
-#endif // AIDL_OPTIONS_H_

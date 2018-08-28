@@ -12,8 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AIDL_AIDL_APICHECK_H_
-#define AIDL_AIDL_APICHECK_H_
+#pragma once
 
 #include "io_delegate.h"
 #include "options.h"
@@ -27,5 +26,3 @@ bool check_api(const Options& options, const IoDelegate& io_delegate);
 
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_AIDL_APICHECK_H_
