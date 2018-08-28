@@ -553,6 +553,56 @@ TEST_F(AidlTest, ApiDump) {
 )");
 }
 
+TEST_F(AidlTest, ApiDumpWithManualIds) {
+  io_delegate_.SetFileContents(
+      "foo/bar/IFoo.aidl",
+      "package foo.bar;\n"
+      "interface IFoo {\n"
+      "    int foo() = 1;\n"
+      "    int bar() = 2;\n"
+      "    int baz() = 10;\n"
+      "}\n");
+
+  vector<string> args = {
+    "aidl",
+    "--dumpapi",
+    "api.aidl",
+    "foo/bar/IFoo.aidl"};
+  Options options = Options::From(args);
+  bool result = dump_api(options, io_delegate_);
+  ASSERT_TRUE(result);
+  string actual;
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("api.aidl", &actual));
+  EXPECT_EQ(actual, R"(package foo.bar {
+  interface IFoo {
+    int foo() = 1;
+    int bar() = 2;
+    int baz() = 10;
+  }
+
+}
+)");
+}
+
+TEST_F(AidlTest, ApiDumpWithManualIdsOnlyOnSomeMethods) {
+  io_delegate_.SetFileContents(
+      "foo/bar/IFoo.aidl",
+      "package foo.bar;\n"
+      "interface IFoo {\n"
+      "    int foo() = 1;\n"
+      "    int bar();\n"
+      "    int baz() = 10;\n"
+      "}\n");
+
+  vector<string> args = {
+    "aidl",
+    "--dumpapi",
+    "api.aidl",
+    "foo/bar/IFoo.aidl"};
+  Options options = Options::From(args);
+  EXPECT_FALSE(dump_api(options, io_delegate_));
+}
+
 TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
   Options options = Options::From("aidl p/IFoo.aidl IFoo.java");
   io_delegate_.SetFileContents(options.InputFiles().front(),
@@ -1046,6 +1096,18 @@ TEST_F(AidlTest, RejectAmbiguousImports) {
 
   EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
+
+TEST_F(AidlTest, HandleManualIdAssignments) {
+  Options options = Options::From("aidl --checkapi old.aidl new.aidl");
+  io_delegate_.SetFileContents("old.aidl", "package p {interface IFoo{ void foo() = 10;}}");
+  io_delegate_.SetFileContents("new.aidl", "package p {interface IFoo{ void foo() = 10;}}");
+
+  EXPECT_TRUE(::android::aidl::check_api(options, io_delegate_));
+
+  io_delegate_.SetFileContents("new.aidl", "package p {interface IFoo{ void foo() = 11;}}");
+  EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
+}
+
 
 }  // namespace aidl
 }  // namespace android
