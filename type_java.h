@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_TYPE_JAVA_H_
-#define AIDL_TYPE_JAVA_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -330,5 +329,3 @@ extern Expression* FALSE_VALUE;
 }  // namespace java
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_TYPE_JAVA_H_
