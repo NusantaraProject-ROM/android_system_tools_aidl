@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_TYPE_NAMESPACE_H_
-#define AIDL_TYPE_NAMESPACE_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -468,5 +467,3 @@ const ValidatableType* LanguageTypeNamespace<T>::GetValidatableType(
 
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_TYPE_NAMESPACE_H_

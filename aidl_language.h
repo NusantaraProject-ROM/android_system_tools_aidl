@@ -1,5 +1,4 @@
-#ifndef AIDL_AIDL_LANGUAGE_H_
-#define AIDL_AIDL_LANGUAGE_H_
+#pragma once
 
 #include "aidl_typenames.h"
 #include "code_writer.h"
@@ -680,5 +679,3 @@ class Parser {
 
   DISALLOW_COPY_AND_ASSIGN(Parser);
 };
-
-#endif // AIDL_AIDL_LANGUAGE_H_

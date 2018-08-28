@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_IMPORT_RESOLVER_H_
-#define AIDL_IMPORT_RESOLVER_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -47,5 +46,3 @@ class ImportResolver {
 
 }  // namespace android
 }  // namespace aidl
-
-#endif // AIDL_IMPORT_RESOLVER_H_

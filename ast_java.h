@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_AST_JAVA_H_
-#define AIDL_AST_JAVA_H_
+#pragma once
 
 #include <memory>
 #include <stdarg.h>
@@ -405,5 +404,3 @@ class Document : public AstNode {
 }  // namespace java
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_AST_JAVA_H_

@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AIDL_AIDL_TO_JAVA_H_
-#define AIDL_AIDL_TO_JAVA_H_
+#pragma once
 
 #include "aidl_language.h"
 #include "aidl_typenames.h"
@@ -103,5 +102,3 @@ bool ReadFromParcelFor(const CodeGeneratorContext& c);
 }  // namespace java
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_AIDL_TO_JAVA_H_
