@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_IO_DELEGATE_H_
-#define AIDL_IO_DELEGATE_H_
+#pragma once
 
 #include <android-base/macros.h>
 
@@ -66,5 +65,3 @@ class IoDelegate {
 
 }  // namespace android
 }  // namespace aidl
-
-#endif // AIDL_IO_DELEGATE_H_

@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AIDL_AIDL_TYPENAMES_H_
-#define AIDL_AIDL_TYPENAMES_H_
+#pragma once
 
 #include <functional>
 #include <map>
@@ -69,5 +68,3 @@ class AidlTypenames final {
 
 }  // namespace aidl
 }  // namespace android
-
-#endif  // AIDL_AIDL_TYPENAMES_H_

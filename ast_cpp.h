@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_AST_CPP_H_
-#define AIDL_AST_CPP_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -429,5 +428,3 @@ class CppSource final : public Document {
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
-
-#endif // AIDL_AST_CPP_H_

@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef AIDL_GENERATE_CPP_H_
-#define AIDL_GENERATE_CPP_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -78,5 +77,3 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& types,
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
-
-#endif // AIDL_GENERATE_CPP_H_
