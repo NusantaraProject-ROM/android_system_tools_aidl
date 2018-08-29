@@ -99,6 +99,32 @@ static bool are_compatible_interfaces(const AidlInterface& older, const AidlInte
       }
     }
   }
+
+  map<string, AidlConstantDeclaration*> new_constdecls;
+  for (const auto& c : newer.AsInterface()->GetConstantDeclarations()) {
+    new_constdecls.emplace(c->GetName(), c.get());
+  }
+
+  for (const auto& old_c : older.AsInterface()->GetConstantDeclarations()) {
+    const auto found = new_constdecls.find(old_c->GetName());
+    if (found == new_constdecls.end()) {
+      AIDL_ERROR(old_c) << "Removed constant declaration: " << older.GetCanonicalName() << "."
+                        << old_c->GetName();
+      compatible = false;
+      continue;
+    }
+
+    const auto new_c = found->second;
+    compatible &= are_compatible_types(old_c->GetType(), new_c->GetType());
+
+    const string old_value = old_c->ValueString(AidlConstantValueDecorator);
+    const string new_value = new_c->ValueString(AidlConstantValueDecorator);
+    if (old_value != new_value) {
+      AIDL_ERROR(newer) << "Changed constant value: " << older.GetCanonicalName() << "."
+                        << old_c->GetName() << " from " << old_value << " to " << new_value << ".";
+      compatible = false;
+    }
+  }
   return compatible;
 }
 
