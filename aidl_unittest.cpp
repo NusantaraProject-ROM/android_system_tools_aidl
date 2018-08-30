@@ -511,7 +511,7 @@ TEST_F(AidlTest, ApiDump) {
                                "package foo.bar;\n"
                                "import foo.bar.IFoo;\n"
                                "parcelable Data {\n"
-                               "   int x;\n"
+                               "   int x = 10;\n"
                                "   int y;\n"
                                "   IFoo foo;\n"
                                "   List<IFoo> a;\n"
@@ -531,7 +531,7 @@ TEST_F(AidlTest, ApiDump) {
   EXPECT_TRUE(io_delegate_.GetWrittenContents("api.aidl", &actual));
   EXPECT_EQ(actual, R"(package foo.bar {
   parcelable Data {
-    int x;
+    int x = 10;
     int y;
     foo.bar.IFoo foo;
     List<foo.bar.IFoo> a;
@@ -977,6 +977,11 @@ TEST_F(AidlTest, FailOnIncompatibleChanges) {
                                "package p { interface IFoo{}}"
                                "package q { interface IFoo{}}");
   io_delegate_.SetFileContents("new.aidl", "package p { interface IFoo{}}");
+  EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
+
+  // changed default value
+  io_delegate_.SetFileContents("old.aidl", "package p { parcelable D { int a = 1; }}");
+  io_delegate_.SetFileContents("new.aidl", "package p { parcelable D { int a = 2; }}");
   EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
 }
 
