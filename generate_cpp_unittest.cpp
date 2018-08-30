@@ -1390,7 +1390,7 @@ class ASTTest : public ::testing::Test {
 
     vector<AidlDefinedType*> defined_types;
     vector<string> imported_files;
-    ImportResolver import_resolver{io_delegate_, {"."}, {}};
+    ImportResolver import_resolver{io_delegate_, options_.InputFiles().at(0), {"."}, {}};
     AidlError err = ::android::aidl::internals::load_and_validate_aidl(
         options_.InputFiles().front(), options_, io_delegate_, &types_, &defined_types,
         &imported_files);

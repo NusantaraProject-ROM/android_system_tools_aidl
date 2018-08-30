@@ -535,7 +535,8 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   // Find files to import and parse them
   vector<string> imports;
-  ImportResolver import_resolver{io_delegate, options.ImportDirs(), options.InputFiles()};
+  ImportResolver import_resolver{io_delegate, input_file_name, options.ImportDirs(),
+                                 options.InputFiles()};
   for (const auto& import : main_parser->GetImports()) {
     if (types->HasImportType(*import)) {
       // There are places in the Android tree where an import doesn't resolve,
