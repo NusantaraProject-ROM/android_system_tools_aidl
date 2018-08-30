@@ -361,6 +361,8 @@ class AidlConstantDeclaration : public AidlMember {
   const AidlConstantValue& GetValue() const { return *value_; }
   bool CheckValid() const;
 
+  std::string ToString() const;
+  std::string Signature() const;
   string ValueString(const ConstantValueDecorator& decorator) const {
     return GetValue().As(GetType(), decorator);
   }
