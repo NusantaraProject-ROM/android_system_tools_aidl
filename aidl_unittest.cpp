@@ -506,6 +506,8 @@ TEST_F(AidlTest, ApiDump) {
       "    int foo2(@utf8InCpp String x, inout List<String>  y);\n"
       "    IFoo foo3(IFoo foo);\n"
       "    Data getData();\n"
+      "    const int A = 1;\n"
+      "    const String STR = \"Hello\";\n"
       "}\n");
   io_delegate_.SetFileContents("foo/bar/Data.aidl",
                                "package foo.bar;\n"
@@ -543,6 +545,8 @@ TEST_F(AidlTest, ApiDump) {
     int foo2(@utf8InCpp String x, inout List<String> y);
     foo.bar.IFoo foo3(foo.bar.IFoo foo);
     foo.bar.Data getData();
+    const int A = 1;
+    const String STR = "Hello";
   }
 
 }
@@ -808,6 +812,22 @@ TEST_F(AidlTest, SuccessOnCompatibleChanges) {
                                "}"
                                "}");
   EXPECT_TRUE(::android::aidl::check_api(options, io_delegate_));
+
+  // added const value
+  io_delegate_.SetFileContents("old.aidl", "package p { interface I { const int A = 1; }}");
+  io_delegate_.SetFileContents("new.aidl",
+                               "package p { interface I {"
+                               "const int A = 1; const int B = 2;}}");
+  EXPECT_TRUE(::android::aidl::check_api(options, io_delegate_));
+
+  // changed const value order
+  io_delegate_.SetFileContents("old.aidl",
+                               "package p { interface I {"
+                               "const int A = 1; const int B = 2;}}");
+  io_delegate_.SetFileContents("old.aidl",
+                               "package p { interface I {"
+                               "const int B = 2; const int A = 1;}}");
+  EXPECT_TRUE(::android::aidl::check_api(options, io_delegate_));
 }
 
 TEST_F(AidlTest, FailOnIncompatibleChanges) {
@@ -982,6 +1002,18 @@ TEST_F(AidlTest, FailOnIncompatibleChanges) {
   // changed default value
   io_delegate_.SetFileContents("old.aidl", "package p { parcelable D { int a = 1; }}");
   io_delegate_.SetFileContents("new.aidl", "package p { parcelable D { int a = 2; }}");
+  EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
+
+  // removed const value
+  io_delegate_.SetFileContents("old.aidl",
+                               "package p { interface I {"
+                               "const int A = 1; const int B = 2;}}");
+  io_delegate_.SetFileContents("new.aidl", "package p { interface I { const int A = 1; }}");
+  EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
+
+  // changed const value
+  io_delegate_.SetFileContents("old.aidl", "package p { interface I { const int A = 1; }}");
+  io_delegate_.SetFileContents("new.aidl", "package p { interface I { const int A = 2; }}");
   EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
 }
 
