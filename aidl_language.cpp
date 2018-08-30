@@ -235,7 +235,11 @@ string AidlVariableDeclaration::Signature() const {
 }
 
 std::string AidlVariableDeclaration::ValueString(const ConstantValueDecorator& decorator) const {
-  return GetDefaultValue()->As(GetType(), decorator);
+  if (default_value_ != nullptr) {
+    return GetDefaultValue()->As(GetType(), decorator);
+  } else {
+    return "";
+  }
 }
 
 AidlArgument::AidlArgument(const AidlLocation& location, AidlArgument::Direction direction,
@@ -589,7 +593,7 @@ void AidlStructuredParcelable::Write(CodeWriter* writer) const {
   writer->Write("parcelable %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& field : GetFields()) {
-    writer->Write("%s;\n", field->Signature().c_str());
+    writer->Write("%s;\n", field->ToString().c_str());
   }
   writer->Dedent();
   writer->Write("}\n");
