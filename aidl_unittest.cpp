@@ -699,14 +699,6 @@ TEST_F(AidlTest, ConflictWithMetaTransactions) {
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
 
-TEST_F(AidlTest, RejectsApiDumpFileForCompilation) {
-  Options options = Options::From("aidl --lang=java -o out p/IFoo.aidl");
-  io_delegate_.SetFileContents(options.InputFiles().front(),
-                               "package p {"
-                               "interface IFoo { int getFoo(); }}");
-  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
-}
-
 TEST_F(AidlTest, RejectsSourceFileForApiCheck) {
   Options options = Options::From("aidl --checkapi p/IFoo.aidl p/IBar.aidl");
   io_delegate_.SetFileContents("p/IFoo.aidl", "package p; interface IFoo{}");
@@ -1015,6 +1007,35 @@ TEST_F(AidlTest, FailOnIncompatibleChanges) {
   io_delegate_.SetFileContents("old.aidl", "package p { interface I { const int A = 1; }}");
   io_delegate_.SetFileContents("new.aidl", "package p { interface I { const int A = 2; }}");
   EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
+}
+
+TEST_F(AidlTest, CompileApiDumpJava) {
+  Options options = Options::From("aidl --lang=java -o out -m otherdump.aidl mydump.aidl");
+  io_delegate_.SetFileContents("mydump.aidl",
+                               "package p {interface IFoo { void foo(in q.IBar a);}}");
+  io_delegate_.SetFileContents("otherdump.aidl", "package q {interface IBar{ }}");
+
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("out/p/IFoo.java", nullptr));
+  EXPECT_FALSE(io_delegate_.GetWrittenContents("out/q/IBar.java", nullptr));
+}
+
+TEST_F(AidlTest, CompileApiDumpCpp) {
+  Options options =
+      Options::From("aidl --lang=cpp -o out -h out/include -m otherdump.aidl mydump.aidl");
+  io_delegate_.SetFileContents("mydump.aidl",
+                               "package p {interface IFoo { void foo(in q.IBar a);}}");
+  io_delegate_.SetFileContents("otherdump.aidl", "package q {interface IBar{ }}");
+
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("out/include/p/IFoo.h", nullptr));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("out/include/p/BnFoo.h", nullptr));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("out/include/p/BpFoo.h", nullptr));
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("out/p/IFoo.cpp", nullptr));
+  EXPECT_FALSE(io_delegate_.GetWrittenContents("out/include/q/IBar.h", nullptr));
+  EXPECT_FALSE(io_delegate_.GetWrittenContents("out/include/q/BnBar.h", nullptr));
+  EXPECT_FALSE(io_delegate_.GetWrittenContents("out/include/q/BpBar.h", nullptr));
+  EXPECT_FALSE(io_delegate_.GetWrittenContents("out/q/IBar.cpp", nullptr));
 }
 
 }  // namespace aidl
