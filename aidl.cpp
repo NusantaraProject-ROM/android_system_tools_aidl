@@ -535,7 +535,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   // Find files to import and parse them
   vector<string> imports;
-  ImportResolver import_resolver{io_delegate, options.ImportPaths(), options.InputFiles()};
+  ImportResolver import_resolver{io_delegate, options.ImportDirs(), options.InputFiles()};
   for (const auto& import : main_parser->GetImports()) {
     if (types->HasImportType(*import)) {
       // There are places in the Android tree where an import doesn't resolve,
@@ -568,6 +568,24 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     return err;
   }
 
+  for (const auto& imported_file : options.ImportFiles()) {
+    imports.emplace_back(imported_file);
+
+    std::unique_ptr<Parser> import_parser =
+        Parser::Parse(imported_file, io_delegate, types->typenames_);
+    if (import_parser == nullptr) {
+      AIDL_ERROR(imported_file) << "error while importing " << imported_file;
+      err = AidlError::BAD_IMPORT;
+      continue;
+    }
+    if (!types->AddDefinedTypes(import_parser->GetDefinedTypes(), imported_file)) {
+      return AidlError::BAD_TYPE;
+    }
+  }
+  if (err != AidlError::OK) {
+    return err;
+  }
+
   //////////////////////////////////////////////////////////////////////////
   // Validation phase
   //////////////////////////////////////////////////////////////////////////
@@ -575,12 +593,6 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   if (is_check_api && !main_parser->IsApiDump()) {
     AIDL_ERROR(input_file_name) << "Input is not an API dump";
-    return AidlError::BAD_INPUT;
-  }
-
-  if (!is_check_api && main_parser->IsApiDump()) {
-    AIDL_ERROR(input_file_name) << "Input is not AIDL source code, but "
-                                << "an AIDL dump file";
     return AidlError::BAD_INPUT;
   }
 
@@ -621,7 +633,10 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     // Ensure that foo.bar.IFoo is defined in <some_path>/foo/bar/IFoo.aidl
     // Do this only when there is only one type defined in the input file.
     // When there are multiple types in a file, we can't satisfy the convention.
-    if (!is_check_api && num_defined_types == 1 &&
+    // Also, we are not enforcing that when the input is from API dump because
+    // there are multiple types defined in an API dump and thus we can't follow
+    // the path rule.
+    if (num_defined_types == 1 && !main_parser->IsApiDump() &&
         !check_filename(input_file_name, *defined_type)) {
       return AidlError::BAD_PACKAGE;
     }

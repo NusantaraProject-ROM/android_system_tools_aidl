@@ -76,7 +76,9 @@ class Options final {
 
   Task GetTask() const { return task_; }
 
-  const vector<string>& ImportPaths() const { return import_paths_; }
+  const vector<string>& ImportDirs() const { return import_dirs_; }
+
+  const vector<string>& ImportFiles() const { return import_files_; }
 
   const vector<string>& PreprocessedFiles() const { return preprocessed_files_; }
 
@@ -130,7 +132,8 @@ class Options final {
   bool structured_ = false;
   Language language_ = Language::UNSPECIFIED;
   Task task_ = Task::COMPILE;
-  vector<string> import_paths_;
+  vector<string> import_dirs_;
+  vector<string> import_files_;
   vector<string> preprocessed_files_;
   string dependency_file_;
   bool gen_traces_ = false;

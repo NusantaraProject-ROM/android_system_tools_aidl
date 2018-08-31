@@ -66,6 +66,8 @@ string Options::GetUsage() const {
   sstr << "OPTION:" << endl
        << "  -I DIR, --include=DIR" << endl
        << "          Use DIR as a search path for import statements." << endl
+       << "  -m FILE, --import=FILE" << endl
+       << "          Import FILE directly without searching in the search paths." << endl
        << "  -p FILE, --preprocessed=FILE" << endl
        << "          Include FILE which is created by --preprocess." << endl
        << "  -d FILE, --dep=FILE" << endl
@@ -143,6 +145,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"dumpapi", no_argument, 0, 'u'},
         {"checkapi", no_argument, 0, 'A'},
         {"include", required_argument, 0, 'I'},
+        {"import", required_argument, 0, 'm'},
         {"preprocessed", required_argument, 0, 'p'},
         {"dep", required_argument, 0, 'd'},
         {"out", required_argument, 0, 'o'},
@@ -155,8 +158,8 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"help", no_argument, 0, 'e'},
         {0, 0, 0, 0},
     };
-    const int c =
-        getopt_long(argc, const_cast<char* const*>(argv), "I:p:d:o:h:abtv:", long_options, nullptr);
+    const int c = getopt_long(argc, const_cast<char* const*>(argv),
+                              "I:m:p:d:o:h:abtv:", long_options, nullptr);
     if (c == -1) {
       // no more options
       break;
@@ -201,7 +204,10 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         }
         break;
       case 'I':
-        import_paths_.emplace_back(Trim(optarg));
+        import_dirs_.emplace_back(Trim(optarg));
+        break;
+      case 'm':
+        import_files_.emplace_back(Trim(optarg));
         break;
       case 'p':
         preprocessed_files_.emplace_back(Trim(optarg));
