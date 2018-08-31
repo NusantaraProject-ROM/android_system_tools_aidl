@@ -114,7 +114,7 @@ TEST(OptionsTests, ParsesPreprocess) {
   unique_ptr<Options> options = GetOptions(kPreprocessCommand);
   EXPECT_EQ(Options::Task::PREPROCESS, options->GetTask());
   EXPECT_EQ(false, options->FailOnParcelable());
-  EXPECT_EQ(0u, options->ImportPaths().size());
+  EXPECT_EQ(0u, options->ImportDirs().size());
   EXPECT_EQ(0u, options->PreprocessedFiles().size());
   EXPECT_EQ(string{kPreprocessCommandOutputFile}, options->OutputFile());
   EXPECT_EQ(false, options->AutoDepFile());
@@ -129,7 +129,7 @@ TEST(OptionsTests, ParsesCompileJava) {
   EXPECT_EQ(Options::Task::COMPILE, options->GetTask());
   EXPECT_EQ(Options::Language::JAVA, options->TargetLanguage());
   EXPECT_EQ(true, options->FailOnParcelable());
-  EXPECT_EQ(1u, options->ImportPaths().size());
+  EXPECT_EQ(1u, options->ImportDirs().size());
   EXPECT_EQ(0u, options->PreprocessedFiles().size());
   EXPECT_EQ(string{kCompileCommandInput}, options->InputFiles().front());
   EXPECT_EQ(string{kCompileCommandJavaOutput}, options->OutputFile());
@@ -142,7 +142,7 @@ TEST(OptionsTests, ParsesCompileJavaNinja) {
   EXPECT_EQ(Options::Task::COMPILE, options->GetTask());
   EXPECT_EQ(Options::Language::JAVA, options->TargetLanguage());
   EXPECT_EQ(true, options->FailOnParcelable());
-  EXPECT_EQ(1u, options->ImportPaths().size());
+  EXPECT_EQ(1u, options->ImportDirs().size());
   EXPECT_EQ(0u, options->PreprocessedFiles().size());
   EXPECT_EQ(string{kCompileCommandInput}, options->InputFiles().front());
   EXPECT_EQ(string{kCompileCommandJavaOutput}, options->OutputFile());
@@ -152,8 +152,8 @@ TEST(OptionsTests, ParsesCompileJavaNinja) {
 
 TEST(OptionsTests, ParsesCompileCpp) {
   unique_ptr<Options> options = GetOptions(kCompileCppCommand, Options::Language::CPP);
-  ASSERT_EQ(1u, options->ImportPaths().size());
-  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportPaths()[0]);
+  ASSERT_EQ(1u, options->ImportDirs().size());
+  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportDirs()[0]);
   EXPECT_EQ(string{kCompileDepFile}.substr(2), options->DependencyFile());
   EXPECT_EQ(false, options->DependencyFileNinja());
   EXPECT_EQ(kCompileCommandInput, options->InputFiles().front());
@@ -163,8 +163,8 @@ TEST(OptionsTests, ParsesCompileCpp) {
 
 TEST(OptionsTests, ParsesCompileCppNinja) {
   unique_ptr<Options> options = GetOptions(kCompileCppCommandNinja, Options::Language::CPP);
-  ASSERT_EQ(1u, options->ImportPaths().size());
-  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportPaths()[0]);
+  ASSERT_EQ(1u, options->ImportDirs().size());
+  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportDirs()[0]);
   EXPECT_EQ(string{kCompileDepFile}.substr(2), options->DependencyFile());
   EXPECT_EQ(true, options->DependencyFileNinja());
   EXPECT_EQ(kCompileCommandInput, options->InputFiles().front());
@@ -187,7 +187,7 @@ TEST(OptionsTests, ParsesCompileJavaMultiInput) {
   EXPECT_EQ(Options::Task::COMPILE, options->GetTask());
   EXPECT_EQ(Options::Language::JAVA, options->TargetLanguage());
   EXPECT_EQ(false, options->FailOnParcelable());
-  EXPECT_EQ(1u, options->ImportPaths().size());
+  EXPECT_EQ(1u, options->ImportDirs().size());
   EXPECT_EQ(0u, options->PreprocessedFiles().size());
   const vector<string> expected_input{"directory/input1.aidl", "directory/input2.aidl",
                                       "directory/input3.aidl"};
@@ -237,7 +237,7 @@ TEST(OptionsTests, ParsesCompileCppMultiInput) {
   EXPECT_EQ(Options::Task::COMPILE, options->GetTask());
   EXPECT_EQ(Options::Language::CPP, options->TargetLanguage());
   EXPECT_EQ(false, options->FailOnParcelable());
-  EXPECT_EQ(1u, options->ImportPaths().size());
+  EXPECT_EQ(1u, options->ImportDirs().size());
   EXPECT_EQ(0u, options->PreprocessedFiles().size());
   const vector<string> expected_input{"directory/input1.aidl", "directory/input2.aidl",
                                       "directory/input3.aidl"};
