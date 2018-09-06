@@ -153,7 +153,7 @@ TEST(OptionsTests, ParsesCompileJavaNinja) {
 TEST(OptionsTests, ParsesCompileCpp) {
   unique_ptr<Options> options = GetOptions(kCompileCppCommand, Options::Language::CPP);
   ASSERT_EQ(1u, options->ImportDirs().size());
-  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportDirs()[0]);
+  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), *options->ImportDirs().begin());
   EXPECT_EQ(string{kCompileDepFile}.substr(2), options->DependencyFile());
   EXPECT_EQ(false, options->DependencyFileNinja());
   EXPECT_EQ(kCompileCommandInput, options->InputFiles().front());
@@ -164,7 +164,7 @@ TEST(OptionsTests, ParsesCompileCpp) {
 TEST(OptionsTests, ParsesCompileCppNinja) {
   unique_ptr<Options> options = GetOptions(kCompileCppCommandNinja, Options::Language::CPP);
   ASSERT_EQ(1u, options->ImportDirs().size());
-  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), options->ImportDirs()[0]);
+  EXPECT_EQ(string{kCompileCommandIncludePath}.substr(2), *options->ImportDirs().begin());
   EXPECT_EQ(string{kCompileDepFile}.substr(2), options->DependencyFile());
   EXPECT_EQ(true, options->DependencyFileNinja());
   EXPECT_EQ(kCompileCommandInput, options->InputFiles().front());

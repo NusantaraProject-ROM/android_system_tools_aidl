@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -203,12 +204,14 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           structured_ = true;
         }
         break;
-      case 'I':
-        import_dirs_.emplace_back(Trim(optarg));
+      case 'I': {
+        import_dirs_.emplace(Trim(optarg));
         break;
-      case 'm':
-        import_files_.emplace_back(Trim(optarg));
+      }
+      case 'm': {
+        import_files_.emplace(Trim(optarg));
         break;
+      }
       case 'p':
         preprocessed_files_.emplace_back(Trim(optarg));
         break;

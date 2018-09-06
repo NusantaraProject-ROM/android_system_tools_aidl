@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@
 namespace android {
 namespace aidl {
 
+using std::set;
 using std::string;
 using std::vector;
 
@@ -76,9 +78,9 @@ class Options final {
 
   Task GetTask() const { return task_; }
 
-  const vector<string>& ImportDirs() const { return import_dirs_; }
+  const set<string>& ImportDirs() const { return import_dirs_; }
 
-  const vector<string>& ImportFiles() const { return import_files_; }
+  const set<string>& ImportFiles() const { return import_files_; }
 
   const vector<string>& PreprocessedFiles() const { return preprocessed_files_; }
 
@@ -132,8 +134,8 @@ class Options final {
   bool structured_ = false;
   Language language_ = Language::UNSPECIFIED;
   Task task_ = Task::COMPILE;
-  vector<string> import_dirs_;
-  vector<string> import_files_;
+  set<string> import_dirs_;
+  set<string> import_files_;
   vector<string> preprocessed_files_;
   string dependency_file_;
   bool gen_traces_ = false;
