@@ -90,7 +90,7 @@ class AidlTest : public ::testing::Test {
     Options options = Options::From(args);
     vector<AidlDefinedType*> defined_types;
     vector<string> imported_files;
-    ImportResolver import_resolver{io_delegate_, import_paths_, {}};
+    ImportResolver import_resolver{io_delegate_, path, import_paths_, {}};
     AidlError actual_error = ::android::aidl::internals::load_and_validate_aidl(
         path, options, io_delegate_, types, &defined_types, &imported_files);
 
@@ -109,7 +109,7 @@ class AidlTest : public ::testing::Test {
 
   FakeIoDelegate io_delegate_;
   vector<string> preprocessed_files_;
-  vector<string> import_paths_;
+  set<string> import_paths_;
   java::JavaTypeNamespace java_types_;
   cpp::TypeNamespace cpp_types_;
 };
@@ -119,7 +119,7 @@ TEST_F(AidlTest, JavaAcceptsMissingPackage) {
 }
 
 TEST_F(AidlTest, RejectsArraysOfBinders) {
-  import_paths_.push_back("");
+  import_paths_.emplace("");
   io_delegate_.SetFileContents("bar/IBar.aidl",
                                "package bar; interface IBar {}");
   string path = "foo/IFoo.aidl";
@@ -224,7 +224,7 @@ TEST_F(AidlTest, PreferImportToPreprocessed) {
   io_delegate_.SetFileContents("one/IBar.aidl", "package one; "
                                                 "interface IBar {}");
   preprocessed_files_.push_back("preprocessed");
-  import_paths_.push_back("");
+  import_paths_.emplace("");
   auto parse_result = Parse(
       "p/IFoo.aidl", "package p; import one.IBar; interface IFoo {}",
       &java_types_);
@@ -262,7 +262,7 @@ TEST_F(AidlTest, WritePreprocessedFile) {
 TEST_F(AidlTest, RequireOuterClass) {
   io_delegate_.SetFileContents("p/Outer.aidl",
                                "package p; parcelable Outer.Inner;");
-  import_paths_.push_back("");
+  import_paths_.emplace("");
   auto parse_result = Parse(
       "p/IFoo.aidl",
       "package p; import p.Outer; interface IFoo { void f(in Inner c); }",
@@ -389,7 +389,7 @@ TEST_F(AidlTest, UnderstandsNestedParcelables) {
   io_delegate_.SetFileContents(
       "p/Outer.aidl",
       "package p; parcelable Outer.Inner cpp_header \"baz/header\";");
-  import_paths_.push_back("");
+  import_paths_.emplace("");
   const string input_path = "p/IFoo.aidl";
   const string input = "package p; import p.Outer; interface IFoo"
                        " { Outer.Inner get(); }";
@@ -406,7 +406,7 @@ TEST_F(AidlTest, UnderstandsNativeParcelables) {
   io_delegate_.SetFileContents(
       "p/Bar.aidl",
       "package p; parcelable Bar cpp_header \"baz/header\";");
-  import_paths_.push_back("");
+  import_paths_.emplace("");
   const string input_path = "p/IFoo.aidl";
   const string input = "package p; import p.Bar; interface IFoo { }";
 
@@ -1036,6 +1036,15 @@ TEST_F(AidlTest, CompileApiDumpCpp) {
   EXPECT_FALSE(io_delegate_.GetWrittenContents("out/include/q/BnBar.h", nullptr));
   EXPECT_FALSE(io_delegate_.GetWrittenContents("out/include/q/BpBar.h", nullptr));
   EXPECT_FALSE(io_delegate_.GetWrittenContents("out/q/IBar.cpp", nullptr));
+}
+
+TEST_F(AidlTest, RejectAmbiguousImports) {
+  Options options = Options::From("aidl --lang=java -o out -I dir1 -I dir2 p/IFoo.aidl");
+  io_delegate_.SetFileContents("p/IFoo.aidl", "package p; import q.IBar; interface IFoo{}");
+  io_delegate_.SetFileContents("dir1/q/IBar.aidl", "package q; interface IBar{}");
+  io_delegate_.SetFileContents("dir2/q/IBar.aidl", "package q; interface IBar{}");
+
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
 
 }  // namespace aidl
