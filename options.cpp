@@ -45,12 +45,14 @@ string Options::GetUsage() const {
        << myname_ << " --preprocess OUTPUT INPUT..." << endl
        << "   Create an AIDL file having declarations of AIDL file(s)." << endl
        << endl
-       << myname_ << " --dumpapi OUTPUT INPUT..." << endl
-       << "   Dump API signature of AIDL file(s)." << endl
+#ifndef _WIN32
+       << myname_ << " --dumpapi --out=DIR INPUT..." << endl
+       << "   Dump API signature of AIDL file(s) to DIR." << endl
        << endl
-       << myname_ << " --checkapi OLD NEW" << endl
-       << "   Checkes whether API dump NEW is backwards compatible extension " << endl
-       << "   of the API dump OLD." << endl
+       << myname_ << " --checkapi OLD_DIR NEW_DIR" << endl
+       << "   Checkes whether API dump NEW_DIR is backwards compatible extension " << endl
+       << "   of the API dump OLD_DIR." << endl
+#endif
        << endl;
 
   // Legacy option formats
@@ -143,8 +145,10 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
     static struct option long_options[] = {
         {"lang", required_argument, 0, 'l'},
         {"preprocess", no_argument, 0, 's'},
+#ifndef _WIN32
         {"dumpapi", no_argument, 0, 'u'},
         {"checkapi", no_argument, 0, 'A'},
+#endif
         {"include", required_argument, 0, 'I'},
         {"import", required_argument, 0, 'm'},
         {"preprocessed", required_argument, 0, 'p'},
@@ -192,6 +196,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           task_ = Options::Task::PREPROCESS;
         }
         break;
+#ifndef _WIN32
       case 'u':
         if (task_ != Options::Task::UNSPECIFIED) {
           task_ = Options::Task::DUMP_API;
@@ -204,6 +209,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           structured_ = true;
         }
         break;
+#endif
       case 'I': {
         import_dirs_.emplace(Trim(optarg));
         break;
@@ -314,7 +320,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
     }
   } else {
     // the new arguments format
-    if (task_ == Options::Task::COMPILE) {
+    if (task_ == Options::Task::COMPILE || task_ == Options::Task::DUMP_API) {
       if (argc - optind < 1) {
         error_message_ << "No input file." << endl;
         return;
@@ -335,12 +341,6 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
   }
 
   // filter out invalid combinations
-  for (const string& input : input_files_) {
-    if (!android::base::EndsWith(input, ".aidl")) {
-      error_message_ << "Expected .aidl file for input but got '" << input << "'" << endl;
-      return;
-    }
-  }
   if (lang_option_found) {
     if (language_ == Options::Language::CPP && task_ == Options::Task::COMPILE) {
       if (output_dir_.empty()) {
@@ -366,6 +366,12 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
     }
   }
   if (task_ == Options::Task::COMPILE) {
+    for (const string& input : input_files_) {
+      if (!android::base::EndsWith(input, ".aidl")) {
+        error_message_ << "Expected .aidl file for input but got '" << input << "'" << endl;
+        return;
+      }
+    }
     if (!output_file_.empty() && input_files_.size() > 1) {
       error_message_ << "Multiple AIDL files can't be compiled to a single "
                      << "output file '" << output_file_ << "'. "
@@ -390,6 +396,12 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
     if (input_files_.size() != 2) {
       error_message_ << "--checkapi requires two inputs for comparing, "
                      << "but got " << input_files_.size() << "." << endl;
+      return;
+    }
+  }
+  if (task_ == Options::Task::DUMP_API) {
+    if (output_dir_.empty()) {
+      error_message_ << "--dump_api requires output directory. Use --out." << endl;
       return;
     }
   }

@@ -17,6 +17,7 @@
 #include "import_resolver.h"
 #include "aidl_language.h"
 
+#include <android-base/file.h>
 #include <android-base/strings.h>
 #include <unistd.h>
 
@@ -56,12 +57,6 @@ string ImportResolver::FindImportFile(const string& canonical_name) const {
   }
   relative_path += ".aidl";
 
-  for (string input_file : input_files_) {
-    if (android::base::EndsWith(input_file, relative_path)) {
-      return input_file;
-    }
-  }
-
   // Look for that relative path at each of our import roots.
   vector<string> found_paths;
   for (string path : import_paths_) {
@@ -73,6 +68,13 @@ string ImportResolver::FindImportFile(const string& canonical_name) const {
 
   int num_found = found_paths.size();
   if (num_found == 0) {
+    // If not found from the import paths, try to find from the input files
+    relative_path.insert(0, 1, OS_PATH_SEPARATOR);
+    for (string input_file : input_files_) {
+      if (android::base::EndsWith(input_file, relative_path)) {
+        return input_file;
+      }
+    }
     return "";
   } else if (num_found == 1) {
     return found_paths.front();
