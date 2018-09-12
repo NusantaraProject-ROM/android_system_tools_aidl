@@ -395,7 +395,7 @@ class AidlMethod : public AidlMember {
   bool IsOneway() const { return oneway_; }
   const std::string& GetName() const { return name_; }
   bool HasId() const { return has_id_; }
-  int GetId() { return id_; }
+  int GetId() const { return id_; }
   void SetId(unsigned id) { id_ = id; }
 
   bool IsUserDefined() const { return is_user_defined_; }

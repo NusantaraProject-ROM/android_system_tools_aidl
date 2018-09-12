@@ -557,7 +557,11 @@ string AidlMethod::ToString() const {
   for (const auto& arg : GetArguments()) {
     arg_strings.emplace_back(arg->Signature());
   }
-  return GetType().Signature() + " " + GetName() + "(" + Join(arg_strings, ", ") + ")";
+  string ret = GetType().Signature() + " " + GetName() + "(" + Join(arg_strings, ", ") + ")";
+  if (HasId()) {
+    ret += " = " + std::to_string(GetId());
+  }
+  return ret;
 }
 
 AidlDefinedType::AidlDefinedType(const AidlLocation& location, const std::string& name,
