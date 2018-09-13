@@ -46,6 +46,7 @@ class FakeIoDelegate : public IoDelegate {
   std::unique_ptr<CodeWriter> GetCodeWriter(
       const std::string& file_path) const override;
   void RemovePath(const std::string& file_path) const override;
+  std::vector<std::string> ListFiles(const std::string& dir) const override;
 
   // Methods added to facilitate testing.
   void SetFileContents(const std::string& filename,

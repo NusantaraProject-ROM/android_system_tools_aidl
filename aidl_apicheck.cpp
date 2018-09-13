@@ -171,22 +171,40 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
 
   java::JavaTypeNamespace old_ns;
   old_ns.Init();
-  const string old_input = options.InputFiles().at(0);
+  const string old_dir = options.InputFiles().at(0);
   vector<AidlDefinedType*> old_types;
-  if (internals::load_and_validate_aidl(old_input, options, io_delegate, &old_ns, &old_types,
-                                        nullptr /* imported_files */) != AidlError::OK) {
-    AIDL_ERROR(old_input) << "Failed to read.";
+  vector<string> old_files = io_delegate.ListFiles(old_dir);
+  if (old_files.size() == 0) {
+    AIDL_ERROR(old_dir) << "No API file exist";
     return false;
+  }
+  for (const auto& file : old_files) {
+    vector<AidlDefinedType*> types;
+    if (internals::load_and_validate_aidl(file, options, io_delegate, &old_ns, &types,
+                                          nullptr /* imported_files */) != AidlError::OK) {
+      AIDL_ERROR(file) << "Failed to read.";
+      return false;
+    }
+    old_types.insert(old_types.end(), types.begin(), types.end());
   }
 
   java::JavaTypeNamespace new_ns;
   new_ns.Init();
-  const string new_input = options.InputFiles().at(1);
+  const string new_dir = options.InputFiles().at(1);
   vector<AidlDefinedType*> new_types;
-  if (internals::load_and_validate_aidl(new_input, options, io_delegate, &new_ns, &new_types,
-                                        nullptr /* imported_files */) != AidlError::OK) {
-    AIDL_FATAL(new_input) << "Failed to read.";
+  vector<string> new_files = io_delegate.ListFiles(new_dir);
+  if (new_files.size() == 0) {
+    AIDL_ERROR(new_dir) << "No API file exist";
     return false;
+  }
+  for (const auto& file : new_files) {
+    vector<AidlDefinedType*> types;
+    if (internals::load_and_validate_aidl(file, options, io_delegate, &new_ns, &types,
+                                          nullptr /* imported_files */) != AidlError::OK) {
+      AIDL_ERROR(file) << "Failed to read.";
+      return false;
+    }
+    new_types.insert(new_types.end(), types.begin(), types.end());
   }
 
   map<string, AidlDefinedType*> new_map;

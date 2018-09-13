@@ -99,17 +99,17 @@ interface IExampleInterface {
 )";
 
 const char kExpectedJavaDepsOutput[] =
-R"(some/path/to/output.java : \
+    R"(some/path/to/output.java : \
   android/test/IExampleInterface.aidl \
+  ./android/bar/IAuxInterface.aidl \
   ./android/foo/ExampleParcelable.aidl \
   ./android/test/CompoundParcelable.aidl \
-  ./android/bar/IAuxInterface.aidl \
   ./android/test/IAuxInterface2.aidl
 
 android/test/IExampleInterface.aidl :
+./android/bar/IAuxInterface.aidl :
 ./android/foo/ExampleParcelable.aidl :
 ./android/test/CompoundParcelable.aidl :
-./android/bar/IAuxInterface.aidl :
 ./android/test/IAuxInterface2.aidl :
 )";
 

@@ -534,30 +534,51 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   }
 
   // Find files to import and parse them
-  vector<string> imports;
+  vector<string> import_paths;
   ImportResolver import_resolver{io_delegate, input_file_name, options.ImportDirs(),
                                  options.InputFiles()};
+
+  set<string> type_from_import_statements;
   for (const auto& import : main_parser->GetImports()) {
-    if (types->HasImportType(*import)) {
+    type_from_import_statements.emplace(import->GetNeededClass());
+  }
+
+  // When referencing a type using fully qualified name it should be imported
+  // without the import statement. To support that, add all unresolved
+  // typespecs encountered during the parsing to the import_candidates list.
+  // Note that there is no guarantee that the typespecs are all fully qualified.
+  // It will be determined by calling FindImportFile().
+  set<string> unresolved_types;
+  for (const auto type : main_parser->GetUnresolvedTypespecs()) {
+    if (!AidlTypenames::IsBuiltinTypename(type->GetName())) {
+      unresolved_types.emplace(type->GetName());
+    }
+  }
+  set<string> import_candidates(type_from_import_statements);
+  import_candidates.insert(unresolved_types.begin(), unresolved_types.end());
+  for (const auto& import : import_candidates) {
+    if (types->HasImportType(import)) {
       // There are places in the Android tree where an import doesn't resolve,
       // but we'll pick the type up through the preprocessed types.
       // This seems like an error, but legacy support demands we support it...
       continue;
     }
-    string import_path = import_resolver.FindImportFile(import->GetNeededClass());
+    string import_path = import_resolver.FindImportFile(import);
     if (import_path.empty()) {
-      AIDL_ERROR(import) << "couldn't find import for class " << import->GetNeededClass();
-      err = AidlError::BAD_IMPORT;
+      if (type_from_import_statements.find(import) != type_from_import_statements.end()) {
+        // Complain only when the import from the import statement has failed.
+        AIDL_ERROR(import) << "couldn't find import for class " << import;
+        err = AidlError::BAD_IMPORT;
+      }
       continue;
     }
 
-    imports.emplace_back(import_path);
+    import_paths.emplace_back(import_path);
 
     std::unique_ptr<Parser> import_parser =
         Parser::Parse(import_path, io_delegate, types->typenames_);
     if (import_parser == nullptr) {
-      cerr << "error while importing " << import_path << " for " << import->GetNeededClass()
-           << endl;
+      cerr << "error while importing " << import_path << " for " << import << endl;
       err = AidlError::BAD_IMPORT;
       continue;
     }
@@ -570,7 +591,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   }
 
   for (const auto& imported_file : options.ImportFiles()) {
-    imports.emplace_back(imported_file);
+    import_paths.emplace_back(imported_file);
 
     std::unique_ptr<Parser> import_parser =
         Parser::Parse(imported_file, io_delegate, types->typenames_);
@@ -591,11 +612,6 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   // Validation phase
   //////////////////////////////////////////////////////////////////////////
   const bool is_check_api = options.GetTask() == Options::Task::CHECK_API;
-
-  if (is_check_api && !main_parser->IsApiDump()) {
-    AIDL_ERROR(input_file_name) << "Input is not an API dump";
-    return AidlError::BAD_INPUT;
-  }
 
   // Resolve the unresolved type references found from the input file
   if (!is_check_api && !main_parser->Resolve()) {
@@ -632,13 +648,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     CHECK(interface != nullptr || parcelable != nullptr);
 
     // Ensure that foo.bar.IFoo is defined in <some_path>/foo/bar/IFoo.aidl
-    // Do this only when there is only one type defined in the input file.
-    // When there are multiple types in a file, we can't satisfy the convention.
-    // Also, we are not enforcing that when the input is from API dump because
-    // there are multiple types defined in an API dump and thus we can't follow
-    // the path rule.
-    if (num_defined_types == 1 && !main_parser->IsApiDump() &&
-        !check_filename(input_file_name, *defined_type)) {
+    if (num_defined_types == 1 && !check_filename(input_file_name, *defined_type)) {
       return AidlError::BAD_PACKAGE;
     }
 
@@ -706,7 +716,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   }
 
   if (imported_files != nullptr) {
-    *imported_files = imports;
+    *imported_files = import_paths;
   }
 
   return AidlError::OK;
@@ -810,51 +820,31 @@ bool preprocess_aidl(const Options& options, const IoDelegate& io_delegate) {
   return writer->Close();
 }
 
-bool dump_api(const Options& options, const IoDelegate& io_delegate) {
-  map<string, vector<AidlDefinedType*>> types_by_package;
+static string GetApiDumpPathFor(const AidlDefinedType& defined_type, const Options& options) {
+  string package_as_path = Join(Split(defined_type.GetPackage(), "."), OS_PATH_SEPARATOR);
+  CHECK(!options.OutputDir().empty() && options.OutputDir().back() == '/');
+  return options.OutputDir() + package_as_path + OS_PATH_SEPARATOR + defined_type.GetName() +
+         ".aidl";
+}
 
-  // This vector is to keep namespaces for each input file so that
-  // AidlDefinedType objects created are not deleted after the final printout.
-  vector<unique_ptr<java::JavaTypeNamespace>> namespaces;
+bool dump_api(const Options& options, const IoDelegate& io_delegate) {
   for (const auto& file : options.InputFiles()) {
-    java::JavaTypeNamespace* ns = new java::JavaTypeNamespace();
-    ns->Init();
-    namespaces.emplace_back(ns);
+    java::JavaTypeNamespace ns;
+    ns.Init();
     vector<AidlDefinedType*> defined_types;
-    if (internals::load_and_validate_aidl(file, options, io_delegate, ns, &defined_types,
+    if (internals::load_and_validate_aidl(file, options, io_delegate, &ns, &defined_types,
                                           nullptr) == AidlError::OK) {
       for (const auto type : defined_types) {
-        // group them by package name
-        string package = type->GetPackage();
-        types_by_package[package].emplace_back(type);
+        unique_ptr<CodeWriter> writer =
+            io_delegate.GetCodeWriter(GetApiDumpPathFor(*type, options));
+        (*writer) << "package " << type->GetPackage() << ";\n";
+        type->Write(writer.get());
       }
     } else {
       return false;
     }
   }
-
-  // sort types within a package by their name. packages are already sorted.
-  for (auto it = types_by_package.begin(); it != types_by_package.end(); it++) {
-    auto& list = it->second;
-    std::sort(list.begin(), list.end(), [](const auto& lhs, const auto& rhs) {
-      return lhs->GetName().compare(rhs->GetName());
-    });
-  }
-
-  // print
-  unique_ptr<CodeWriter> writer = io_delegate.GetCodeWriter(options.OutputFile());
-  for (auto it = types_by_package.begin(); it != types_by_package.end(); it++) {
-    writer->Write("package %s {\n", it->first.c_str());
-    writer->Indent();
-    for (const auto& type : it->second) {
-      type->Write(writer.get());
-      writer->Write("\n");
-    }
-    writer->Dedent();
-    writer->Write("}\n");
-  }
-
-  return writer->Close();
+  return true;
 }
 
 }  // namespace android
