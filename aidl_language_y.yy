@@ -115,21 +115,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<token> identifier error
 %%
 document
- : api_dump { ps->SetAsApiDump(); }
- | source {};
-
-source
  : package imports decls {};
-
-api_dump
- : package_groups {};
-
-package_groups
- : package_group {}
- | package_groups package_group {};
-
-package_group
- : package_decl '{' decls '}' {};
 
 package_decl
  : PACKAGE qualified_name
