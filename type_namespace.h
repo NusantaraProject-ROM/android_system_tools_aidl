@@ -105,7 +105,7 @@ class TypeNamespace {
   virtual bool MaybeAddContainerType(const AidlTypeSpecifier& aidl_type) = 0;
 
   // Returns true iff this has a type for |import|.
-  virtual bool HasImportType(const AidlImport& import) const = 0;
+  virtual bool HasImportType(const std::string& import) const = 0;
 
   // Returns a pointer to a type corresponding to |raw_type| or nullptr
   // if this is an invalid return type.
@@ -151,8 +151,8 @@ class LanguageTypeNamespace : public TypeNamespace {
   bool HasTypeByCanonicalName(const std::string& type_name) const {
     return FindTypeByCanonicalName(type_name) != nullptr;
   }
-  bool HasImportType(const AidlImport& import) const override {
-    return HasTypeByCanonicalName(import.GetNeededClass());
+  bool HasImportType(const std::string& import) const override {
+    return HasTypeByCanonicalName(import);
   }
   const ValidatableType* GetDefinedType(const AidlDefinedType& defined_type) const override {
     return FindTypeByCanonicalName(defined_type.GetCanonicalName());

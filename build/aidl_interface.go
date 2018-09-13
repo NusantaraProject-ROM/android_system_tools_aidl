@@ -63,22 +63,23 @@ var (
 	}, "imports", "outDir")
 
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
-		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
-			`${aidlCmd} --dumpapi --structured ${imports} ${out} ${in}`,
+		Command: `rm -rf "${out}" && mkdir -p "${out}" && ` +
+			`${aidlCmd} --dumpapi --structured ${imports} --out ${out} ${in}`,
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL API Dump to ${out}",
-	}, "imports", "outDir")
+	}, "imports")
 
 	aidlUpdateApiRule = pctx.AndroidStaticRule("aidlUpdateApiRule",
 		blueprint.RuleParams{
-			Command: `cp -f $updated_api $current_api && touch $out`,
-		}, "updated_api", "current_api")
+			Command: `rm -rf ${currentApiDir}/* && ` +
+				`cp -rf $in/* ${currentApiDir} && touch ${out}`,
+		}, "currentApiDir")
 
 	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
-		Command:     `${aidlCmd} --checkapi ${old} ${in} && touch $out`,
+		Command:     `${aidlCmd} --checkapi ${old} ${new} && touch ${out}`,
 		CommandDeps: []string{"${aidlCmd}"},
-		Description: "Check AIDL: ${in} against ${old}",
-	}, "old")
+		Description: "Check AIDL: ${new} against ${old}",
+	}, "old", "new")
 )
 
 func init() {
@@ -238,9 +239,10 @@ func aidlGenFactory() android.Module {
 }
 
 type aidlApiProperties struct {
-	Inputs  []string
-	Imports []string
-	Api_dir *string
+	Inputs   []string
+	Imports  []string
+	Api_dir  *string
+	AidlRoot string // base directory for the input aidl file
 }
 
 type aidlApi struct {
@@ -260,18 +262,30 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		}
 	})
 
-	updatedApi := android.PathForModuleOut(ctx, "current.aidl")
+	var inputFiles android.Paths
+	for _, input := range m.properties.Inputs {
+		inputFiles = append(inputFiles, android.PathForModuleSrc(ctx, input).WithSubDir(
+			ctx, m.properties.AidlRoot))
+	}
+
+	// Rule for creating an API dump from the source
+	newApiDir := android.PathForModuleOut(ctx, "dump")
+	var newApiFiles android.WritablePaths
+	for _, file := range inputFiles {
+		newApiFiles = append(newApiFiles, android.PathForModuleOut(ctx, "dump", file.Rel()))
+	}
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
-		Rule:   aidlDumpApiRule,
-		Inputs: android.PathsForModuleSrc(ctx, m.properties.Inputs),
-		Output: updatedApi,
+		Rule:            aidlDumpApiRule,
+		Inputs:          inputFiles,
+		Output:          newApiDir,
+		ImplicitOutputs: newApiFiles,
 		Args: map[string]string{
 			"imports": imports,
-			"outDir":  android.PathForModuleOut(ctx).String(),
 		},
 	})
 
+	// Rule for updating current API dump with the generated API dump
 	m.updateApiTimestamp = android.PathForModuleOut(ctx, "updateapi.timestamp")
 	var apiDir string
 	if m.properties.Api_dir != nil {
@@ -279,26 +293,32 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	} else {
 		apiDir = "api"
 	}
-	currentApi := android.PathForModuleSrc(ctx, apiDir, "current.aidl")
+	currentApiDir := android.PathForModuleSrc(ctx, apiDir, "current")
+	currentApiFiles := ctx.ExpandSourcesSubDir([]string{"**/*.aidl"}, nil, filepath.Join(apiDir, "current"))
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:        aidlUpdateApiRule,
 		Description: "Update AIDL API",
+		Input:       newApiDir,
 		Output:      m.updateApiTimestamp,
-		Implicits:   append(android.Paths{}, updatedApi, currentApi),
 		Args: map[string]string{
-			"updated_api": updatedApi.String(),
-			"current_api": currentApi.String(),
+			"currentApiDir": currentApiDir.String(),
 		},
 	})
 
+	// Rule for checking the generated API dump against the current API dump
 	m.checkApiTimestamp = android.PathForModuleOut(ctx, "checkapi.timestamp")
+	var allApiFiles android.Paths
+	for _, file := range newApiFiles {
+		allApiFiles = append(allApiFiles, file)
+	}
+	allApiFiles = append(allApiFiles, currentApiFiles...)
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:      aidlCheckApiRule,
-		Input:     updatedApi,
-		Implicits: []android.Path{currentApi},
+		Implicits: allApiFiles,
 		Output:    m.checkApiTimestamp,
 		Args: map[string]string{
-			"old": currentApi.String(),
+			"old": currentApiDir.String(),
+			"new": newApiDir.String(),
 		},
 	})
 }
@@ -528,9 +548,10 @@ func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlApiFactory), &nameProperties{
 		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
-		Inputs:  i.properties.Srcs,
-		Imports: concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-		Api_dir: i.properties.Api_dir,
+		Inputs:   i.properties.Srcs,
+		Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+		Api_dir:  i.properties.Api_dir,
+		AidlRoot: i.properties.Local_include_dir,
 	})
 	return apiModule
 }

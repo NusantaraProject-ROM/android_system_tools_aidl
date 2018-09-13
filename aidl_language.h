@@ -640,12 +640,11 @@ class Parser {
   void SetPackage(unique_ptr<AidlQualifiedName> name) { package_ = std::move(name); }
   std::vector<std::string> Package() const;
 
-  void SetAsApiDump() { is_apidump_ = true; }
-  bool IsApiDump() const { return is_apidump_; }
-
   void DeferResolution(AidlTypeSpecifier* typespec) {
     unresolved_typespecs_.emplace_back(typespec);
   }
+
+  const vector<AidlTypeSpecifier*>& GetUnresolvedTypespecs() const { return unresolved_typespecs_; }
 
   bool Resolve();
 
@@ -669,7 +668,6 @@ class Parser {
   std::string filename_;
   std::unique_ptr<AidlQualifiedName> package_;
   AidlTypenames& typenames_;
-  bool is_apidump_ = false;
 
   void* scanner_ = nullptr;
   YY_BUFFER_STATE buffer_;
