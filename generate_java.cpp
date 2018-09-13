@@ -92,6 +92,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   parcel_class->modifiers = PUBLIC;
   parcel_class->what = Class::CLASS;
   parcel_class->type = parcelType;
+  parcel_class->interfaces.push_back(types->ParcelableInterfaceType());
 
   for (const auto& variable : parcel->GetFields()) {
     const Type* type = variable->GetType().GetLanguageType<Type>();
@@ -109,12 +110,14 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   std::ostringstream out;
   out << "public static final android.os.Parcelable.Creator<" << parcel->GetName() << "> CREATOR = "
       << "new android.os.Parcelable.Creator<" << parcel->GetName() << ">() {\n";
+  out << "  @Override\n";
   out << "  public " << parcel->GetName()
       << " createFromParcel(android.os.Parcel _aidl_source) {\n";
   out << "    " << parcel->GetName() << " _aidl_out = new " << parcel->GetName() << "();\n";
   out << "    _aidl_out.readFromParcel(_aidl_source);\n";
   out << "    return _aidl_out;\n";
   out << "  }\n";
+  out << "  @Override\n";
   out << "  public " << parcel->GetName() << "[] newArray(int _aidl_size) {\n";
   out << "    return new " << parcel->GetName() << "[_aidl_size];\n";
   out << "  }\n";
@@ -126,7 +129,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       new Variable(new Type(types, "android.os.Parcel", 0, false), "_aidl_parcel");
 
   Method* write_method = new Method;
-  write_method->modifiers = PUBLIC;
+  write_method->modifiers = PUBLIC | OVERRIDE;
   write_method->returnType = new Type(types, "void", 0, false);
   write_method->name = "writeToParcel";
   write_method->parameters.push_back(parcel_variable);
@@ -175,6 +178,14 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     read_method->statements->Add(new LiteralStatement(code));
   }
   parcel_class->elements.push_back(read_method);
+
+  Method* describe_contents_method = new Method;
+  describe_contents_method->modifiers = PUBLIC | OVERRIDE;
+  describe_contents_method->returnType = types->IntType();
+  describe_contents_method->name = "describeContents";
+  describe_contents_method->statements = new StatementBlock();
+  describe_contents_method->statements->Add(new LiteralStatement("return 0;"));
+  parcel_class->elements.push_back(describe_contents_method);
 
   return parcel_class;
 }
