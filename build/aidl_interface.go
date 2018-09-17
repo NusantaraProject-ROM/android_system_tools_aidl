@@ -38,19 +38,20 @@ var (
 	aidlApiSuffix       = "-api"
 	langCpp             = "cpp"
 	langJava            = "java"
+	langNdk             = "ndk"
 
 	pctx = android.NewPackageContext("android/aidl")
 
 	aidlCppRule = pctx.StaticRule("aidlCppRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && ` +
 			`mkdir -p "${outDir}" "${headerDir}" && ` +
-			`${aidlCmd} --lang=cpp --structured --ninja -d ${out}.d ` +
+			`${aidlCmd} --lang=${lang} --structured --ninja -d ${out}.d ` +
 			`-h ${headerDir} -o ${outDir} ${imports} ${in}`,
 		Depfile:     "${out}.d",
 		Deps:        blueprint.DepsGCC,
 		CommandDeps: []string{"${aidlCmd}"},
-		Description: "AIDL CPP ${in}",
-	}, "imports", "headerDir", "outDir")
+		Description: "AIDL ${lang} ${in}",
+	}, "imports", "lang", "headerDir", "outDir")
 
 	aidlJavaRule = pctx.StaticRule("aidlJavaRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
@@ -116,7 +117,7 @@ type aidlGenProperties struct {
 	Input    string // a single aidl file
 	AidlRoot string // base directory for the input aidl file
 	Imports  []string
-	Lang     string // target language [java|cpp]
+	Lang     string // target language [java|cpp|ndk]
 	BaseName string
 }
 
@@ -180,7 +181,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		typeName := strings.TrimSuffix(filepath.Base(input.Rel()), ".aidl")
 		packagePath := filepath.Dir(input.Rel())
 		baseName := typeName
-		// TODO(b/111362593): generate_cpp.cpp uses heuristics to figure out if
+		// TODO(b/111362593): aidl_to_cpp_common.cpp uses heuristics to figure out if
 		//   an interface name has a leading I. Those same heuristics have been
 		//   moved here.
 		if len(baseName) >= 2 && baseName[0] == 'I' &&
@@ -202,6 +203,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			ImplicitOutputs: headers,
 			Args: map[string]string{
 				"imports":   imports,
+				"lang":      g.properties.Lang,
 				"headerDir": g.genHeaderDir.String(),
 				"outDir":    outDir.String(),
 			},
@@ -536,9 +538,11 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	var libs []string
 
 	if i.shouldGenerateCpp() {
-		libs = append(libs, addCppLibrary(mctx, i, ""))
+		libs = append(libs, addCppLibrary(mctx, i, "", langCpp))
+		libs = append(libs, addCppLibrary(mctx, i, "", langNdk))
 		for _, version := range i.properties.Versions {
-			addCppLibrary(mctx, i, version)
+			addCppLibrary(mctx, i, version, langCpp)
+			addCppLibrary(mctx, i, version, langNdk)
 		}
 	}
 
@@ -556,9 +560,9 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	})
 }
 
-func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version string) string {
-	cppSourceGen := i.versionedName(version) + "-cpp-gen"
-	cppModuleGen := i.versionedName(version) + "-cpp"
+func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version string, lang string) string {
+	cppSourceGen := i.versionedName(version) + "-" + lang + "-gen"
+	cppModuleGen := i.versionedName(version) + "-" + lang
 
 	srcs, base := i.srcsForVersion(mctx, version)
 	if len(srcs) == 0 {
@@ -580,16 +584,27 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 			Input:    source,
 			AidlRoot: base,
 			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-			Lang:     langCpp,
+			Lang:     lang,
 			BaseName: i.ModuleBase.Name(),
 		})
 		cppGeneratedSources = append(cppGeneratedSources, cppSourceGenName)
 	}
 
-	importExportDependencies := concat([]string{
-		"libbinder",
-		"libutils",
-	}, wrap("", i.properties.Imports, "-cpp"))
+	importExportDependencies := wrap("", i.properties.Imports, "-"+lang)
+	var sdkVersion *string
+	var stl *string
+
+	if lang == langCpp {
+		importExportDependencies = append(importExportDependencies, "libbinder", "libutils")
+		sdkVersion = nil
+		stl = nil
+	} else if lang == langNdk {
+		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
+		sdkVersion = proptools.StringPtr("current")
+		stl = proptools.StringPtr("c++_shared")
+	} else {
+		panic("Unrecognized language: " + lang)
+	}
 
 	mctx.CreateModule(android.ModuleFactoryAdaptor(cc.LibraryFactory), &ccProperties{
 		Name:                      proptools.StringPtr(cppModuleGen),
@@ -601,6 +616,8 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Export_generated_headers:  cppGeneratedSources,
 		Shared_libs:               importExportDependencies,
 		Export_shared_lib_headers: importExportDependencies,
+		Sdk_version:               sdkVersion,
+		Stl:                       stl,
 	}, &i.properties.VndkProperties)
 
 	return cppModuleGen

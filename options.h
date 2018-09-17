@@ -59,7 +59,7 @@ class ErrorMessage {
 
 class Options final {
  public:
-  enum class Language { UNSPECIFIED, JAVA, CPP };
+  enum class Language { UNSPECIFIED, JAVA, CPP, NDK };
 
   enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMP_API, CHECK_API };
 
@@ -75,6 +75,7 @@ class Options final {
   bool IsStructured() const { return structured_; }
 
   Language TargetLanguage() const { return language_; }
+  bool IsCppOutput() const { return language_ == Language::CPP || language_ == Language::NDK; }
 
   Task GetTask() const { return task_; }
 
