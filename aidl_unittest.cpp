@@ -285,13 +285,23 @@ TEST_F(AidlTest, ParseCompoundParcelableFromPreprocess) {
 }
 
 TEST_F(AidlTest, FailOnParcelable) {
-  Options options1 = Options::From("aidl p/IFoo.aidl");
-  io_delegate_.SetFileContents(options1.InputFiles().front(), "package p; parcelable IFoo;");
+  io_delegate_.SetFileContents("p/IFoo.aidl", "package p; parcelable IFoo;");
+
   // By default, we shouldn't fail on parcelable.
+  Options options1 = Options::From("aidl p/IFoo.aidl");
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options1, io_delegate_));
 
+  // -b considers this an error
   Options options2 = Options::From("aidl -b p/IFoo.aidl");
   EXPECT_NE(0, ::android::aidl::compile_aidl(options2, io_delegate_));
+
+  io_delegate_.SetFileContents("p/IBar.aidl", "package p; parcelable Foo; interface IBar{}");
+
+  // Regardless of '-b', a parcelable and an interface should fail.
+  Options options3 = Options::From("aidl p/IBar.aidl");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options3, io_delegate_));
+  Options options4 = Options::From("aidl -b p/IBar.aidl");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options4, io_delegate_));
 }
 
 TEST_F(AidlTest, FailOnDuplicateConstantNames) {
