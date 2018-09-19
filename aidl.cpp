@@ -620,28 +620,23 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     return AidlError::BAD_TYPE;
   }
 
-  // Make sure that there is no unstructured parcelable in the input file,
-  // because we can generate code only for structured parcelables.
-  bool has_only_unstructured_parcelables = true;
-  for (const auto defined_type : main_parser->GetDefinedTypes()) {
-    if (defined_type->AsStructuredParcelable() != nullptr ||
-        defined_type->AsInterface() != nullptr) {
-      has_only_unstructured_parcelables = false;
-    }
-  }
-  if (has_only_unstructured_parcelables) {
-    LOG(ERROR) << "Refusing to generate code with unstructured parcelables.";
-
-    // return this so that dependency file can be created
-    if (defined_types != nullptr) {
-      *defined_types = main_parser->GetDefinedTypes();
-    }
-
-    return AidlError::FOUND_PARCELABLE;
-  }
+  // For legacy reasons, by default, compiling an unstructured parcelable (which contains no output)
+  // is allowed. This must not be returned as an error until the very end of this procedure since
+  // this may be considered a success, and we should first check that there are not other, more
+  // serious failures.
+  bool contains_unstructured_parcelable = false;
 
   const int num_defined_types = main_parser->GetDefinedTypes().size();
   for (const auto defined_type : main_parser->GetDefinedTypes()) {
+    AidlParcelable* unstructuredParcelable = defined_type->AsUnstructuredParcelable();
+    if (unstructuredParcelable != nullptr) {
+      AIDL_ERROR(unstructuredParcelable)
+          << "Refusing to generate code with unstructured parcelables. Declared parcelables should "
+             "be in their own file and/or cannot be used with --structured interfaces.";
+      contains_unstructured_parcelable = true;
+      continue;
+    }
+
     // Ensure that a type is either an interface or a structured parcelable
     AidlInterface* interface = defined_type->AsInterface();
     AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
@@ -717,6 +712,11 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   if (imported_files != nullptr) {
     *imported_files = import_paths;
+  }
+
+  if (contains_unstructured_parcelable) {
+    // Considered a success for the legacy case, so this must be returned last.
+    return AidlError::FOUND_PARCELABLE;
   }
 
   return AidlError::OK;
