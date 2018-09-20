@@ -98,14 +98,6 @@ string UpperCase(const std::string& s) {
   return result;
 }
 
-string BuildVarName(const AidlArgument& a) {
-  string prefix = "out_";
-  if (a.GetDirection() & AidlArgument::IN_DIR) {
-    prefix = "in_";
-  }
-  return prefix + a.GetName();
-}
-
 ArgList BuildArgList(const TypeNamespace& types, const AidlMethod& method, bool for_declaration,
                      bool type_name_only = false) {
   // Build up the argument list for the server method call.
