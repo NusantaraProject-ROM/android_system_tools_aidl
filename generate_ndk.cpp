@@ -18,6 +18,7 @@
 
 #include "aidl_language.h"
 #include "aidl_to_cpp_common.h"
+#include "aidl_to_ndk.h"
 
 #include <android-base/logging.h>
 
@@ -104,6 +105,13 @@ void LeaveNdkNamespace(CodeWriter& out, const AidlDefinedType& defined_type) {
   out << "}  // namespace aidl\n";
 }
 
+static void StatusCheckGoto(CodeWriter& out) {
+  out << "if (_aidl_ret_status != STATUS_OK) goto _aidl_error;\n\n";
+}
+static void StatusCheckBreak(CodeWriter& out) {
+  out << "if (_aidl_ret_status != STATUS_OK) break;\n\n";
+}
+
 void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInterface& defined_type,
                     const Options& options) {
   out << "#include \"" << HeaderFile(defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
@@ -123,6 +131,120 @@ void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInter
 
 static std::string DataClassFor(const AidlInterface& defined_type) {
   return "AidlClassData_" + ClassName(defined_type, ClassNames::INTERFACE);
+}
+static std::string MethodId(const AidlMethod& m) {
+  return "(FIRST_CALL_TRANSACTION + " + std::to_string(m.GetId()) + " /*" + m.GetName() + "*/)";
+}
+
+static void GenerateClientMethodDefinition(CodeWriter& out, const AidlInterface& defined_type,
+                                           const AidlMethod& method) {
+  const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
+
+  out << NdkMethodDecl(method, clazz) << " {\n";
+  out.Indent();
+  out << "::android::AutoAParcel _aidl_in;\n";
+  out << "::android::AutoAParcel _aidl_out;\n";
+  out << "binder_status_t _aidl_ret_status = STATUS_OK;\n";
+  out << "::android::AutoAStatus _aidl_status;\n";
+  out << "\n";
+
+  out << "_aidl_ret_status = AIBinder_prepareTransaction(asBinder().get(), _aidl_in.getR());\n";
+  StatusCheckGoto(out);
+
+  for (const AidlArgument* arg : method.GetInArguments()) {
+    out << "_aidl_ret_status = ";
+    std::string prefix = arg->IsOut() ? "*" : "";
+    WriteToParcelFor({out, arg->GetType(), "_aidl_in.get()", prefix + cpp::BuildVarName(*arg)});
+    out << ";\n";
+    StatusCheckGoto(out);
+  }
+  out << "_aidl_ret_status = AIBinder_transact(\n";
+  out.Indent();
+  out << "asBinder().get(),\n";
+  out << MethodId(method) << ",\n";
+  out << "_aidl_in.getR(),\n";
+  out << "_aidl_out.getR(),\n";
+  out << (method.IsOneway() ? "FLAG_ONEWAY" : "0") << ");\n";
+  out.Dedent();
+  StatusCheckGoto(out);
+
+  if (!method.IsOneway()) {
+    out << "_aidl_ret_status = AParcel_readStatusHeader(_aidl_out.get(), _aidl_status.getR());\n";
+    StatusCheckGoto(out);
+
+    out << "if (!AStatus_isOk(_aidl_status.get())) return _aidl_status;\n\n";
+  }
+
+  for (const AidlArgument* arg : method.GetOutArguments()) {
+    out << "_aidl_ret_status = ";
+    ReadFromParcelFor({out, arg->GetType(), "_aidl_out.get()", cpp::BuildVarName(*arg)});
+    out << ";\n";
+    StatusCheckGoto(out);
+  }
+
+  if (method.GetType().GetName() != "void") {
+    out << "_aidl_ret_status = ";
+    ReadFromParcelFor({out, method.GetType(), "_aidl_out.get()", "_aidl_return"});
+    out << ";\n";
+    StatusCheckGoto(out);
+  }
+
+  out << "_aidl_error:\n";
+  out << "_aidl_status.set(AStatus_fromStatus(_aidl_ret_status));\n";
+  out << "return _aidl_status;\n";
+  out.Dedent();
+  out << "}\n";
+}
+
+static void GenerateServerCaseDefinition(CodeWriter& out, const AidlInterface& /*defined_type*/,
+                                         const AidlMethod& method) {
+  out << "case " << MethodId(method) << ": {\n";
+  out.Indent();
+  for (const auto& arg : method.GetArguments()) {
+    out << NdkNameOf(arg->GetType(), StorageMode::STACK) << " " << cpp::BuildVarName(*arg) << ";\n";
+  }
+  if (method.GetType().GetName() != "void") {
+    out << NdkNameOf(method.GetType(), StorageMode::STACK) << " _aidl_return;\n";
+  }
+  out << "\n";
+
+  for (const AidlArgument* arg : method.GetInArguments()) {
+    out << "_aidl_ret_status = ";
+    ReadFromParcelFor({out, arg->GetType(), "_aidl_in", "&" + cpp::BuildVarName(*arg)});
+    out << ";\n";
+    StatusCheckBreak(out);
+  }
+
+  out << "::android::AutoAStatus _aidl_status = _aidl_impl->" << method.GetName() << "("
+      << NdkCallListFor(method) << ");\n";
+
+  if (method.IsOneway()) {
+    // For a oneway transaction, the kernel will have already returned a result. This is for the
+    // in-process case when a oneway transaction is parceled/unparceled in the same process.
+    out << "_aidl_ret_status = STATUS_OK;\n";
+  } else {
+    out << "_aidl_ret_status = AParcel_writeStatusHeader(_aidl_out, _aidl_status.get());\n";
+    StatusCheckBreak(out);
+
+    out << "if (!AStatus_isOk(_aidl_status.get())) break;\n\n";
+
+    for (const AidlArgument* arg : method.GetOutArguments()) {
+      out << "_aidl_ret_status = ";
+      WriteToParcelFor({out, arg->GetType(), "_aidl_out", cpp::BuildVarName(*arg)});
+      out << ";\n";
+      StatusCheckBreak(out);
+    }
+    if (method.GetType().GetName() != "void") {
+      out << "_aidl_ret_status = ";
+      WriteToParcelFor({out, method.GetType(), "_aidl_out", "_aidl_return"});
+      out << ";\n";
+      StatusCheckBreak(out);
+    }
+  }
+
+  out << "break;\n";
+  out.Dedent();
+  out << "}\n";
 }
 
 void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
@@ -156,11 +278,27 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
   out << "};\n\n";
 
   out << "static binder_status_t " << on_transact
-      << "(AIBinder* binder, transaction_code_t code, const AParcel* in, AParcel* out) {\n";
+      << "(AIBinder* _aidl_binder, transaction_code_t _aidl_code, const AParcel* _aidl_in, "
+         "AParcel* _aidl_out) {\n";
   out.Indent();
-  // TODO(112664205): implement methods
-  out << "(void) binder; (void) code; (void) in; (void) out;\n";
-  out << "return STATUS_UNKNOWN_ERROR;\n";
+  out << "(void)_aidl_in;\n";
+  out << "(void)_aidl_out;\n";
+  out << "binder_status_t _aidl_ret_status = STATUS_UNKNOWN_TRANSACTION;\n";
+  if (!defined_type.GetMethods().empty()) {
+    out << "std::shared_ptr<" << bn_clazz << "> _aidl_impl = static_cast<" << data_clazz
+        << "*>(AIBinder_getUserData(_aidl_binder))->instance;\n";
+    out << "switch (_aidl_code) {\n";
+    out.Indent();
+    for (const auto& method : defined_type.GetMethods()) {
+      GenerateServerCaseDefinition(out, defined_type, *method);
+    }
+    out.Dedent();
+    out << "}\n";
+  } else {
+    out << "(void)_aidl_binder;\n";
+    out << "(void)_aidl_code;\n";
+  }
+  out << "return _aidl_ret_status;\n";
   out.Dedent();
   out << "};\n\n";
 
@@ -182,9 +320,13 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "}\n\n";
 
-  out << clazz << "::~" << clazz << "() {}\n";
   out << clazz << "::" << clazz
       << "(const ::android::AutoAIBinder& binder) : BpCInterface(binder) {}\n";
+  out << clazz << "::~" << clazz << "() {}\n";
+  out << "\n";
+  for (const auto& method : defined_type.GetMethods()) {
+    GenerateClientMethodDefinition(out, defined_type, *method);
+  }
 
   (void)types;    // TODO(b/112664205)
   (void)options;  // TODO(b/112664205)
@@ -240,6 +382,10 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   out << "static std::shared_ptr<" << clazz
       << "> associate(const ::android::AutoAIBinder& binder);\n";
   out << "virtual ~" << clazz << "();\n";
+  out << "\n";
+  for (const auto& method : defined_type.GetMethods()) {
+    out << NdkMethodDecl(*method) << " override;\n";
+  }
   out.Dedent();
   out << "private:\n";
   out.Indent();
@@ -297,6 +443,10 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << "static const char* descriptor;\n";
   out << clazz << "();\n";
   out << "virtual ~" << clazz << "();\n";
+  out << "\n";
+  for (const auto& method : defined_type.GetMethods()) {
+    out << "virtual " << NdkMethodDecl(*method) << " = 0;\n";
+  }
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);

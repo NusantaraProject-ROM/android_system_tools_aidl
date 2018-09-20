@@ -14,6 +14,7 @@
 
 #include "aidl_to_ndk.h"
 #include "aidl_language.h"
+#include "aidl_to_cpp_common.h"
 #include "logging.h"
 
 #include <android-base/strings.h>
@@ -132,6 +133,44 @@ void ReadFromParcelFor(const CodeGeneratorContext& c) {
   } else {
     AIDL_FATAL("TODO(b/112664205): not yet supported");
   }
+}
+
+std::string NdkArgListOf(const AidlMethod& method) {
+  std::vector<std::string> method_arguments;
+  for (const auto& a : method.GetArguments()) {
+    StorageMode mode = a->IsOut() ? StorageMode::OUT_ARGUMENT : StorageMode::ARGUMENT;
+    std::string type = NdkNameOf(a->GetType(), mode);
+    std::string name = cpp::BuildVarName(*a);
+    method_arguments.emplace_back(type + " " + name);
+  }
+
+  if (method.GetType().GetName() != "void") {
+    std::string return_type = NdkNameOf(method.GetType(), StorageMode::OUT_ARGUMENT);
+    method_arguments.emplace_back(return_type + " _aidl_return");
+  }
+
+  return Join(method_arguments, ", ");
+}
+
+std::string NdkCallListFor(const AidlMethod& method) {
+  std::vector<std::string> method_arguments;
+  for (const auto& a : method.GetArguments()) {
+    std::string reference_prefix = a->IsOut() ? "&" : "";
+    std::string name = cpp::BuildVarName(*a);
+    method_arguments.emplace_back(reference_prefix + name);
+  }
+
+  if (method.GetType().GetName() != "void") {
+    method_arguments.emplace_back("&_aidl_return");
+  }
+
+  return Join(method_arguments, ", ");
+}
+
+std::string NdkMethodDecl(const AidlMethod& method, const std::string& clazz) {
+  std::string class_prefix = clazz.empty() ? "" : (clazz + "::");
+  return "::android::AutoAStatus " + class_prefix + method.GetName() + "(" + NdkArgListOf(method) +
+         ")";
 }
 
 }  // namespace ndk
