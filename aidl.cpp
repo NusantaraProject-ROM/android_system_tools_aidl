@@ -837,7 +837,9 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate) {
       for (const auto type : defined_types) {
         unique_ptr<CodeWriter> writer =
             io_delegate.GetCodeWriter(GetApiDumpPathFor(*type, options));
-        (*writer) << "package " << type->GetPackage() << ";\n";
+        if (!type->GetPackage().empty()) {
+          (*writer) << "package " << type->GetPackage() << ";\n";
+        }
         type->Write(writer.get());
       }
     } else {
