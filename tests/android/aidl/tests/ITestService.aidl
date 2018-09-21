@@ -115,7 +115,8 @@ interface ITestService {
 
   @nullable INamedCallback GetCallback(boolean return_null);
 
-  // This is not a well designed API and should not be taken as an example
+  // Since this paracelable has clearly defined default values, it would be
+  // inefficient to use an IPC to fill it out in practice.
   void FillOutStructuredParcelable(inout StructuredParcelable parcel);
 
   // This is to emulate a method that is added after the service is implemented.
