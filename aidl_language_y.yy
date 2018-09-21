@@ -117,12 +117,6 @@ AidlLocation loc(const yy::parser::location_type& l) {
 document
  : package imports decls {};
 
-package_decl
- : PACKAGE qualified_name
-  {
-    ps->SetPackage(unique_ptr<AidlQualifiedName>($2));
-  };
-
 /* A couple of tokens that are keywords elsewhere are identifiers when
  * occurring in the identifier position. Therefore identifier is a
  * non-terminal, which is either an IDENTIFIER token, or one of the
