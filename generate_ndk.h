@@ -32,6 +32,8 @@ void GenerateNdk(const string& output_file, const Options& options, const AidlTy
 namespace internals {
 void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInterface& defined_type,
                     const Options& options);
+void GenerateClassSource(CodeWriter& out, const AidlTypenames& types,
+                         const AidlInterface& defined_type, const Options& options);
 void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
                           const AidlInterface& defined_type, const Options& options);
 void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,

@@ -114,19 +114,77 @@ void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInter
       << "\"\n";
   out << "\n";
   EnterNdkNamespace(out, defined_type);
+  GenerateClassSource(out, types, defined_type, options);
   GenerateClientSource(out, types, defined_type, options);
   GenerateServerSource(out, types, defined_type, options);
   GenerateInterfaceSource(out, types, defined_type, options);
   LeaveNdkNamespace(out, defined_type);
 }
+
+static std::string DataClassFor(const AidlInterface& defined_type) {
+  return "AidlClassData_" + ClassName(defined_type, ClassNames::INTERFACE);
+}
+
+void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
+                         const AidlInterface& defined_type, const Options& /*options*/) {
+  const std::string clazz = ClassName(defined_type, ClassNames::INTERFACE);
+  const std::string bn_clazz = ClassName(defined_type, ClassNames::SERVER);
+  const std::string data_clazz = DataClassFor(defined_type);
+  const std::string on_create = data_clazz + "_onCreate";
+  const std::string on_destroy = data_clazz + "_onDestory";
+  const std::string on_transact = data_clazz + "_onTransact";
+
+  out << "struct " << data_clazz << " {\n";
+  out.Indent();
+  out << "static AIBinder_Class* clazz;\n";
+  out << "std::shared_ptr<" << bn_clazz << "> instance;\n";
+  out.Dedent();
+  out << "};\n\n";
+
+  out << "static void* " << on_create << "(void* args) {\n";
+  out.Indent();
+  out << data_clazz << "* data = new " << data_clazz << "{static_cast<" << bn_clazz
+      << "*>(args)->ref<" << bn_clazz << ">()};\n";
+  out << "return static_cast<void*>(data);\n";
+  out.Dedent();
+  out << "};\n\n";
+
+  out << "static void " << on_destroy << "(void* userData) {\n";
+  out.Indent();
+  out << "delete static_cast<" << data_clazz << "*>(userData);\n";
+  out.Dedent();
+  out << "};\n\n";
+
+  out << "static binder_status_t " << on_transact
+      << "(AIBinder* binder, transaction_code_t code, const AParcel* in, AParcel* out) {\n";
+  out.Indent();
+  // TODO(112664205): implement methods
+  out << "(void) binder; (void) code; (void) in; (void) out;\n";
+  out << "return STATUS_UNKNOWN_ERROR;\n";
+  out.Dedent();
+  out << "};\n\n";
+
+  out << "AIBinder_Class* " << data_clazz << "::clazz = AIBinder_Class_define(" << clazz
+      << "::descriptor, " << on_create << ", " << on_destroy << ", " << on_transact << ");\n\n";
+}
 void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
                           const AidlInterface& defined_type, const Options& options) {
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
+  const std::string data_clazz = DataClassFor(defined_type);
 
   out << "// Source for " << clazz << "\n";
+  out << "std::shared_ptr<" << clazz << "> " << clazz
+      << "::associate(const ::android::AutoAIBinder& binder) {\n";
+  out.Indent();
+  out << "if (!AIBinder_associateClass(binder.get(), " << data_clazz
+      << "::clazz)) { return nullptr; }\n";
+  out << "return std::shared_ptr<" << clazz << ">(new " << clazz << "(binder));\n";
+  out.Dedent();
+  out << "}\n\n";
+
+  out << clazz << "::~" << clazz << "() {}\n";
   out << clazz << "::" << clazz
       << "(const ::android::AutoAIBinder& binder) : BpCInterface(binder) {}\n";
-  out << clazz << "::~" << clazz << "() {}\n";
 
   (void)types;    // TODO(b/112664205)
   (void)options;  // TODO(b/112664205)
@@ -134,10 +192,19 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
 void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
                           const AidlInterface& defined_type, const Options& options) {
   const std::string clazz = ClassName(defined_type, ClassNames::SERVER);
+  const std::string data_clazz = DataClassFor(defined_type);
 
   out << "// Source for " << clazz << "\n";
   out << clazz << "::" << clazz << "() {}\n";
   out << clazz << "::~" << clazz << "() {}\n";
+
+  out << "::android::AutoAIBinder " << clazz << "::createBinder() {\n";
+  out.Indent();
+  out << "AIBinder* binder = AIBinder_new(" << data_clazz
+      << "::clazz, static_cast<void*>(this));\n";
+  out << "return ::android::AutoAIBinder(binder);\n";
+  out.Dedent();
+  out << "}\n";
 
   (void)types;    // TODO(b/112664205)
   (void)options;  // TODO(b/112664205)
@@ -170,11 +237,13 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
       << ClassName(defined_type, ClassNames::INTERFACE) << "> {\n";
   out << "public:\n";
   out.Indent();
-  out << clazz << "(const ::android::AutoAIBinder& binder);\n";
+  out << "static std::shared_ptr<" << clazz
+      << "> associate(const ::android::AutoAIBinder& binder);\n";
   out << "virtual ~" << clazz << "();\n";
   out.Dedent();
   out << "private:\n";
   out.Indent();
+  out << clazz << "(const ::android::AutoAIBinder& binder);\n";
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);
@@ -199,6 +268,10 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& types,
   out << clazz << "();\n";
   out << "virtual ~" << clazz << "();\n";
   out.Dedent();
+  out << "protected:\n";
+  out.Indent();
+  out << "::android::AutoAIBinder createBinder() override;\n";
+  out.Dedent();
   out << "private:\n";
   out.Indent();
   out.Dedent();
@@ -220,6 +293,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << "class " << clazz << " : public ::android::ICInterface {\n";
   out << "public:\n";
   out.Indent();
+  out << "static AIBinder_Class* clazz;\n";
   out << "static const char* descriptor;\n";
   out << clazz << "();\n";
   out << "virtual ~" << clazz << "();\n";
