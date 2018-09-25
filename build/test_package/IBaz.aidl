@@ -20,4 +20,5 @@ import some_package.IBar;
 
 interface IBaz {
     void CanYouDealWithThisBar(in IBar bar);
+    void MethodAddedInVersion2();
 }
