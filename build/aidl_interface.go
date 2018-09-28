@@ -640,7 +640,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		Installable:       proptools.BoolPtr(true),
 		Defaults:          []string{"aidl-java-module-defaults"},
 		No_framework_libs: proptools.BoolPtr(true),
-		Sdk_version:       proptools.StringPtr("current"),
+		Sdk_version:       proptools.StringPtr("28"),
 		Static_libs:       wrap("", i.properties.Imports, "-java"),
 		Srcs:              wrap(":", javaGeneratedSources, ""),
 	})
