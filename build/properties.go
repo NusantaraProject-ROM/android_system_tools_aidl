@@ -39,6 +39,7 @@ type javaProperties struct {
 	Sdk_version       *string
 	Srcs              []string
 	Static_libs       []string
+	Java_version      *string
 }
 
 type phonyProperties struct {

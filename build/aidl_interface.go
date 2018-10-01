@@ -643,7 +643,10 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		Sdk_version:       proptools.StringPtr("28"),
 		Static_libs:       wrap("", i.properties.Imports, "-java"),
 		Srcs:              wrap(":", javaGeneratedSources, ""),
+		Java_version:      proptools.StringPtr("1.8"),
 	})
+	// TODO(b/117069453): build with Java9. Currently, this is temporarily set to 1.8
+	// because system modules for the prebuilt stubs libs are not defined yet.
 
 	return javaModuleGen
 }
