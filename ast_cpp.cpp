@@ -131,8 +131,7 @@ ArgList::ArgList(const std::vector<std::string>& arg_list) {
 ArgList::ArgList(std::vector<std::unique_ptr<AstNode>> arg_list)
     : arguments_(std::move(arg_list)) {}
 
-ArgList::ArgList(ArgList&& arg_list)
-    : arguments_(std::move(arg_list.arguments_)) {}
+ArgList::ArgList(ArgList&& arg_list) noexcept : arguments_(std::move(arg_list.arguments_)) {}
 
 void ArgList::Write(CodeWriter* to) const {
   to->Write("(");
