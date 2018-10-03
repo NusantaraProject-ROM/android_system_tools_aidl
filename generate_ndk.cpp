@@ -112,15 +112,36 @@ static void StatusCheckBreak(CodeWriter& out) {
   out << "if (_aidl_ret_status != STATUS_OK) break;\n\n";
 }
 
+static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
+                                   const AidlDefinedType& defined_type) {
+  types.IterateTypes([&](const AidlDefinedType& other_defined_type) {
+    if (&other_defined_type == &defined_type) return;
+
+    if (other_defined_type.AsInterface() != nullptr) {
+      out << "#include <"
+          << HeaderFile(other_defined_type, ClassNames::INTERFACE, false /*use_os_sep*/) << ">\n";
+    }
+  });
+}
+static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
+                                   const AidlDefinedType& /*defined_type*/) {
+  types.IterateTypes([&](const AidlDefinedType& a_defined_type) {
+    if (a_defined_type.AsInterface() != nullptr) {
+      out << "#include <" << HeaderFile(a_defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
+          << ">\n";
+      out << "#include <" << HeaderFile(a_defined_type, ClassNames::SERVER, false /*use_os_sep*/)
+          << ">\n";
+      out << "#include <" << HeaderFile(a_defined_type, ClassNames::INTERFACE, false /*use_os_sep*/)
+          << ">\n";
+    }
+  });
+}
+
 void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInterface& defined_type,
                     const Options& options) {
-  out << "#include \"" << HeaderFile(defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
-      << "\"\n";
-  out << "#include \"" << HeaderFile(defined_type, ClassNames::SERVER, false /*use_os_sep*/)
-      << "\"\n";
-  out << "#include \"" << HeaderFile(defined_type, ClassNames::INTERFACE, false /*use_os_sep*/)
-      << "\"\n";
+  GenerateSourceIncludes(out, types, defined_type);
   out << "\n";
+
   EnterNdkNamespace(out, defined_type);
   GenerateClassSource(out, types, defined_type, options);
   GenerateClientSource(out, types, defined_type, options);
@@ -136,11 +157,12 @@ static std::string MethodId(const AidlMethod& m) {
   return "(FIRST_CALL_TRANSACTION + " + std::to_string(m.GetId()) + " /*" + m.GetName() + "*/)";
 }
 
-static void GenerateClientMethodDefinition(CodeWriter& out, const AidlInterface& defined_type,
+static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames& types,
+                                           const AidlInterface& defined_type,
                                            const AidlMethod& method) {
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
 
-  out << NdkMethodDecl(method, clazz) << " {\n";
+  out << NdkMethodDecl(types, method, clazz) << " {\n";
   out.Indent();
   out << "::android::AutoAParcel _aidl_in;\n";
   out << "::android::AutoAParcel _aidl_out;\n";
@@ -154,7 +176,8 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlInterface&
   for (const AidlArgument* arg : method.GetInArguments()) {
     out << "_aidl_ret_status = ";
     std::string prefix = arg->IsOut() ? "*" : "";
-    WriteToParcelFor({out, arg->GetType(), "_aidl_in.get()", prefix + cpp::BuildVarName(*arg)});
+    WriteToParcelFor(
+        {out, types, arg->GetType(), "_aidl_in.get()", prefix + cpp::BuildVarName(*arg)});
     out << ";\n";
     StatusCheckGoto(out);
   }
@@ -177,14 +200,14 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlInterface&
 
   for (const AidlArgument* arg : method.GetOutArguments()) {
     out << "_aidl_ret_status = ";
-    ReadFromParcelFor({out, arg->GetType(), "_aidl_out.get()", cpp::BuildVarName(*arg)});
+    ReadFromParcelFor({out, types, arg->GetType(), "_aidl_out.get()", cpp::BuildVarName(*arg)});
     out << ";\n";
     StatusCheckGoto(out);
   }
 
   if (method.GetType().GetName() != "void") {
     out << "_aidl_ret_status = ";
-    ReadFromParcelFor({out, method.GetType(), "_aidl_out.get()", "_aidl_return"});
+    ReadFromParcelFor({out, types, method.GetType(), "_aidl_out.get()", "_aidl_return"});
     out << ";\n";
     StatusCheckGoto(out);
   }
@@ -196,21 +219,23 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlInterface&
   out << "}\n";
 }
 
-static void GenerateServerCaseDefinition(CodeWriter& out, const AidlInterface& /*defined_type*/,
+static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& types,
+                                         const AidlInterface& /*defined_type*/,
                                          const AidlMethod& method) {
   out << "case " << MethodId(method) << ": {\n";
   out.Indent();
   for (const auto& arg : method.GetArguments()) {
-    out << NdkNameOf(arg->GetType(), StorageMode::STACK) << " " << cpp::BuildVarName(*arg) << ";\n";
+    out << NdkNameOf(types, arg->GetType(), StorageMode::STACK) << " " << cpp::BuildVarName(*arg)
+        << ";\n";
   }
   if (method.GetType().GetName() != "void") {
-    out << NdkNameOf(method.GetType(), StorageMode::STACK) << " _aidl_return;\n";
+    out << NdkNameOf(types, method.GetType(), StorageMode::STACK) << " _aidl_return;\n";
   }
   out << "\n";
 
   for (const AidlArgument* arg : method.GetInArguments()) {
     out << "_aidl_ret_status = ";
-    ReadFromParcelFor({out, arg->GetType(), "_aidl_in", "&" + cpp::BuildVarName(*arg)});
+    ReadFromParcelFor({out, types, arg->GetType(), "_aidl_in", "&" + cpp::BuildVarName(*arg)});
     out << ";\n";
     StatusCheckBreak(out);
   }
@@ -230,13 +255,13 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlInterface& /
 
     for (const AidlArgument* arg : method.GetOutArguments()) {
       out << "_aidl_ret_status = ";
-      WriteToParcelFor({out, arg->GetType(), "_aidl_out", cpp::BuildVarName(*arg)});
+      WriteToParcelFor({out, types, arg->GetType(), "_aidl_out", cpp::BuildVarName(*arg)});
       out << ";\n";
       StatusCheckBreak(out);
     }
     if (method.GetType().GetName() != "void") {
       out << "_aidl_ret_status = ";
-      WriteToParcelFor({out, method.GetType(), "_aidl_out", "_aidl_return"});
+      WriteToParcelFor({out, types, method.GetType(), "_aidl_out", "_aidl_return"});
       out << ";\n";
       StatusCheckBreak(out);
     }
@@ -247,7 +272,7 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlInterface& /
   out << "}\n";
 }
 
-void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
+void GenerateClassSource(CodeWriter& out, const AidlTypenames& types,
                          const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::INTERFACE);
   const std::string bn_clazz = ClassName(defined_type, ClassNames::SERVER);
@@ -290,7 +315,7 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
     out << "switch (_aidl_code) {\n";
     out.Indent();
     for (const auto& method : defined_type.GetMethods()) {
-      GenerateServerCaseDefinition(out, defined_type, *method);
+      GenerateServerCaseDefinition(out, types, defined_type, *method);
     }
     out.Dedent();
     out << "}\n";
@@ -306,7 +331,7 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& /*types*/,
       << "::descriptor, " << on_create << ", " << on_destroy << ", " << on_transact << ");\n\n";
 }
 void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
-                          const AidlInterface& defined_type, const Options& options) {
+                          const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
   const std::string data_clazz = DataClassFor(defined_type);
 
@@ -325,14 +350,11 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
   out << clazz << "::~" << clazz << "() {}\n";
   out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
-    GenerateClientMethodDefinition(out, defined_type, *method);
+    GenerateClientMethodDefinition(out, types, defined_type, *method);
   }
-
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
-void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
-                          const AidlInterface& defined_type, const Options& options) {
+void GenerateServerSource(CodeWriter& out, const AidlTypenames& /*types*/,
+                          const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::SERVER);
   const std::string data_clazz = DataClassFor(defined_type);
 
@@ -347,25 +369,51 @@ void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
   out << "return ::android::AutoAIBinder(binder);\n";
   out.Dedent();
   out << "}\n";
-
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
-void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
-                             const AidlInterface& defined_type, const Options& options) {
+void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& /*types*/,
+                             const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::INTERFACE);
+  const std::string data_clazz = DataClassFor(defined_type);
 
   out << "// Source for " << clazz << "\n";
   out << "const char* " << clazz << "::descriptor = \"" << defined_type.GetCanonicalName()
       << "\";\n";
   out << clazz << "::" << clazz << "() {}\n";
   out << clazz << "::~" << clazz << "() {}\n";
+  out << "\n";
 
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
+  out << "binder_status_t " << clazz << "::writeToParcel(AParcel* parcel, const std::shared_ptr<"
+      << clazz << ">& instance) {\n";
+  out.Indent();
+  out << "return AParcel_writeStrongBinder(parcel, instance ? instance->asBinder().get() : "
+         "nullptr);\n";
+  out.Dedent();
+  out << "}\n";
+
+  out << "binder_status_t " << clazz << "::readFromParcel(const AParcel* parcel, std::shared_ptr<"
+      << clazz << ">* instance) {\n";
+  out.Indent();
+  out << "::android::AutoAIBinder binder;\n";
+  out << "binder_status_t status = AParcel_readNullableStrongBinder(parcel, binder.getR());\n";
+  out << "if (status != STATUS_OK) return status;\n";
+  out << data_clazz << "* data = static_cast<" << data_clazz
+      << "*>(AIBinder_getUserData(binder.get()));\n";
+  out << "if (data) {\n";
+  out.Indent();
+  out << "*instance = data->instance;\n";
+  out.Dedent();
+  out << "} else {\n";
+  out.Indent();
+  out << "*instance = " << NdkFullClassName(defined_type, ClassNames::CLIENT)
+      << "::associate(binder);\n";
+  out.Dedent();
+  out << "}\n";
+  out << "return STATUS_OK;\n";
+  out.Dedent();
+  out << "}\n";
 }
 void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
-                          const AidlInterface& defined_type, const Options& options) {
+                          const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
 
   out << "#pragma once\n\n";
@@ -384,7 +432,7 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   out << "virtual ~" << clazz << "();\n";
   out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
-    out << NdkMethodDecl(*method) << " override;\n";
+    out << NdkMethodDecl(types, *method) << " override;\n";
   }
   out.Dedent();
   out << "private:\n";
@@ -393,11 +441,9 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
-void GenerateServerHeader(CodeWriter& out, const AidlTypenames& types,
-                          const AidlInterface& defined_type, const Options& options) {
+void GenerateServerHeader(CodeWriter& out, const AidlTypenames& /*types*/,
+                          const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::SERVER);
 
   out << "#pragma once\n\n";
@@ -423,19 +469,19 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
 void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
-                             const AidlInterface& defined_type, const Options& options) {
+                             const AidlInterface& defined_type, const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::INTERFACE);
 
   out << "#pragma once\n\n";
   out << "#include <android/binder_interface_utils.h>\n";
   out << "\n";
+
+  GenerateHeaderIncludes(out, types, defined_type);
+  out << "\n";
+
   EnterNdkNamespace(out, defined_type);
-  // TODO(b/112664205): still need to create an equivalent of IInterface which implements methods
-  // like 'ping'
   out << "class " << clazz << " : public ::android::ICInterface {\n";
   out << "public:\n";
   out.Indent();
@@ -444,18 +490,22 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << clazz << "();\n";
   out << "virtual ~" << clazz << "();\n";
   out << "\n";
+  out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
+      << ">& instance);";
+  out << "static binder_status_t readFromParcel(const AParcel* parcel, std::shared_ptr<" << clazz
+      << ">* instance);";
+  out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
-    out << "virtual " << NdkMethodDecl(*method) << " = 0;\n";
+    out << "virtual " << NdkMethodDecl(types, *method) << " = 0;\n";
   }
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
 void GenerateParcelHeader(CodeWriter& out, const AidlTypenames& types,
                           const AidlStructuredParcelable& defined_type, const Options& options) {
   out << "#pragma once\n";
+
   EnterNdkNamespace(out, defined_type);
   LeaveNdkNamespace(out, defined_type);
   (void)types;    // TODO(b/112664205)
