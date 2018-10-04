@@ -59,7 +59,7 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     {"long", {"int64_t", true, standardRead("Int64"), standardWrite("Int64")}},
     {"float", {"float", true, standardRead("Float"), standardWrite("Float")}},
     {"double", {"double", true, standardRead("Double"), standardWrite("Double")}},
-    // TODO(b/111445392) {"String", ""},
+    {"String", {"std::string", false, standardRead("String"), standardWrite("String")}},
     // TODO(b/111445392) {"List", ""},
     // TODO(b/111445392) {"Map", ""},
     {"IBinder",
