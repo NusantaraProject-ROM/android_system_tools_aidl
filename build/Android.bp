@@ -64,6 +64,7 @@ aidl_interface {
     name: "test-piece-2",
     local_include_dir: "tests_1",
     srcs: [
+        "tests_1/INoPackage.aidl",
         "tests_1/some_package/IBar.aidl",
     ],
     imports: [

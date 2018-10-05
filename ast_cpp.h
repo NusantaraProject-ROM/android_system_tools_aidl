@@ -392,22 +392,21 @@ class CppNamespace : public Declaration {
 class Document : public AstNode {
  public:
   Document(const std::vector<std::string>& include_list,
-           std::unique_ptr<CppNamespace> a_namespace);
+           std::vector<std::unique_ptr<Declaration>> declarations);
 
   void Write(CodeWriter* to) const override;
 
  private:
   std::vector<std::string> include_list_;
-  std::unique_ptr<CppNamespace> namespace_;
+  std::vector<std::unique_ptr<Declaration>> declarations_;
 
   DISALLOW_COPY_AND_ASSIGN(Document);
 };  // class Document
 
 class CppHeader final : public Document {
  public:
-  CppHeader(const std::string& include_guard,
-            const std::vector<std::string>& include_list,
-            std::unique_ptr<CppNamespace> a_namespace);
+  CppHeader(const std::string& include_guard, const std::vector<std::string>& include_list,
+            std::vector<std::unique_ptr<Declaration>> declarations);
   void Write(CodeWriter* to) const override;
 
  private:
@@ -419,7 +418,7 @@ class CppHeader final : public Document {
 class CppSource final : public Document {
  public:
   CppSource(const std::vector<std::string>& include_list,
-            std::unique_ptr<CppNamespace> a_namespace);
+            std::vector<std::unique_ptr<Declaration>> declarations);
 
  private:
   DISALLOW_COPY_AND_ASSIGN(CppSource);
