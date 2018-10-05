@@ -420,7 +420,7 @@ type aidlInterfaceProperties struct {
 	// The owner of the module
 	Owner *string
 
-	// List of .aidl files which compose this interface.
+	// List of .aidl files which compose this interface. These may be globbed.
 	Srcs []string
 
 	Imports []string
@@ -445,11 +445,8 @@ type aidlInterface struct {
 
 	properties aidlInterfaceProperties
 
-	// For a corresponding .aidl source, example: "IFoo"
-	types []string
-
-	// For a corresponding .aidl source, example: "some/package/path"
-	packagePaths []string
+	// Unglobbed sources
+	rawSrcs []string
 }
 
 func (i *aidlInterface) shouldGenerateCpp() bool {
@@ -458,24 +455,40 @@ func (i *aidlInterface) shouldGenerateCpp() bool {
 }
 
 func (i *aidlInterface) checkAndUpdateSources(mctx android.LoadHookContext) {
-	if len(i.properties.Srcs) == 0 {
+	prefix := mctx.ModuleDir()
+	for _, source := range i.properties.Srcs {
+		if pathtools.IsGlob(source) {
+			globbedSrcFiles, err := mctx.GlobWithDeps(filepath.Join(prefix, source), nil)
+			if err != nil {
+				mctx.ModuleErrorf("glob: %s", err.Error())
+			}
+			for _, globbedSrc := range globbedSrcFiles {
+				relativeGlobbedSrc, err := filepath.Rel(prefix, globbedSrc)
+				if err != nil {
+					panic(err)
+				}
+
+				i.rawSrcs = append(i.rawSrcs, relativeGlobbedSrc)
+			}
+		} else {
+			i.rawSrcs = append(i.rawSrcs, source)
+		}
+	}
+
+	if len(i.rawSrcs) == 0 {
 		mctx.PropertyErrorf("srcs", "No sources provided.")
 	}
 
-	for _, source := range i.properties.Srcs {
+	for _, source := range i.rawSrcs {
 		if !strings.HasSuffix(source, ".aidl") {
 			mctx.PropertyErrorf("srcs", "Source must be a .aidl file: "+source)
 			continue
 		}
 
-		name := strings.TrimSuffix(source, ".aidl")
-		i.types = append(i.types, filepath.Base(name))
-
 		relativePath, err := filepath.Rel(i.properties.Local_include_dir, source)
 		if err != nil || !isRelativePath(relativePath) {
 			mctx.PropertyErrorf("srcs", "Source is not in local_include_dir: "+source)
 		}
-		i.packagePaths = append(i.packagePaths, filepath.Dir(relativePath))
 	}
 }
 
@@ -503,7 +516,7 @@ func (i *aidlInterface) versionedName(version string) string {
 
 func (i *aidlInterface) srcsForVersion(mctx android.LoadHookContext, version string) (srcs []string, base string) {
 	if version == "" {
-		return i.properties.Srcs, i.properties.Local_include_dir
+		return i.rawSrcs, i.properties.Local_include_dir
 	} else {
 		var apiDir string
 		if i.properties.Api_dir != nil {
@@ -512,7 +525,10 @@ func (i *aidlInterface) srcsForVersion(mctx android.LoadHookContext, version str
 			apiDir = "api"
 		}
 		base = filepath.Join(apiDir, version)
-		full_paths, _ := mctx.GlobWithDeps(filepath.Join(mctx.ModuleDir(), base, "**/*.aidl"), nil)
+		full_paths, err := mctx.GlobWithDeps(filepath.Join(mctx.ModuleDir(), base, "**/*.aidl"), nil)
+		if err != nil {
+			panic(err)
+		}
 		for _, path := range full_paths {
 			// Here, we need path local to the module
 			srcs = append(srcs, strings.TrimPrefix(path, mctx.ModuleDir()+"/"))
@@ -671,7 +687,7 @@ func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
 		BaseName: i.ModuleBase.Name(),
-		Inputs:   i.properties.Srcs,
+		Inputs:   i.rawSrcs,
 		Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 		Api_dir:  i.properties.Api_dir,
 		AidlRoot: i.properties.Local_include_dir,
