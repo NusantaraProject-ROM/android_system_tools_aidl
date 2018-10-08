@@ -76,6 +76,14 @@ void LeaveNamespace(CodeWriter& out, const AidlDefinedType& defined_type) {
   }
 }
 
+string BuildVarName(const AidlArgument& a) {
+  string prefix = "out_";
+  if (a.GetDirection() & AidlArgument::IN_DIR) {
+    prefix = "in_";
+  }
+  return prefix + a.GetName();
+}
+
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
