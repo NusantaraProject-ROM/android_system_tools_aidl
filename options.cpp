@@ -185,6 +185,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           } else if (lang == "cpp") {
             language_ = Options::Language::CPP;
             task_ = Options::Task::COMPILE;
+          } else if (lang == "ndk") {
+            language_ = Options::Language::NDK;
+            task_ = Options::Task::COMPILE;
           } else {
             error_message_ << "Unsupported language: '" << lang << "'" << endl;
             return;
@@ -299,7 +302,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
           output_file_ = output_dir_ + output_file_;
         }
       }
-    } else if (language_ == Options::Language::CPP) {
+    } else if (IsCppOutput()) {
       input_files_.emplace_back(argv[optind++]);
       if (argc - optind < 2) {
         error_message_ << "No HEADER_DIR or OUTPUT." << endl;
@@ -342,7 +345,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
 
   // filter out invalid combinations
   if (lang_option_found) {
-    if (language_ == Options::Language::CPP && task_ == Options::Task::COMPILE) {
+    if (IsCppOutput() && task_ == Options::Task::COMPILE) {
       if (output_dir_.empty()) {
         error_message_ << "Output directory is not set. Set with --out." << endl;
         return;
