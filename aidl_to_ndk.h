@@ -41,6 +41,15 @@ struct CodeGeneratorContext {
 void WriteToParcelFor(const CodeGeneratorContext& c);
 void ReadFromParcelFor(const CodeGeneratorContext& c);
 
+// -> 'type name, type name, type name' for a method
+std::string NdkArgListOf(const AidlMethod& method);
+
+// -> 'name, name, name' for a method where out arguments are '&name'
+std::string NdkCallListFor(const AidlMethod& method);
+
+// -> 'status (class::)name(type name, ...)' for a method
+std::string NdkMethodDecl(const AidlMethod& method, const std::string& clazz = "");
+
 }  // namespace ndk
 }  // namespace aidl
 }  // namespace android
