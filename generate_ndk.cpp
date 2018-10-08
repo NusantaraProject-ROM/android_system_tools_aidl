@@ -32,8 +32,6 @@ using cpp::ClassNames;
 void GenerateNdkInterface(const string& output_file, const Options& options,
                           const AidlTypenames& types, const AidlInterface& defined_type,
                           const IoDelegate& io_delegate) {
-  // TODO(b/112664205): generate constant values
-
   const string i_header =
       options.OutputHeaderDir() + HeaderFile(defined_type, ClassNames::INTERFACE);
   unique_ptr<CodeWriter> i_writer(io_delegate.GetCodeWriter(i_header));
@@ -137,6 +135,52 @@ static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
           << ">\n";
     }
   });
+}
+
+static void GenerateConstantDeclarations(CodeWriter& out, const AidlInterface& interface) {
+  for (const auto& constant : interface.GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
+    if (value.GetType() == AidlConstantValue::Type::STRING) {
+      out << "static const char* " << constant->GetName() << ";\n";
+    }
+  }
+  out << "\n";
+
+  bool hasIntegralConstant = false;
+  for (const auto& constant : interface.GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
+    if (value.GetType() == AidlConstantValue::Type::HEXIDECIMAL ||
+        value.GetType() == AidlConstantValue::Type::INTEGRAL) {
+      hasIntegralConstant = true;
+      break;
+    }
+  }
+
+  if (hasIntegralConstant) {
+    out << "enum : int32_t {\n";
+    out.Indent();
+    for (const auto& constant : interface.GetConstantDeclarations()) {
+      const AidlConstantValue& value = constant->GetValue();
+      if (value.GetType() == AidlConstantValue::Type::HEXIDECIMAL ||
+          value.GetType() == AidlConstantValue::Type::INTEGRAL) {
+        out << constant->GetName() << " = " << constant->ValueString(AidlConstantValueDecorator)
+            << ",\n";
+      }
+    }
+    out.Dedent();
+    out << "};\n";
+  }
+}
+static void GenerateConstantDefinitions(CodeWriter& out, const AidlInterface& interface) {
+  const std::string clazz = ClassName(interface, ClassNames::INTERFACE);
+
+  for (const auto& constant : interface.GetConstantDeclarations()) {
+    const AidlConstantValue& value = constant->GetValue();
+    if (value.GetType() == AidlConstantValue::Type::STRING) {
+      out << "const char* " << clazz << "::" << constant->GetName() << " = "
+          << constant->ValueString(AidlConstantValueDecorator) << ";\n";
+    }
+  }
 }
 
 void GenerateSource(CodeWriter& out, const AidlTypenames& types, const AidlInterface& defined_type,
@@ -383,6 +427,8 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& /*types*/,
   out << clazz << "::" << clazz << "() {}\n";
   out << clazz << "::~" << clazz << "() {}\n";
   out << "\n";
+  GenerateConstantDefinitions(out, defined_type);
+  out << "\n";
 
   out << "binder_status_t " << clazz << "::writeToParcel(AParcel* parcel, const std::shared_ptr<"
       << clazz << ">& instance) {\n";
@@ -491,6 +537,8 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << "static const char* descriptor;\n";
   out << clazz << "();\n";
   out << "virtual ~" << clazz << "();\n";
+  out << "\n";
+  GenerateConstantDeclarations(out, defined_type);
   out << "\n";
   out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
       << ">& instance);";
