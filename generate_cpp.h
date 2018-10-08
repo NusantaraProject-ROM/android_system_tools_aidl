@@ -21,6 +21,7 @@
 
 #include "aidl_language.h"
 #include "aidl_to_cpp.h"
+#include "aidl_to_cpp_common.h"
 #include "ast_cpp.h"
 #include "options.h"
 #include "type_cpp.h"
@@ -31,21 +32,6 @@ namespace cpp {
 
 bool GenerateCpp(const string& output_file, const Options& options, const cpp::TypeNamespace& types,
                  const AidlDefinedType& parsed_doc, const IoDelegate& io_delegate);
-
-// These roughly correspond to the various class names in the C++ hierarchy:
-enum class ClassNames {
-  BASE,          // Foo (not a real class, but useful in some circumstances).
-  CLIENT,        // BpFoo
-  SERVER,        // BnFoo
-  INTERFACE,     // IFoo
-  DEFAULT_IMPL,  // IFooDefault
-};
-
-// Generate the relative path to a header file.  If |use_os_sep| we'll use the
-// operating system specific path separator rather than C++'s expected '/' when
-// including headers.
-std::string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_type,
-                       bool use_os_sep = true);
 
 namespace internals {
 std::unique_ptr<Document> BuildClientSource(const TypeNamespace& types,
