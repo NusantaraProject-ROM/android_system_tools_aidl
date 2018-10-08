@@ -1130,6 +1130,33 @@ TEST_F(AidlTest, HandleManualIdAssignments) {
   EXPECT_FALSE(::android::aidl::check_api(options, io_delegate_));
 }
 
+TEST_F(AidlTest, ParcelFileDescriptorIsBuiltinType) {
+  Options javaOptions = Options::From("aidl --lang=java -o out p/IFoo.aidl");
+  Options cppOptions = Options::From("aidl --lang=cpp -h out -o out p/IFoo.aidl");
+
+  // use without import
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo{ void foo(in ParcelFileDescriptor fd);}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(javaOptions, io_delegate_));
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(cppOptions, io_delegate_));
+
+  // use without impot but with full name
+  io_delegate_.SetFileContents(
+      "p/IFoo.aidl",
+      "package p; interface IFoo{ void foo(in android.os.ParcelFileDescriptor fd);}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(javaOptions, io_delegate_));
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(cppOptions, io_delegate_));
+
+  // use with import (as before)
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p;"
+                               "import android.os.ParcelFileDescriptor;"
+                               "interface IFoo{"
+                               "  void foo(in ParcelFileDescriptor fd);"
+                               "}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(javaOptions, io_delegate_));
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(cppOptions, io_delegate_));
+}
 
 }  // namespace aidl
 }  // namespace android
