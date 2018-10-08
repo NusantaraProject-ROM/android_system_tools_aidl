@@ -16,6 +16,7 @@
 #pragma once
 
 #include "aidl_language.h"
+#include "aidl_to_cpp_common.h"
 
 namespace android {
 namespace aidl {
@@ -27,13 +28,19 @@ enum class StorageMode {
   OUT_ARGUMENT,  // Pointer to raw type
 };
 
+// Returns ::aidl::some_package::some_sub_package::foo::IFoo/BpFoo/BnFoo
+std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name);
+
 // Returns the corresponding Ndk type name for an AIDL type spec including
 // array modifiers.
-std::string NdkNameOf(const AidlTypeSpecifier& aidl, StorageMode mode);
+std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl, StorageMode mode);
 
 struct CodeGeneratorContext {
   CodeWriter& writer;
+
+  const AidlTypenames& types;
   const AidlTypeSpecifier& type;
+
   const string parcel;
   const string var;
 };
@@ -42,13 +49,14 @@ void WriteToParcelFor(const CodeGeneratorContext& c);
 void ReadFromParcelFor(const CodeGeneratorContext& c);
 
 // -> 'type name, type name, type name' for a method
-std::string NdkArgListOf(const AidlMethod& method);
+std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method);
 
 // -> 'name, name, name' for a method where out arguments are '&name'
 std::string NdkCallListFor(const AidlMethod& method);
 
 // -> 'status (class::)name(type name, ...)' for a method
-std::string NdkMethodDecl(const AidlMethod& method, const std::string& clazz = "");
+std::string NdkMethodDecl(const AidlTypenames& types, const AidlMethod& method,
+                          const std::string& clazz = "");
 
 }  // namespace ndk
 }  // namespace aidl
