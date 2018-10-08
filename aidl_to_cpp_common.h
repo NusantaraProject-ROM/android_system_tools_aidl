@@ -47,6 +47,8 @@ std::string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_typ
 void EnterNamespace(CodeWriter& out, const AidlDefinedType& defined_type);
 void LeaveNamespace(CodeWriter& out, const AidlDefinedType& defined_type);
 
+string BuildVarName(const AidlArgument& a);
+
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
