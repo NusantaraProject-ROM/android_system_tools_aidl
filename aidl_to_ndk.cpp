@@ -75,7 +75,16 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     // TODO(b/111445392) {"CharSequence", ""},
 };
 
-std::string NdkNameOf(const AidlTypeSpecifier& aidl, StorageMode mode) {
+std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name) {
+  std::vector<std::string> pieces = {"aidl"};
+  std::vector<std::string> package = type.GetSplitPackage();
+  pieces.insert(pieces.end(), package.begin(), package.end());
+  pieces.push_back(cpp::ClassName(type, name));
+
+  return Join(pieces, "::");
+}
+
+std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl, StorageMode mode) {
   CHECK(aidl.IsResolved()) << aidl.ToString();
 
   // TODO(112664205): this is okay for some types
@@ -90,7 +99,16 @@ std::string NdkNameOf(const AidlTypeSpecifier& aidl, StorageMode mode) {
     CHECK(it != kNdkTypeInfoMap.end());
     info = it->second;
   } else {
-    info = {"::aidl::" + Join(Split(aidl_name, "."), "::"), false, nullptr, nullptr};
+    const AidlDefinedType* type = types.TryGetDefinedType(aidl_name);
+
+    AIDL_FATAL_IF(type == nullptr, aidl_name) << "Unrecognized type.";
+
+    if (type->AsInterface() != nullptr) {
+      info = {"std::shared_ptr<" + NdkFullClassName(*type, cpp::ClassNames::INTERFACE) + ">", false,
+              nullptr, nullptr};
+    } else {
+      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+    }
   }
 
   switch (mode) {
@@ -118,7 +136,16 @@ void WriteToParcelFor(const CodeGeneratorContext& c) {
 
     info.writeParcelFunction(c);
   } else {
-    AIDL_FATAL("TODO(b/112664205): not yet supported");
+    const AidlDefinedType* type = c.types.TryGetDefinedType(aidl_name);
+
+    AIDL_FATAL_IF(type == nullptr, "Unrecognized type: " + aidl_name);
+
+    if (type->AsInterface() != nullptr) {
+      c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::writeToParcel("
+               << c.parcel << ", " << c.var << ")";
+    } else {
+      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+    }
   }
 }
 
@@ -131,21 +158,31 @@ void ReadFromParcelFor(const CodeGeneratorContext& c) {
 
     info.readParcelFunction(c);
   } else {
-    AIDL_FATAL("TODO(b/112664205): not yet supported");
+    const AidlDefinedType* type = c.types.TryGetDefinedType(aidl_name);
+
+    AIDL_FATAL_IF(type == nullptr, "Unrecognized type: " + aidl_name);
+
+    const AidlInterface* interface = type->AsInterface();
+    if (interface != nullptr) {
+      c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::readFromParcel("
+               << c.parcel << ", " << c.var << ")";
+    } else {
+      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+    }
   }
 }
 
-std::string NdkArgListOf(const AidlMethod& method) {
+std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method) {
   std::vector<std::string> method_arguments;
   for (const auto& a : method.GetArguments()) {
     StorageMode mode = a->IsOut() ? StorageMode::OUT_ARGUMENT : StorageMode::ARGUMENT;
-    std::string type = NdkNameOf(a->GetType(), mode);
+    std::string type = NdkNameOf(types, a->GetType(), mode);
     std::string name = cpp::BuildVarName(*a);
     method_arguments.emplace_back(type + " " + name);
   }
 
   if (method.GetType().GetName() != "void") {
-    std::string return_type = NdkNameOf(method.GetType(), StorageMode::OUT_ARGUMENT);
+    std::string return_type = NdkNameOf(types, method.GetType(), StorageMode::OUT_ARGUMENT);
     method_arguments.emplace_back(return_type + " _aidl_return");
   }
 
@@ -167,10 +204,11 @@ std::string NdkCallListFor(const AidlMethod& method) {
   return Join(method_arguments, ", ");
 }
 
-std::string NdkMethodDecl(const AidlMethod& method, const std::string& clazz) {
+std::string NdkMethodDecl(const AidlTypenames& types, const AidlMethod& method,
+                          const std::string& clazz) {
   std::string class_prefix = clazz.empty() ? "" : (clazz + "::");
-  return "::android::AutoAStatus " + class_prefix + method.GetName() + "(" + NdkArgListOf(method) +
-         ")";
+  return "::android::AutoAStatus " + class_prefix + method.GetName() + "(" +
+         NdkArgListOf(types, method) + ")";
 }
 
 }  // namespace ndk
