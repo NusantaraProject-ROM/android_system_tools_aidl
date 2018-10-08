@@ -106,8 +106,10 @@ std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl,
     if (type->AsInterface() != nullptr) {
       info = {"std::shared_ptr<" + NdkFullClassName(*type, cpp::ClassNames::INTERFACE) + ">", false,
               nullptr, nullptr};
+    } else if (type->AsParcelable() != nullptr) {
+      info = {NdkFullClassName(*type, cpp::ClassNames::BASE), false, nullptr, nullptr};
     } else {
-      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+      AIDL_FATAL(aidl_name) << "Unrecognized type";
     }
   }
 
@@ -143,8 +145,10 @@ void WriteToParcelFor(const CodeGeneratorContext& c) {
     if (type->AsInterface() != nullptr) {
       c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::writeToParcel("
                << c.parcel << ", " << c.var << ")";
+    } else if (type->AsParcelable() != nullptr) {
+      c.writer << "(" << c.var << ").writeToParcel(" << c.parcel << ")";
     } else {
-      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+      AIDL_FATAL(aidl_name) << "Unrecognized type";
     }
   }
 }
@@ -166,8 +170,10 @@ void ReadFromParcelFor(const CodeGeneratorContext& c) {
     if (interface != nullptr) {
       c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::readFromParcel("
                << c.parcel << ", " << c.var << ")";
+    } else if (type->AsParcelable() != nullptr) {
+      c.writer << "(" << c.var << ")->readFromParcel(" << c.parcel << ")";
     } else {
-      AIDL_FATAL("TODO(b/112664205): parcelable not yet supported");
+      AIDL_FATAL(aidl_name) << "Unrecognized type";
     }
   }
 }

@@ -109,22 +109,32 @@ static void StatusCheckGoto(CodeWriter& out) {
 static void StatusCheckBreak(CodeWriter& out) {
   out << "if (_aidl_ret_status != STATUS_OK) break;\n\n";
 }
+static void StatusCheckReturn(CodeWriter& out) {
+  out << "if (_aidl_ret_status != STATUS_OK) return _aidl_ret_status;\n\n";
+}
 
 static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& defined_type) {
+  out << "#include <android/binder_parcel_utils.h>\n";
+
   types.IterateTypes([&](const AidlDefinedType& other_defined_type) {
     if (&other_defined_type == &defined_type) return;
 
     if (other_defined_type.AsInterface() != nullptr) {
       out << "#include <"
           << HeaderFile(other_defined_type, ClassNames::INTERFACE, false /*use_os_sep*/) << ">\n";
+    } else if (other_defined_type.AsStructuredParcelable() != nullptr) {
+      out << "#include <" << HeaderFile(other_defined_type, ClassNames::BASE, false /*use_os_sep*/)
+          << ">\n";
+    } else if (other_defined_type.AsParcelable() != nullptr) {
+      out << "#include \"" << other_defined_type.AsParcelable()->GetCppHeader() << "\"\n";
+    } else {
+      AIDL_FATAL(defined_type) << "Unrecognized type.";
     }
   });
 }
 static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& /*defined_type*/) {
-  out << "#include <android/binder_parcel_utils.h>\n";
-
   types.IterateTypes([&](const AidlDefinedType& a_defined_type) {
     if (a_defined_type.AsInterface() != nullptr) {
       out << "#include <" << HeaderFile(a_defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
@@ -553,23 +563,92 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   LeaveNdkNamespace(out, defined_type);
 }
 void GenerateParcelHeader(CodeWriter& out, const AidlTypenames& types,
-                          const AidlStructuredParcelable& defined_type, const Options& options) {
+                          const AidlStructuredParcelable& defined_type,
+                          const Options& /*options*/) {
+  const std::string clazz = ClassName(defined_type, ClassNames::BASE);
+
   out << "#pragma once\n";
+  out << "#include <android/binder_interface_utils.h>\n";
+  out << "\n";
+
+  GenerateHeaderIncludes(out, types, defined_type);
 
   EnterNdkNamespace(out, defined_type);
+  out << "class " << clazz << " {\n";
+  out << "public:\n";
+  out.Indent();
+  out << "static const char* descriptor;\n";
+  out << "\n";
+  for (const auto& variable : defined_type.GetFields()) {
+    out << NdkNameOf(types, variable->GetType(), StorageMode::STACK) << " " << variable->GetName();
+    if (variable->GetDefaultValue()) {
+      out << " = " << variable->ValueString(AidlConstantValueDecorator);
+    }
+    out << ";\n";
+  }
+  out << "\n";
+  out << "binder_status_t readFromParcel(const AParcel* parcel);\n";
+  out << "binder_status_t writeToParcel(AParcel* parcel) const;\n";
+  out.Dedent();
+  out << "};\n";
   LeaveNdkNamespace(out, defined_type);
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
 void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
-                          const AidlStructuredParcelable& defined_type, const Options& options) {
+                          const AidlStructuredParcelable& defined_type,
+                          const Options& /*options*/) {
+  const std::string clazz = ClassName(defined_type, ClassNames::BASE);
+
   out << "#include \"" << HeaderFile(defined_type, ClassNames::BASE, false /*use_os_sep*/)
       << "\"\n";
   out << "\n";
+  GenerateSourceIncludes(out, types, defined_type);
+  out << "\n";
   EnterNdkNamespace(out, defined_type);
+  out << "const char* " << clazz << "::descriptor = \"" << defined_type.GetCanonicalName()
+      << "\";\n";
+  out << "\n";
+
+  out << "binder_status_t " << clazz << "::readFromParcel(const AParcel* parcel) {\n";
+  out.Indent();
+  out << "std::string _aidl_descriptor;\n";
+  out << "binder_status_t _aidl_ret_status;\n";
+
+  out << "int32_t _aidl_null;\n";
+  out << "_aidl_ret_status = AParcel_readInt32(parcel, &_aidl_null);\n";
+  StatusCheckReturn(out);
+
+  // TODO(b/117281836)
+  out << "if (_aidl_null == 0) return STATUS_UNEXPECTED_NULL;\n\n";
+
+  for (const auto& variable : defined_type.GetFields()) {
+    out << "_aidl_ret_status = ";
+    ReadFromParcelFor({out, types, variable->GetType(), "parcel", "&" + variable->GetName()});
+    out << ";\n";
+    StatusCheckReturn(out);
+  }
+  out << "return _aidl_ret_status;\n";
+  out.Dedent();
+  out << "}\n";
+
+  out << "binder_status_t " << clazz << "::writeToParcel(AParcel* parcel) const {\n";
+  out.Indent();
+  out << "binder_status_t _aidl_ret_status;\n";
+
+  // non-null
+  out << "_aidl_ret_status = AParcel_writeInt32(parcel, 1);\n";
+  StatusCheckReturn(out);
+
+  for (const auto& variable : defined_type.GetFields()) {
+    out << "_aidl_ret_status = ";
+    WriteToParcelFor({out, types, variable->GetType(), "parcel", variable->GetName()});
+    out << ";\n";
+    StatusCheckReturn(out);
+  }
+  out << "return _aidl_ret_status;\n";
+  out.Dedent();
+  out << "}\n";
+  out << "\n";
   LeaveNdkNamespace(out, defined_type);
-  (void)types;    // TODO(b/112664205)
-  (void)options;  // TODO(b/112664205)
 }
 }  // namespace internals
 }  // namespace ndk
