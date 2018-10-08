@@ -125,6 +125,8 @@ static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
 }
 static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& /*defined_type*/) {
+  out << "#include <android/binder_parcel_utils.h>\n";
+
   types.IterateTypes([&](const AidlDefinedType& a_defined_type) {
     if (a_defined_type.AsInterface() != nullptr) {
       out << "#include <" << HeaderFile(a_defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
