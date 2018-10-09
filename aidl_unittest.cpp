@@ -114,8 +114,9 @@ class AidlTest : public ::testing::Test {
   cpp::TypeNamespace cpp_types_;
 };
 
-TEST_F(AidlTest, JavaAcceptsMissingPackage) {
+TEST_F(AidlTest, AcceptMissingPackage) {
   EXPECT_NE(nullptr, Parse("IFoo.aidl", "interface IFoo { }", &java_types_));
+  EXPECT_NE(nullptr, Parse("IFoo.aidl", "interface IFoo { }", &cpp_types_));
 }
 
 TEST_F(AidlTest, RejectsArraysOfBinders) {
@@ -128,12 +129,6 @@ TEST_F(AidlTest, RejectsArraysOfBinders) {
                     "interface IFoo { void f(in IBar[] input); }";
   EXPECT_EQ(nullptr, Parse(path, contents, &java_types_));
   EXPECT_EQ(nullptr, Parse(path, contents, &cpp_types_));
-}
-
-TEST_F(AidlTest, CppRejectsMissingPackage) {
-  EXPECT_EQ(nullptr, Parse("IFoo.aidl", "interface IFoo { }", &cpp_types_));
-  EXPECT_NE(nullptr,
-            Parse("a/IFoo.aidl", "package a; interface IFoo { }", &cpp_types_));
 }
 
 TEST_F(AidlTest, RejectsOnewayOutParameters) {
