@@ -220,10 +220,10 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames&
 
   out << NdkMethodDecl(types, method, clazz) << " {\n";
   out.Indent();
-  out << "::android::AutoAParcel _aidl_in;\n";
-  out << "::android::AutoAParcel _aidl_out;\n";
+  out << "::ndk::ScopedAParcel _aidl_in;\n";
+  out << "::ndk::ScopedAParcel _aidl_out;\n";
   out << "binder_status_t _aidl_ret_status = STATUS_OK;\n";
-  out << "::android::AutoAStatus _aidl_status;\n";
+  out << "::ndk::ScopedAStatus _aidl_status;\n";
   out << "\n";
 
   out << "_aidl_ret_status = AIBinder_prepareTransaction(asBinder().get(), _aidl_in.getR());\n";
@@ -296,7 +296,7 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& t
     StatusCheckBreak(out);
   }
 
-  out << "::android::AutoAStatus _aidl_status = _aidl_impl->" << method.GetName() << "("
+  out << "::ndk::ScopedAStatus _aidl_status = _aidl_impl->" << method.GetName() << "("
       << NdkCallListFor(method) << ");\n";
 
   if (method.IsOneway()) {
@@ -393,7 +393,7 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
 
   out << "// Source for " << clazz << "\n";
   out << "std::shared_ptr<" << clazz << "> " << clazz
-      << "::associate(const ::android::AutoAIBinder& binder) {\n";
+      << "::associate(const ::ndk::SpAIBinder& binder) {\n";
   out.Indent();
   out << "if (!AIBinder_associateClass(binder.get(), " << data_clazz
       << "::clazz)) { return nullptr; }\n";
@@ -401,8 +401,7 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "}\n\n";
 
-  out << clazz << "::" << clazz
-      << "(const ::android::AutoAIBinder& binder) : BpCInterface(binder) {}\n";
+  out << clazz << "::" << clazz << "(const ::ndk::SpAIBinder& binder) : BpCInterface(binder) {}\n";
   out << clazz << "::~" << clazz << "() {}\n";
   out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
@@ -418,11 +417,11 @@ void GenerateServerSource(CodeWriter& out, const AidlTypenames& /*types*/,
   out << clazz << "::" << clazz << "() {}\n";
   out << clazz << "::~" << clazz << "() {}\n";
 
-  out << "::android::AutoAIBinder " << clazz << "::createBinder() {\n";
+  out << "::ndk::SpAIBinder " << clazz << "::createBinder() {\n";
   out.Indent();
   out << "AIBinder* binder = AIBinder_new(" << data_clazz
       << "::clazz, static_cast<void*>(this));\n";
-  out << "return ::android::AutoAIBinder(binder);\n";
+  out << "return ::ndk::SpAIBinder(binder);\n";
   out.Dedent();
   out << "}\n";
 }
@@ -451,7 +450,7 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& /*types*/,
   out << "binder_status_t " << clazz << "::readFromParcel(const AParcel* parcel, std::shared_ptr<"
       << clazz << ">* instance) {\n";
   out.Indent();
-  out << "::android::AutoAIBinder binder;\n";
+  out << "::ndk::SpAIBinder binder;\n";
   out << "binder_status_t status = AParcel_readNullableStrongBinder(parcel, binder.getR());\n";
   out << "if (status != STATUS_OK) return status;\n";
   out << data_clazz << "* data = static_cast<" << data_clazz
@@ -481,12 +480,11 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   out << "#include <android/binder_ibinder.h>\n";
   out << "\n";
   EnterNdkNamespace(out, defined_type);
-  out << "class " << clazz << " : public ::android::BpCInterface<"
+  out << "class " << clazz << " : public ::ndk::BpCInterface<"
       << ClassName(defined_type, ClassNames::INTERFACE) << "> {\n";
   out << "public:\n";
   out.Indent();
-  out << "static std::shared_ptr<" << clazz
-      << "> associate(const ::android::AutoAIBinder& binder);\n";
+  out << "static std::shared_ptr<" << clazz << "> associate(const ::ndk::SpAIBinder& binder);\n";
   out << "virtual ~" << clazz << "();\n";
   out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
@@ -495,7 +493,7 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "private:\n";
   out.Indent();
-  out << clazz << "(const ::android::AutoAIBinder& binder);\n";
+  out << clazz << "(const ::ndk::SpAIBinder& binder);\n";
   out.Dedent();
   out << "};\n";
   LeaveNdkNamespace(out, defined_type);
@@ -511,7 +509,7 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& /*types*/,
   out << "#include <android/binder_ibinder.h>\n";
   out << "\n";
   EnterNdkNamespace(out, defined_type);
-  out << "class " << clazz << " : public ::android::BnCInterface<"
+  out << "class " << clazz << " : public ::ndk::BnCInterface<"
       << ClassName(defined_type, ClassNames::INTERFACE) << "> {\n";
   out << "public:\n";
   out.Indent();
@@ -520,7 +518,7 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& /*types*/,
   out.Dedent();
   out << "protected:\n";
   out.Indent();
-  out << "::android::AutoAIBinder createBinder() override;\n";
+  out << "::ndk::SpAIBinder createBinder() override;\n";
   out.Dedent();
   out << "private:\n";
   out.Indent();
@@ -540,7 +538,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << "\n";
 
   EnterNdkNamespace(out, defined_type);
-  out << "class " << clazz << " : public ::android::ICInterface {\n";
+  out << "class " << clazz << " : public ::ndk::ICInterface {\n";
   out << "public:\n";
   out.Indent();
   out << "static AIBinder_Class* clazz;\n";
