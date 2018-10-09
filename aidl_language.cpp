@@ -482,6 +482,7 @@ string AidlConstantValue::ToString(Type type) {
       return "a literal string";
     case Type::ERROR:
       LOG(FATAL) << "aidl internal error: error type failed to halt program";
+      return "";
     default:
       LOG(FATAL) << "aidl internal error: unknown constant type: " << static_cast<int>(type);
       return "";  // not reached
