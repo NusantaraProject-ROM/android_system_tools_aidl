@@ -183,26 +183,20 @@ unique_ptr<Declaration> BuildMetaMethodDecl(const AidlMethod& method, const Type
   return nullptr;
 }
 
-unique_ptr<CppNamespace> NestInNamespaces(
-    vector<unique_ptr<Declaration>> decls,
-    const vector<string>& package) {
-  if (package.empty()) {
-    // We should also be checking this before we get this far, but do it again
-    // for the sake of unit tests and meaningful errors.
-    LOG(FATAL) << "C++ generation requires a package declaration "
-                  "for namespacing";
-  }
+std::vector<unique_ptr<Declaration>> NestInNamespaces(vector<unique_ptr<Declaration>> decls,
+                                                      const vector<string>& package) {
   auto it = package.crbegin();  // Iterate over the namespaces inner to outer
-  unique_ptr<CppNamespace> inner{new CppNamespace{*it, std::move(decls)}};
-  ++it;
   for (; it != package.crend(); ++it) {
-    inner.reset(new CppNamespace{*it, std::move(inner)});
+    vector<unique_ptr<Declaration>> inner;
+    inner.emplace_back(unique_ptr<Declaration>{new CppNamespace{*it, std::move(decls)}});
+
+    decls = std::move(inner);
   }
-  return inner;
+  return decls;
 }
 
-unique_ptr<CppNamespace> NestInNamespaces(unique_ptr<Declaration> decl,
-                                          const vector<string>& package) {
+std::vector<unique_ptr<Declaration>> NestInNamespaces(unique_ptr<Declaration> decl,
+                                                      const vector<string>& package) {
   vector<unique_ptr<Declaration>> decls;
   decls.push_back(std::move(decl));
   return NestInNamespaces(std::move(decls), package);

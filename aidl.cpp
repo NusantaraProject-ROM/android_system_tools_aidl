@@ -652,16 +652,6 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     // be removed when the migration to AidlTypenames is done.
     defined_type->SetLanguageType(types->GetDefinedType(*defined_type));
 
-    // TODO(b/112014138): AIDL compiler has been rejecting empty package
-    // only when the target language is C++. The rejection shouldn't be based
-    // on the target language, otherwise we can't share the same AIDL across
-    // Java and C++. However, for now, let's respect the old-but-weird behavior.
-    if (options.IsCppOutput()) {
-      if (defined_type->GetPackage().empty()) {
-        return AidlError::BAD_PACKAGE;
-      }
-    }
-
     // Check the referenced types in parsed_doc to make sure we've imported them
     if (!is_check_api) {
       // No need to do this for check api because all typespecs are already

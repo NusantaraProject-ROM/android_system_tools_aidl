@@ -139,8 +139,10 @@ TEST_F(AstCppTests, GeneratesHeader) {
   unique_ptr<CppNamespace> android_ns{new CppNamespace {"android",
       std::move(test_ns_vec) }};
 
-  CppHeader cpp_header{"HEADER_INCLUDE_GUARD_H_", {"string", "memory"},
-      std::move(android_ns) };
+  vector<unique_ptr<Declaration>> test_ns_globals;
+  test_ns_globals.push_back(std::move(android_ns));
+
+  CppHeader cpp_header{"HEADER_INCLUDE_GUARD_H_", {"string", "memory"}, std::move(test_ns_globals)};
   CompareGeneratedCode(cpp_header, kExpectedHeaderOutput);
 }
 
