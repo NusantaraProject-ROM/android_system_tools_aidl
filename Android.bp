@@ -34,9 +34,10 @@ cc_defaults {
 }
 
 // Logic shared between aidl and its unittests
-cc_library_host_static {
+cc_library_static {
     name: "libaidl-common",
     defaults: ["aidl_defaults"],
+    host_supported: true,
 
     srcs: [
         "aidl.cpp",
@@ -89,8 +90,11 @@ cc_binary_host {
 }
 
 // Unit tests
-cc_test_host {
+cc_test {
     name: "aidl_unittests",
+    host_supported: true,
+
+    test_suites: ["device-tests"],
 
     cflags: [
         "-Wall",
@@ -123,8 +127,18 @@ cc_test_host {
         "libaidl-common",
         "libbase",
         "libcutils",
-        "libgmock_host",
     ],
+    target: {
+        host: {
+            static_libs: ["libgmock_host"],
+        },
+        android: {
+            static_libs: [
+                "libgmock",
+                "liblog",
+            ],
+        },
+    },
 }
 
 //
