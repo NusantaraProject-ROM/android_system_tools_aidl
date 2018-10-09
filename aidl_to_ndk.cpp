@@ -59,11 +59,18 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     {"long", {"int64_t", true, standardRead("Int64"), standardWrite("Int64")}},
     {"float", {"float", true, standardRead("Float"), standardWrite("Float")}},
     {"double", {"double", true, standardRead("Double"), standardWrite("Double")}},
-    {"String", {"std::string", false, standardRead("String"), standardWrite("String")}},
+    {"String",
+     {"std::string", false,
+      [](const CodeGeneratorContext& c) {
+        c.writer << "::ndk::AParcel_readString(" << c.parcel << ", " << c.var << ")";
+      },
+      [](const CodeGeneratorContext& c) {
+        c.writer << "::ndk::AParcel_writeString(" << c.parcel << ", " << c.var << ")";
+      }}},
     // TODO(b/111445392) {"List", ""},
     // TODO(b/111445392) {"Map", ""},
     {"IBinder",
-     {"::android::AutoAIBinder", false,
+     {"::ndk::SpAIBinder", false,
       [](const CodeGeneratorContext& c) {
         c.writer << "AParcel_readNullableStrongBinder(" << c.parcel << ", (" << c.var
                  << ")->getR())";
@@ -76,7 +83,7 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
 };
 
 std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name) {
-  std::vector<std::string> pieces = {"aidl"};
+  std::vector<std::string> pieces = {"::aidl"};
   std::vector<std::string> package = type.GetSplitPackage();
   pieces.insert(pieces.end(), package.begin(), package.end());
   pieces.push_back(cpp::ClassName(type, name));
@@ -213,7 +220,7 @@ std::string NdkCallListFor(const AidlMethod& method) {
 std::string NdkMethodDecl(const AidlTypenames& types, const AidlMethod& method,
                           const std::string& clazz) {
   std::string class_prefix = clazz.empty() ? "" : (clazz + "::");
-  return "::android::AutoAStatus " + class_prefix + method.GetName() + "(" +
+  return "::ndk::ScopedAStatus " + class_prefix + method.GetName() + "(" +
          NdkArgListOf(types, method) + ")";
 }
 
