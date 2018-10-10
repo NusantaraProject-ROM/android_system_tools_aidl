@@ -164,11 +164,6 @@ int check_types(const AidlStructuredParcelable* parcel, TypeNamespace* types) {
 int check_types(const AidlInterface* c, TypeNamespace* types) {
   int err = 0;
 
-  if (c->IsUtf8() && c->IsUtf8InCpp()) {
-    AIDL_ERROR(c) << "Interface cannot be marked as both @utf8 and @utf8InCpp";
-    err = 1;
-  }
-
   // Has to be a pointer due to deleting copy constructor. No idea why.
   map<string, const AidlMethod*> method_names;
   for (const auto& m : c->GetMethods()) {

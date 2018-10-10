@@ -69,10 +69,9 @@ AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
 }
 
 static const string kNullable("nullable");
-static const string kUtf8("utf8");
 static const string kUtf8InCpp("utf8InCpp");
 
-static const set<string> kAnnotationNames{kNullable, kUtf8, kUtf8InCpp};
+static const set<string> kAnnotationNames{kNullable, kUtf8InCpp};
 
 AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string& name) {
   if (kAnnotationNames.find(name) == kAnnotationNames.end()) {
@@ -105,10 +104,6 @@ AidlAnnotatable::AidlAnnotatable(const AidlLocation& location) : AidlNode(locati
 
 bool AidlAnnotatable::IsNullable() const {
   return HasAnnotation(annotations_, kNullable);
-}
-
-bool AidlAnnotatable::IsUtf8() const {
-  return HasAnnotation(annotations_, kUtf8);
 }
 
 bool AidlAnnotatable::IsUtf8InCpp() const {
