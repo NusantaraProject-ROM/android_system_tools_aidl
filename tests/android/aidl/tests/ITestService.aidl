@@ -83,6 +83,10 @@ interface ITestService {
   FileDescriptor[] ReverseFileDescriptorArray(in FileDescriptor[] input,
                                               out FileDescriptor[] repeated);
 
+  ParcelFileDescriptor RepeatParcelFileDescriptor(in ParcelFileDescriptor read);
+  ParcelFileDescriptor[] ReverseParcelFileDescriptorArray(in ParcelFileDescriptor[] input,
+                                              out ParcelFileDescriptor[] repeated);
+
   // Test that service specific exceptions work correctly.
   void ThrowServiceException(int code);
 

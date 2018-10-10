@@ -96,6 +96,10 @@ int main(int /* argc */, char * argv []) {
 
   if (!client_tests::ConfirmFileDescriptorArrays(service)) return 1;
 
+  if (!client_tests::ConfirmParcelFileDescriptors(service)) return 1;
+
+  if (!client_tests::ConfirmParcelFileDescriptorArrays(service)) return 1;
+
   if (!client_tests::ConfirmServiceSpecificExceptions(service)) return 1;
 
   if (!client_tests::ConfirmNullables(service)) return 1;

@@ -37,6 +37,7 @@
 #include <android-base/strings.h>
 
 #include "aidl_language.h"
+#include "aidl_typenames.h"
 #include "generate_cpp.h"
 #include "generate_java.h"
 #include "generate_ndk.h"
@@ -541,7 +542,9 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   set<string> type_from_import_statements;
   for (const auto& import : main_parser->GetImports()) {
-    type_from_import_statements.emplace(import->GetNeededClass());
+    if (!AidlTypenames::IsBuiltinTypename(import->GetNeededClass())) {
+      type_from_import_statements.emplace(import->GetNeededClass());
+    }
   }
 
   // When referencing a type using fully qualified name it should be imported
