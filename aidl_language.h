@@ -157,7 +157,6 @@ class AidlAnnotatable : public AidlNode {
 
   void Annotate(set<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
   bool IsNullable() const;
-  bool IsUtf8() const;
   bool IsUtf8InCpp() const;
   std::string ToString() const;
 
