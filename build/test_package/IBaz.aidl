@@ -21,4 +21,15 @@ import some_package.IBar;
 interface IBaz {
     void CanYouDealWithThisBar(in IBar bar);
     void MethodAddedInVersion2();
+    // TODO(b/115607973) uncomment these when binder_ndk has support for
+    // ParcelFileDescriptor
+    //ParcelFileDescriptor readPFD();
+    //void writePFD(in ParcelFileDescriptor fd);
+    //void readWritePFD(inout ParcelFileDescriptor fd);
+
+    // TODO(b/112664205) uncomment these when we have the support for array type in
+    // the ndk backend
+    //ParcelFileDescriptor[] readPFDArray();
+    //void writePFDArray(in ParcelFileDescriptor[] fds);
+    //void readWritePFDArray(inout ParcelFileDescriptor[] fds);
 }

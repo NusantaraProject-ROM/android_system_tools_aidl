@@ -96,6 +96,16 @@ FileDescriptorArrayType::FileDescriptorArrayType(const JavaTypeNamespace* types)
 
 // ================================================================
 
+ParcelFileDescriptorType::ParcelFileDescriptorType(const JavaTypeNamespace* types)
+    : Type(types, "android.os", "ParcelFileDescriptor", ValidatableType::KIND_BUILT_IN, true) {
+  m_array_type.reset(new ParcelFileDescriptorArrayType(types));
+}
+
+ParcelFileDescriptorArrayType::ParcelFileDescriptorArrayType(const JavaTypeNamespace* types)
+    : Type(types, "android.os", "ParcelFileDescriptor", ValidatableType::KIND_BUILT_IN, true) {}
+
+// ================================================================
+
 BooleanType::BooleanType(const JavaTypeNamespace* types)
     : Type(types, "boolean", ValidatableType::KIND_BUILT_IN, true) {
   m_array_type.reset(new BooleanArrayType(types));
@@ -273,6 +283,8 @@ void JavaTypeNamespace::Init() {
   Add(new Type(this, "java.lang", "Object", ValidatableType::KIND_BUILT_IN, false));
 
   Add(new FileDescriptorType(this));
+
+  Add(new ParcelFileDescriptorType(this));
 
   Add(new CharSequenceType(this));
 

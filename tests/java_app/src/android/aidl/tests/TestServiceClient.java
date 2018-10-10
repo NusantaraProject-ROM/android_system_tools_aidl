@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.os.ServiceSpecificException;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -604,6 +605,41 @@ public class TestServiceClient extends Activity {
         mLog.log("...service can receive and return file descriptors.");
     }
 
+    private void checkParcelFileDescriptorPassing(ITestService service)
+            throws TestFailException {
+        mLog.log("Checking that service can receive and return parcel file descriptors...");
+        try {
+            ParcelFileDescriptor descriptor = ParcelFileDescriptor.open(
+                    getFileStreamPath("test-dummy"), ParcelFileDescriptor.MODE_CREATE |
+                        ParcelFileDescriptor.MODE_WRITE_ONLY);
+            ParcelFileDescriptor journeyed = service.RepeatParcelFileDescriptor(descriptor);
+
+            FileOutputStream journeyedStream = new ParcelFileDescriptor.AutoCloseOutputStream(journeyed);
+
+            String testData = "FrazzleSnazzleFlimFlamFlibbityGumboChops";
+            byte[] output = testData.getBytes();
+            journeyedStream.write(output);
+            journeyedStream.close();
+
+            FileInputStream fileInputStream = openFileInput("test-dummy");
+            byte[] input = new byte[output.length];
+            if (fileInputStream.read(input) != input.length) {
+                mLog.logAndThrow("Read short count from file");
+            }
+
+            if (!Arrays.equals(input, output)) {
+                mLog.logAndThrow("Read incorrect data");
+            }
+        } catch (RemoteException ex) {
+            mLog.log(ex.toString());
+            mLog.logAndThrow("Service failed to repeat a file descriptor.");
+        } catch (IOException ex) {
+            mLog.log(ex.toString());
+            mLog.logAndThrow("Exception while operating on temporary file");
+        }
+        mLog.log("...service can receive and return file descriptors.");
+    }
+
     private void checkServiceSpecificExceptions(
                 ITestService service) throws TestFailException {
         mLog.log("Checking application exceptions...");
@@ -806,6 +842,7 @@ public class TestServiceClient extends Activity {
           checkSimpleParcelables(service);
           checkPersistableBundles(service);
           checkFileDescriptorPassing(service);
+          checkParcelFileDescriptorPassing(service);
           checkServiceSpecificExceptions(service);
           checkUtf8Strings(service);
           checkStructuredParcelable(service);
