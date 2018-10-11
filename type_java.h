@@ -107,6 +107,20 @@ class FileDescriptorType : public Type {
   explicit FileDescriptorType(const JavaTypeNamespace* types);
 };
 
+class ParcelFileDescriptorArrayType : public Type {
+ public:
+  explicit ParcelFileDescriptorArrayType(const JavaTypeNamespace* types);
+
+  const ValidatableType* NullableType() const override { return this; }
+};
+
+class ParcelFileDescriptorType : public Type {
+ public:
+  explicit ParcelFileDescriptorType(const JavaTypeNamespace* types);
+
+  const ValidatableType* NullableType() const override { return this; }
+};
+
 class BooleanArrayType : public Type {
  public:
   explicit BooleanArrayType(const JavaTypeNamespace* types);

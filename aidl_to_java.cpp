@@ -66,6 +66,7 @@ const string& JavaNameOf(const AidlTypeSpecifier& aidl) {
       {"IBinder", "android.os.IBinder"},
       {"FileDescriptor", "java.io.FileDescriptor"},
       {"CharSequence", "java.lang.CharSequence"},
+      {"ParcelFileDescriptor", "android.os.ParcelFileDescriptor"},
   };
   const string& aidl_name = aidl.GetName();
   if (m.find(aidl_name) != m.end()) {
@@ -113,11 +114,12 @@ static bool IsMarshallingUnsupportedFor(const AidlTypeSpecifier& aidl,
                                         const AidlTypenames& typenames) {
   const string name = aidl.GetName();
 
-  // List<T> is support only for String, Binder and Parcelable.
+  // List<T> is support only for String, Binder, ParcelFileDescriptor and Parcelable.
   if (name == "List" && aidl.IsGeneric()) {
     const string& contained_type = aidl.GetTypeParameters().at(0)->GetName();
     if (AidlTypenames::IsBuiltinTypename(contained_type)) {
-      if (contained_type != "String" && contained_type != "IBinder") {
+      if (contained_type != "String" && contained_type != "IBinder" &&
+          contained_type != "ParcelFileDescriptor") {
         return true;
       }
     } else {
@@ -269,6 +271,14 @@ bool WriteToParcelFor(const CodeGeneratorContext& c) {
       {"FileDescriptor[]",
        [](const CodeGeneratorContext& c) {
          c.writer << c.parcel << ".writeRawFileDescriptorArray(" << c.var << ");\n";
+       }},
+      {"ParcelFileDescriptor",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.parcel << ".writeTypedObject(" << c.var << ", " << GetFlagFor(c) << ");\n";
+       }},
+      {"ParcelFileDescriptor[]",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.parcel << ".writeTypedArray(" << c.var << ", " << GetFlagFor(c) << ");\n";
        }},
       {"CharSequence",
        [](const CodeGeneratorContext& c) {
@@ -450,6 +460,16 @@ bool CreateFromParcelFor(const CodeGeneratorContext& c) {
        [](const CodeGeneratorContext& c) {
          c.writer << c.var << " = " << c.parcel << ".createRawFileDescriptorArray();\n";
        }},
+      {"ParcelFileDescriptor",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.var << " = " << c.parcel
+                  << ".readTypedObject(android.os.ParcelFileDescriptor.CREATOR);\n";
+       }},
+      {"ParcelFileDescriptor[]",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.var << " = " << c.parcel
+                  << ".createTypedArray(android.os.ParcelFileDescriptor.CREATOR);\n";
+       }},
       {"CharSequence",
        [](const CodeGeneratorContext& c) {
          // We have written 0 for null CharSequence.
@@ -574,6 +594,16 @@ bool ReadFromParcelFor(const CodeGeneratorContext& c) {
       {"FileDescriptor[]",
        [](const CodeGeneratorContext& c) {
          c.writer << c.var << " = " << c.parcel << ".createRawFileDescriptorArray();\n";
+       }},
+      {"ParcelFileDescriptor",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.var << " = " << c.parcel
+                  << ".readTypedObject(android.os.ParcelFileDescriptor.CREATOR);\n";
+       }},
+      {"ParcelFileDescriptor[]",
+       [](const CodeGeneratorContext& c) {
+         c.writer << c.parcel << ".readTypedArray(" << c.var
+                  << ", android.os.ParcelFileDescriptor.CREATOR);\n";
        }},
   };
   const string type_name = c.type.GetName() + (c.type.IsArray() ? "[]" : "");
