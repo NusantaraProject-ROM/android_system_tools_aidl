@@ -71,8 +71,9 @@ class AidlTest : public ::testing::Test {
     cpp_types_.Init();
   }
 
-  AidlDefinedType* Parse(const string& path, const string& contents,
-                         TypeNamespace* types, AidlError* error = nullptr) {
+  AidlDefinedType* Parse(const string& path, const string& contents, TypeNamespace* types,
+                         AidlError* error = nullptr,
+                         const vector<string> additional_arguments = {}) {
     io_delegate_.SetFileContents(path, contents);
     vector<string> args;
     if (types == &java_types_) {
@@ -80,10 +81,13 @@ class AidlTest : public ::testing::Test {
     } else {
       args.emplace_back("aidl-cpp");
     }
-    for (const auto& f : preprocessed_files_) {
+    for (const string& s : additional_arguments) {
+      args.emplace_back(s);
+    }
+    for (const string& f : preprocessed_files_) {
       args.emplace_back("--preprocessed=" + f);
     }
-    for (const auto& i : import_paths_) {
+    for (const string& i : import_paths_) {
       args.emplace_back("--include=" + i);
     }
     args.emplace_back(path);
@@ -297,6 +301,18 @@ TEST_F(AidlTest, FailOnParcelable) {
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options3, io_delegate_));
   Options options4 = Options::From("aidl -b p/IBar.aidl");
   EXPECT_NE(0, ::android::aidl::compile_aidl(options4, io_delegate_));
+}
+
+TEST_F(AidlTest, StructuredFailOnUnstructuredParcelable) {
+  io_delegate_.SetFileContents("o/WhoKnowsWhat.aidl", "package o; parcelable WhoKnowsWhat;");
+  import_paths_.emplace("");
+  AidlError reported_error;
+  auto parse_result =
+      Parse("p/IFoo.aidl",
+            "package p; import o.WhoKnowsWhat; interface IFoo { void f(in WhoKnowsWhat thisIs); }",
+            &java_types_, &reported_error, {"--structured"});
+  EXPECT_EQ(nullptr, parse_result);
+  EXPECT_EQ(AidlError::NOT_STRUCTURED, reported_error);
 }
 
 TEST_F(AidlTest, FailOnDuplicateConstantNames) {
