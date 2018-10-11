@@ -158,6 +158,12 @@ TEST_F(AidlTest, RejectsNullablePrimitive) {
   EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", oneway_method, &java_types_));
 }
 
+TEST_F(AidlTest, RejectsDuplicatedArgumentNames) {
+  string method = "package a; interface IFoo { void f(int a, int a); }";
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", method, &cpp_types_));
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", method, &java_types_));
+}
+
 TEST_F(AidlTest, ParsesNullableAnnotation) {
   for (auto is_nullable: {true, false}) {
     auto parse_result = Parse(
