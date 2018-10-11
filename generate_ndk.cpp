@@ -397,7 +397,7 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
   out.Indent();
   out << "if (!AIBinder_associateClass(binder.get(), " << data_clazz
       << "::clazz)) { return nullptr; }\n";
-  out << "return std::shared_ptr<" << clazz << ">(new " << clazz << "(binder));\n";
+  out << "return (new " << clazz << "(binder))->ref<" << clazz << ">();\n";
   out.Dedent();
   out << "}\n\n";
 
