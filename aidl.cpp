@@ -685,7 +685,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   if (options.IsStructured()) {
     types->typenames_.IterateTypes([&](const AidlDefinedType& type) {
       if (type.AsUnstructuredParcelable() != nullptr) {
-        err = AidlError::BAD_TYPE;
+        err = AidlError::NOT_STRUCTURED;
         LOG(ERROR) << type.GetCanonicalName()
                    << " is not structured, but this is a structured interface.";
       }
