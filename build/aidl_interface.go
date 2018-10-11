@@ -188,12 +188,18 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			strings.ToUpper(baseName)[1] == baseName[1] {
 			baseName = strings.TrimPrefix(typeName, "I")
 		}
+
+		prefix := ""
+		if g.properties.Lang == langNdk {
+			prefix = "aidl"
+		}
+
 		var headers android.WritablePaths
-		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
 			typeName+".h"))
-		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
 			"Bp"+baseName+".h"))
-		headers = append(headers, g.genHeaderDir.Join(ctx, packagePath,
+		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
 			"Bn"+baseName+".h"))
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:            aidlCppRule,

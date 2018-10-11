@@ -16,6 +16,7 @@
 #include "aidl_language.h"
 #include "aidl_to_cpp_common.h"
 #include "logging.h"
+#include "os.h"
 
 #include <android-base/strings.h>
 
@@ -27,6 +28,12 @@ using ::android::base::Split;
 namespace android {
 namespace aidl {
 namespace ndk {
+
+std::string NdkHeaderFile(const AidlDefinedType& defined_type, cpp::ClassNames name,
+                          bool use_os_sep) {
+  char seperator = (use_os_sep) ? OS_PATH_SEPARATOR : '/';
+  return std::string("aidl") + seperator + cpp::HeaderFile(defined_type, name, use_os_sep);
+}
 
 struct TypeInfo {
   // name of the type in C++ output
