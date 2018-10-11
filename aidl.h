@@ -42,6 +42,7 @@ enum class AidlError {
   GENERATION_ERROR,
   BAD_CONSTANTS,
   BAD_INPUT,
+  NOT_STRUCTURED,
 
   OK = 0,
 };
