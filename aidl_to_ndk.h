@@ -28,6 +28,9 @@ enum class StorageMode {
   OUT_ARGUMENT,  // Pointer to raw type
 };
 
+std::string NdkHeaderFile(const AidlDefinedType& defined_type, cpp::ClassNames name,
+                          bool use_os_sep = true);
+
 // Returns ::aidl::some_package::some_sub_package::foo::IFoo/BpFoo/BnFoo
 std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name);
 
