@@ -190,8 +190,17 @@ int check_types(const AidlInterface* c, TypeNamespace* types) {
       err = 1;
     }
 
+    set<string> argument_names;
     int index = 1;
     for (const auto& arg : m->GetArguments()) {
+      auto it = argument_names.find(arg->GetName());
+      if (it != argument_names.end()) {
+        AIDL_ERROR(m) << "method '" << m->GetName() << "' has duplicate argument name '"
+                      << arg->GetName() << "'";
+        err = 1;
+      }
+      argument_names.insert(arg->GetName());
+
       if (!types->MaybeAddContainerType(arg->GetType())) {
         err = 1;
       }
