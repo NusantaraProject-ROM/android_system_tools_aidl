@@ -260,16 +260,15 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames&
     out << "if (!AStatus_isOk(_aidl_status.get())) return _aidl_status;\n\n";
   }
 
-  for (const AidlArgument* arg : method.GetOutArguments()) {
-    out << "_aidl_ret_status = ";
-    ReadFromParcelFor({out, types, arg->GetType(), "_aidl_out.get()", cpp::BuildVarName(*arg)});
-    out << ";\n";
-    StatusCheckGoto(out);
-  }
-
   if (method.GetType().GetName() != "void") {
     out << "_aidl_ret_status = ";
     ReadFromParcelFor({out, types, method.GetType(), "_aidl_out.get()", "_aidl_return"});
+    out << ";\n";
+    StatusCheckGoto(out);
+  }
+  for (const AidlArgument* arg : method.GetOutArguments()) {
+    out << "_aidl_ret_status = ";
+    ReadFromParcelFor({out, types, arg->GetType(), "_aidl_out.get()", cpp::BuildVarName(*arg)});
     out << ";\n";
     StatusCheckGoto(out);
   }
@@ -315,15 +314,15 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& t
 
     out << "if (!AStatus_isOk(_aidl_status.get())) break;\n\n";
 
-    for (const AidlArgument* arg : method.GetOutArguments()) {
-      out << "_aidl_ret_status = ";
-      WriteToParcelFor({out, types, arg->GetType(), "_aidl_out", cpp::BuildVarName(*arg)});
-      out << ";\n";
-      StatusCheckBreak(out);
-    }
     if (method.GetType().GetName() != "void") {
       out << "_aidl_ret_status = ";
       WriteToParcelFor({out, types, method.GetType(), "_aidl_out", "_aidl_return"});
+      out << ";\n";
+      StatusCheckBreak(out);
+    }
+    for (const AidlArgument* arg : method.GetOutArguments()) {
+      out << "_aidl_ret_status = ";
+      WriteToParcelFor({out, types, arg->GetType(), "_aidl_out", cpp::BuildVarName(*arg)});
       out << ";\n";
       StatusCheckBreak(out);
     }
