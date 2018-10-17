@@ -45,35 +45,39 @@ struct TypeInfo {
   std::function<void(const CodeGeneratorContext& c)> writeParcelFunction;
 };
 
-static std::function<void(const CodeGeneratorContext& c)> standardRead(const std::string& name) {
+static std::function<void(const CodeGeneratorContext& c)> StandardRead(const std::string& name) {
   return [name](const CodeGeneratorContext& c) {
-    c.writer << "AParcel_read" << name << "(" << c.parcel << ", " << c.var << ")";
+    c.writer << name << "(" << c.parcel << ", " << c.var << ")";
   };
 }
-static std::function<void(const CodeGeneratorContext& c)> standardWrite(const std::string& name) {
+static std::function<void(const CodeGeneratorContext& c)> StandardWrite(const std::string& name) {
   return [name](const CodeGeneratorContext& c) {
-    c.writer << "AParcel_write" << name << "(" << c.parcel << ", " << c.var << ")";
+    c.writer << name << "(" << c.parcel << ", " << c.var << ")";
+  };
+}
+
+TypeInfo PrimitiveType(const std::string& cpp_name, const std::string& pretty_name) {
+  return TypeInfo{
+      .cpp_name = cpp_name,
+      .value_is_cheap = true,
+      .readParcelFunction = StandardRead("AParcel_read" + pretty_name),
+      .writeParcelFunction = StandardWrite("AParcel_write" + pretty_name),
   };
 }
 
 // map from AIDL built-in type name to the corresponding Ndk type name
 static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     {"void", {"void", true, nullptr, nullptr}},
-    {"boolean", {"bool", true, standardRead("Bool"), standardWrite("Bool")}},
-    {"byte", {"int8_t", true, standardRead("Byte"), standardWrite("Byte")}},
-    {"char", {"char16_t", true, standardRead("Char"), standardWrite("Char")}},
-    {"int", {"int32_t", true, standardRead("Int32"), standardWrite("Int32")}},
-    {"long", {"int64_t", true, standardRead("Int64"), standardWrite("Int64")}},
-    {"float", {"float", true, standardRead("Float"), standardWrite("Float")}},
-    {"double", {"double", true, standardRead("Double"), standardWrite("Double")}},
+    {"boolean", PrimitiveType("bool", "Bool")},
+    {"byte", PrimitiveType("int8_t", "Byte")},
+    {"char", PrimitiveType("char16_t", "Char")},
+    {"int", PrimitiveType("int32_t", "Int32")},
+    {"long", PrimitiveType("int64_t", "Int64")},
+    {"float", PrimitiveType("float", "Float")},
+    {"double", PrimitiveType("double", "Double")},
     {"String",
-     {"std::string", false,
-      [](const CodeGeneratorContext& c) {
-        c.writer << "::ndk::AParcel_readString(" << c.parcel << ", " << c.var << ")";
-      },
-      [](const CodeGeneratorContext& c) {
-        c.writer << "::ndk::AParcel_writeString(" << c.parcel << ", " << c.var << ")";
-      }}},
+     {"std::string", false, StandardRead("::ndk::AParcel_readString"),
+      StandardWrite("::ndk::AParcel_writeString")}},
     // TODO(b/111445392) {"List", ""},
     // TODO(b/111445392) {"Map", ""},
     {"IBinder",
@@ -88,6 +92,48 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     // TODO(b/111445392) {"FileDescriptor", ""},
     // TODO(b/111445392) {"CharSequence", ""},
 };
+
+TypeInfo GetTypeInfo(const AidlTypenames& types, const AidlTypeSpecifier& aidl) {
+  const string aidl_name = aidl.GetName();
+
+  TypeInfo info;
+  if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
+    auto it = kNdkTypeInfoMap.find(aidl_name);
+    CHECK(it != kNdkTypeInfoMap.end());
+    info = it->second;
+  } else {
+    const AidlDefinedType* type = types.TryGetDefinedType(aidl_name);
+
+    AIDL_FATAL_IF(type == nullptr, aidl_name) << "Unrecognized type.";
+
+    if (type->AsInterface() != nullptr) {
+      const std::string clazz = NdkFullClassName(*type, cpp::ClassNames::INTERFACE);
+      info = TypeInfo{
+          .cpp_name = "std::shared_ptr<" + clazz + ">",
+          .value_is_cheap = false,
+          .readParcelFunction = StandardRead(clazz + "::readFromParcel"),
+          .writeParcelFunction = StandardWrite(clazz + "::writeToParcel"),
+      };
+    } else if (type->AsParcelable() != nullptr) {
+      info = TypeInfo{
+          .cpp_name = NdkFullClassName(*type, cpp::ClassNames::BASE),
+          .value_is_cheap = false,
+          .readParcelFunction =
+              [](const CodeGeneratorContext& c) {
+                c.writer << "(" << c.var << ")->readFromParcel(" << c.parcel << ")";
+              },
+          .writeParcelFunction =
+              [](const CodeGeneratorContext& c) {
+                c.writer << "(" << c.var << ").writeToParcel(" << c.parcel << ")";
+              },
+      };
+    } else {
+      AIDL_FATAL(aidl_name) << "Unrecognized type";
+    }
+  }
+
+  return info;
+}
 
 std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name) {
   std::vector<std::string> pieces = {"::aidl"};
@@ -106,26 +152,7 @@ std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl,
   // TODO(112664205): need to support array types
   CHECK(!aidl.IsArray()) << aidl.ToString();
 
-  const string aidl_name = aidl.GetName();
-  TypeInfo info;
-  if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
-    auto it = kNdkTypeInfoMap.find(aidl_name);
-    CHECK(it != kNdkTypeInfoMap.end());
-    info = it->second;
-  } else {
-    const AidlDefinedType* type = types.TryGetDefinedType(aidl_name);
-
-    AIDL_FATAL_IF(type == nullptr, aidl_name) << "Unrecognized type.";
-
-    if (type->AsInterface() != nullptr) {
-      info = {"std::shared_ptr<" + NdkFullClassName(*type, cpp::ClassNames::INTERFACE) + ">", false,
-              nullptr, nullptr};
-    } else if (type->AsParcelable() != nullptr) {
-      info = {NdkFullClassName(*type, cpp::ClassNames::BASE), false, nullptr, nullptr};
-    } else {
-      AIDL_FATAL(aidl_name) << "Unrecognized type";
-    }
-  }
+  TypeInfo info = GetTypeInfo(types, aidl);
 
   switch (mode) {
     case StorageMode::STACK:
@@ -144,52 +171,15 @@ std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl,
 }
 
 void WriteToParcelFor(const CodeGeneratorContext& c) {
-  const string aidl_name = c.type.GetName();
-  if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
-    auto it = kNdkTypeInfoMap.find(aidl_name);
-    CHECK(it != kNdkTypeInfoMap.end());
-    const TypeInfo& info = it->second;
-
-    info.writeParcelFunction(c);
-  } else {
-    const AidlDefinedType* type = c.types.TryGetDefinedType(aidl_name);
-
-    AIDL_FATAL_IF(type == nullptr, "Unrecognized type: " + aidl_name);
-
-    if (type->AsInterface() != nullptr) {
-      c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::writeToParcel("
-               << c.parcel << ", " << c.var << ")";
-    } else if (type->AsParcelable() != nullptr) {
-      c.writer << "(" << c.var << ").writeToParcel(" << c.parcel << ")";
-    } else {
-      AIDL_FATAL(aidl_name) << "Unrecognized type";
-    }
-  }
+  TypeInfo info = GetTypeInfo(c.types, c.type);
+  AIDL_FATAL_IF(info.writeParcelFunction == nullptr, c.type) << "Type does not support writing.";
+  info.writeParcelFunction(c);
 }
 
 void ReadFromParcelFor(const CodeGeneratorContext& c) {
-  const string aidl_name = c.type.GetName();
-  if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
-    auto it = kNdkTypeInfoMap.find(aidl_name);
-    CHECK(it != kNdkTypeInfoMap.end());
-    const TypeInfo& info = it->second;
-
-    info.readParcelFunction(c);
-  } else {
-    const AidlDefinedType* type = c.types.TryGetDefinedType(aidl_name);
-
-    AIDL_FATAL_IF(type == nullptr, "Unrecognized type: " + aidl_name);
-
-    const AidlInterface* interface = type->AsInterface();
-    if (interface != nullptr) {
-      c.writer << NdkFullClassName(*type, cpp::ClassNames::INTERFACE) << "::readFromParcel("
-               << c.parcel << ", " << c.var << ")";
-    } else if (type->AsParcelable() != nullptr) {
-      c.writer << "(" << c.var << ")->readFromParcel(" << c.parcel << ")";
-    } else {
-      AIDL_FATAL(aidl_name) << "Unrecognized type";
-    }
-  }
+  TypeInfo info = GetTypeInfo(c.types, c.type);
+  AIDL_FATAL_IF(info.readParcelFunction == nullptr, c.type) << "Type does not support reading.";
+  info.readParcelFunction(c);
 }
 
 std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method) {
