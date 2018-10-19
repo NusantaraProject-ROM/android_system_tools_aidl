@@ -235,13 +235,19 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames&
   out << "_aidl_ret_status = AIBinder_prepareTransaction(asBinder().get(), _aidl_in.getR());\n";
   StatusCheckGoto(out);
 
-  for (const AidlArgument* arg : method.GetInArguments()) {
-    out << "_aidl_ret_status = ";
-    std::string prefix = arg->IsOut() ? "*" : "";
-    WriteToParcelFor(
-        {out, types, arg->GetType(), "_aidl_in.get()", prefix + cpp::BuildVarName(*arg)});
-    out << ";\n";
-    StatusCheckGoto(out);
+  for (const auto& arg : method.GetArguments()) {
+    const std::string var_name = cpp::BuildVarName(*arg);
+
+    if (arg->IsIn()) {
+      out << "_aidl_ret_status = ";
+      const std::string prefix = (arg->IsOut() ? "*" : "");
+      WriteToParcelFor({out, types, arg->GetType(), "_aidl_in.get()", prefix + var_name});
+      out << ";\n";
+      StatusCheckGoto(out);
+    } else if (arg->IsOut() && arg->GetType().IsArray()) {
+      out << "_aidl_ret_status = ::ndk::AParcel_writeVectorSize(_aidl_in.get(), *" << var_name
+          << ");\n";
+    }
   }
   out << "_aidl_ret_status = AIBinder_transact(\n";
   out.Indent();
@@ -294,11 +300,17 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& t
   }
   out << "\n";
 
-  for (const AidlArgument* arg : method.GetInArguments()) {
-    out << "_aidl_ret_status = ";
-    ReadFromParcelFor({out, types, arg->GetType(), "_aidl_in", "&" + cpp::BuildVarName(*arg)});
-    out << ";\n";
-    StatusCheckBreak(out);
+  for (const auto& arg : method.GetArguments()) {
+    const std::string var_name = cpp::BuildVarName(*arg);
+
+    if (arg->IsIn()) {
+      out << "_aidl_ret_status = ";
+      ReadFromParcelFor({out, types, arg->GetType(), "_aidl_in", "&" + var_name});
+      out << ";\n";
+      StatusCheckBreak(out);
+    } else if (arg->IsOut() && arg->GetType().IsArray()) {
+      out << "_aidl_ret_status = ::ndk::AParcel_resizeVector(_aidl_in, &" << var_name << ");\n";
+    }
   }
 
   out << "::ndk::ScopedAStatus _aidl_status = _aidl_impl->" << method.GetName() << "("
