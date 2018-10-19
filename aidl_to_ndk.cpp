@@ -43,6 +43,9 @@ struct TypeInfo {
 
   std::function<void(const CodeGeneratorContext& c)> readParcelFunction;
   std::function<void(const CodeGeneratorContext& c)> writeParcelFunction;
+
+  std::function<void(const CodeGeneratorContext& c)> readArrayParcelFunction;
+  std::function<void(const CodeGeneratorContext& c)> writeArrayParcelFunction;
 };
 
 static std::function<void(const CodeGeneratorContext& c)> StandardRead(const std::string& name) {
@@ -62,12 +65,14 @@ TypeInfo PrimitiveType(const std::string& cpp_name, const std::string& pretty_na
       .value_is_cheap = true,
       .readParcelFunction = StandardRead("AParcel_read" + pretty_name),
       .writeParcelFunction = StandardWrite("AParcel_write" + pretty_name),
+      .readArrayParcelFunction = StandardRead("::ndk::AParcel_readVector<" + cpp_name + ">"),
+      .writeArrayParcelFunction = StandardWrite("::ndk::AParcel_writeVector<" + cpp_name + ">"),
   };
 }
 
 // map from AIDL built-in type name to the corresponding Ndk type name
 static map<std::string, TypeInfo> kNdkTypeInfoMap = {
-    {"void", {"void", true, nullptr, nullptr}},
+    {"void", {"void", true, nullptr, nullptr, nullptr, nullptr}},
     {"boolean", PrimitiveType("bool", "Bool")},
     {"byte", PrimitiveType("int8_t", "Byte")},
     {"char", PrimitiveType("char16_t", "Char")},
@@ -77,18 +82,25 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     {"double", PrimitiveType("double", "Double")},
     {"String",
      {"std::string", false, StandardRead("::ndk::AParcel_readString"),
-      StandardWrite("::ndk::AParcel_writeString")}},
+      StandardWrite("::ndk::AParcel_writeString"), nullptr, nullptr}},
     // TODO(b/111445392) {"List", ""},
     // TODO(b/111445392) {"Map", ""},
-    {"IBinder",
-     {"::ndk::SpAIBinder", false,
-      [](const CodeGeneratorContext& c) {
-        c.writer << "AParcel_readNullableStrongBinder(" << c.parcel << ", (" << c.var
-                 << ")->getR())";
-      },
-      [](const CodeGeneratorContext& c) {
-        c.writer << "AParcel_writeStrongBinder(" << c.parcel << ", " << c.var << ".get())";
-      }}},
+    {
+        "IBinder",
+        {
+            "::ndk::SpAIBinder",
+            false,
+            [](const CodeGeneratorContext& c) {
+              c.writer << "AParcel_readNullableStrongBinder(" << c.parcel << ", (" << c.var
+                       << ")->getR())";
+            },
+            [](const CodeGeneratorContext& c) {
+              c.writer << "AParcel_writeStrongBinder(" << c.parcel << ", " << c.var << ".get())";
+            },
+            nullptr,
+            nullptr,
+        },
+    },
     // TODO(b/111445392) {"FileDescriptor", ""},
     // TODO(b/111445392) {"CharSequence", ""},
 };
@@ -148,23 +160,29 @@ std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl,
   CHECK(aidl.IsResolved()) << aidl.ToString();
 
   // TODO(112664205): this is okay for some types
-  CHECK(!aidl.IsGeneric()) << aidl.ToString();
-  // TODO(112664205): need to support array types
-  CHECK(!aidl.IsArray()) << aidl.ToString();
+  AIDL_FATAL_IF(aidl.IsGeneric(), aidl) << aidl.ToString();
 
   TypeInfo info = GetTypeInfo(types, aidl);
 
+  bool value_is_cheap = info.value_is_cheap;
+  std::string cpp_name = info.cpp_name;
+
+  if (aidl.IsArray()) {
+    value_is_cheap = false;
+    cpp_name = "std::vector<" + info.cpp_name + ">";
+  }
+
   switch (mode) {
     case StorageMode::STACK:
-      return info.cpp_name;
+      return cpp_name;
     case StorageMode::ARGUMENT:
-      if (info.value_is_cheap) {
-        return info.cpp_name;
+      if (value_is_cheap) {
+        return cpp_name;
       } else {
-        return "const " + info.cpp_name + "&";
+        return "const " + cpp_name + "&";
       }
     case StorageMode::OUT_ARGUMENT:
-      return info.cpp_name + "*";
+      return cpp_name + "*";
     default:
       AIDL_FATAL(aidl.GetName()) << "Unrecognized mode type: " << static_cast<int>(mode);
   }
@@ -172,14 +190,28 @@ std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl,
 
 void WriteToParcelFor(const CodeGeneratorContext& c) {
   TypeInfo info = GetTypeInfo(c.types, c.type);
-  AIDL_FATAL_IF(info.writeParcelFunction == nullptr, c.type) << "Type does not support writing.";
-  info.writeParcelFunction(c);
+
+  if (c.type.IsArray()) {
+    AIDL_FATAL_IF(info.writeArrayParcelFunction == nullptr, c.type)
+        << "Type does not support writing arrays.";
+    info.writeArrayParcelFunction(c);
+  } else {
+    AIDL_FATAL_IF(info.writeParcelFunction == nullptr, c.type) << "Type does not support writing.";
+    info.writeParcelFunction(c);
+  }
 }
 
 void ReadFromParcelFor(const CodeGeneratorContext& c) {
   TypeInfo info = GetTypeInfo(c.types, c.type);
-  AIDL_FATAL_IF(info.readParcelFunction == nullptr, c.type) << "Type does not support reading.";
-  info.readParcelFunction(c);
+
+  if (c.type.IsArray()) {
+    AIDL_FATAL_IF(info.readArrayParcelFunction == nullptr, c.type)
+        << "Type does not support reading arrays.";
+    info.readArrayParcelFunction(c);
+  } else {
+    AIDL_FATAL_IF(info.readParcelFunction == nullptr, c.type) << "Type does not support reading.";
+    info.readParcelFunction(c);
+  }
 }
 
 std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method) {
