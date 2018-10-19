@@ -106,7 +106,18 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
 };
 
 TypeInfo GetTypeInfo(const AidlTypenames& types, const AidlTypeSpecifier& aidl) {
+  CHECK(aidl.IsResolved()) << aidl.ToString();
+
   const string aidl_name = aidl.GetName();
+
+  // TODO(b/112664205): this is okay for some types
+  AIDL_FATAL_IF(aidl.IsGeneric(), aidl) << aidl.ToString();
+  // TODO(b/112664205): this is okay for some types
+  AIDL_FATAL_IF(aidl.IsNullable(), aidl) << aidl.ToString();
+
+  // @utf8InCpp can only be used on String. It only matters for the CPP backend, not the NDK
+  // backend.
+  AIDL_FATAL_IF(aidl.IsUtf8InCpp() && aidl_name != "String", aidl) << aidl.ToString();
 
   TypeInfo info;
   if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
@@ -144,6 +155,10 @@ TypeInfo GetTypeInfo(const AidlTypenames& types, const AidlTypeSpecifier& aidl) 
     }
   }
 
+  AIDL_FATAL_IF(aidl.IsArray() && info.readArrayParcelFunction == nullptr, aidl) << aidl.ToString();
+  AIDL_FATAL_IF(aidl.IsArray() && info.writeArrayParcelFunction == nullptr, aidl)
+      << aidl.ToString();
+
   return info;
 }
 
@@ -157,11 +172,6 @@ std::string NdkFullClassName(const AidlDefinedType& type, cpp::ClassNames name) 
 }
 
 std::string NdkNameOf(const AidlTypenames& types, const AidlTypeSpecifier& aidl, StorageMode mode) {
-  CHECK(aidl.IsResolved()) << aidl.ToString();
-
-  // TODO(112664205): this is okay for some types
-  AIDL_FATAL_IF(aidl.IsGeneric(), aidl) << aidl.ToString();
-
   TypeInfo info = GetTypeInfo(types, aidl);
 
   bool value_is_cheap = info.value_is_cheap;
