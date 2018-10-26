@@ -65,8 +65,8 @@ TypeInfo PrimitiveType(const std::string& cpp_name, const std::string& pretty_na
       .value_is_cheap = true,
       .readParcelFunction = StandardRead("AParcel_read" + pretty_name),
       .writeParcelFunction = StandardWrite("AParcel_write" + pretty_name),
-      .readArrayParcelFunction = StandardRead("::ndk::AParcel_readVector<" + cpp_name + ">"),
-      .writeArrayParcelFunction = StandardWrite("::ndk::AParcel_writeVector<" + cpp_name + ">"),
+      .readArrayParcelFunction = StandardRead("::ndk::AParcel_readVector"),
+      .writeArrayParcelFunction = StandardWrite("::ndk::AParcel_writeVector"),
   };
 }
 
