@@ -68,7 +68,6 @@ class AidlNode {
   AidlNode(const AidlNode&) = default;
   AidlNode(AidlNode&&) = default;
   virtual ~AidlNode() = default;
-  AidlNode& operator=(const AidlNode&) = default;
 
   // DO NOT ADD. This is intentionally omitted. Nothing should refer to the location
   // for a functional purpose. It is only for error messages.
@@ -129,7 +128,6 @@ class AidlAnnotation : public AidlNode {
   AidlAnnotation(const AidlAnnotation&) = default;
   AidlAnnotation(AidlAnnotation&&) = default;
   virtual ~AidlAnnotation() = default;
-  AidlAnnotation& operator=(const AidlAnnotation&) = default;
 
   const string& GetName() const { return name_; }
   string ToString() const { return "@" + name_; }
@@ -153,7 +151,6 @@ class AidlAnnotatable : public AidlNode {
   AidlAnnotatable(const AidlAnnotatable&) = default;
   AidlAnnotatable(AidlAnnotatable&&) = default;
   virtual ~AidlAnnotatable() = default;
-  AidlAnnotatable& operator=(const AidlAnnotatable&) = default;
 
   void Annotate(set<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
   bool IsNullable() const;
