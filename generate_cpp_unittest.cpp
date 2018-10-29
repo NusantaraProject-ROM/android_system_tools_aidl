@@ -739,7 +739,7 @@ namespace os {
 
 class BnComplexTypeInterface : public ::android::BnInterface<IComplexTypeInterface> {
 public:
-  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags = 0) override;
+  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnComplexTypeInterface
 
 }  // namespace os
