@@ -25,6 +25,20 @@ namespace cpp {
 
 std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
 
+struct CodeGeneratorContext {
+  CodeWriter& writer;
+
+  const AidlTypenames& types;
+  const AidlTypeSpecifier& type;  // an argument or return type to generate code for
+  const string name;              // name of the variable for the argument or the return value
+  const bool isPointer;           // whether the variable 'name' is a pointer or not
+  const string log;               // name of the variable of type Json::Value to write the log into
+};
+
+// Emits code that writes name and value of an argument or the return value to
+// the Json object
+void WriteLogFor(const CodeGeneratorContext& c);
+
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android

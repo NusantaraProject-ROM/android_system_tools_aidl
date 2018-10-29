@@ -99,6 +99,9 @@ string Options::GetUsage() const {
        << "  -v VER, --version=VER" << endl
        << "          Set the version of the interface and parcelable to VER." << endl
        << "          VER must be an interger greater than 0." << endl
+       << "  --log" << endl
+       << "          Information about the transaction, e.g., method name, argument" << endl
+       << "          values, execution time, etc., is provided via callback." << endl
        << "  --help" << endl
        << "          Show this help." << endl
        << endl
@@ -160,6 +163,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"trace", no_argument, 0, 't'},
         {"transaction_names", no_argument, 0, 'c'},
         {"version", required_argument, 0, 'v'},
+        {"log", no_argument, 0, 'L'},
         {"help", no_argument, 0, 'e'},
         {0, 0, 0, 0},
     };
@@ -269,6 +273,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         }
         break;
       }
+      case 'L':
+        gen_log_ = true;
+        break;
       case 'e':
         std::cerr << GetUsage();
         exit(0);
@@ -386,6 +393,10 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
                      << "files. Use '-a' to generate dependency file next to "
                      << "the output file with the name based on the input "
                      << "file." << endl;
+      return;
+    }
+    if (gen_log_ && language_ != Options::Language::CPP) {
+      error_message_ << "--log is currently supported only for --lang=cpp" << endl;
       return;
     }
   }

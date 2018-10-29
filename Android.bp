@@ -238,3 +238,19 @@ android_app {
         ],
     },
 }
+
+aidl_interface {
+    name: "aidl_test_interface",
+    local_include_dir: "tests",
+    srcs: [
+        "tests/android/aidl/tests/LoggableInterface.aidl",
+    ],
+    backend: {
+        cpp: {
+            gen_log: true,
+        },
+        ndk: {
+            enabled: false,
+        },
+    },
+}
