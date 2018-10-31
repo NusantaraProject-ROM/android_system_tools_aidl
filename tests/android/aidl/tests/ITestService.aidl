@@ -39,6 +39,8 @@ interface ITestService {
   const String STRING_TEST_CONSTANT = "foo";
   const String STRING_TEST_CONSTANT2 = "bar";
 
+  const @utf8InCpp String STRING_TEST_CONSTANT_UTF8 = "baz";
+
   // Test that primitives work as parameters and return types.
   boolean RepeatBoolean(boolean token);
   byte RepeatByte(byte token);

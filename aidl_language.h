@@ -353,6 +353,7 @@ class AidlConstantDeclaration : public AidlMember {
   virtual ~AidlConstantDeclaration() = default;
 
   const AidlTypeSpecifier& GetType() const { return *type_; }
+  AidlTypeSpecifier* GetMutableType() { return type_.get(); }
   const std::string& GetName() const { return name_; }
   const AidlConstantValue& GetValue() const { return *value_; }
   bool CheckValid(const AidlTypenames& typenames) const;

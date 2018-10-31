@@ -166,6 +166,12 @@ void register_types(const AidlInterface* c, TypeNamespace* types) {
       arg->GetMutableType()->SetLanguageType(arg_type);
     }
   }
+
+  for (const std::unique_ptr<AidlConstantDeclaration>& constant : c->GetConstantDeclarations()) {
+    AidlTypeSpecifier* specifier = constant->GetMutableType();
+    const ValidatableType* return_type = types->GetReturnType(*specifier, *c);
+    specifier->SetLanguageType(return_type);
+  }
 }
 
 bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
@@ -309,21 +315,6 @@ bool check_and_assign_method_ids(const std::vector<std::unique_ptr<AidlMethod>>&
     }
   }
   return true;
-}
-
-bool validate_constants(const AidlInterface& interface, const AidlTypenames& typenames) {
-  bool success = true;
-  set<string> names;
-  for (const std::unique_ptr<AidlConstantDeclaration>& constant :
-       interface.GetConstantDeclarations()) {
-    if (names.count(constant->GetName()) > 0) {
-      LOG(ERROR) << "Found duplicate constant name '" << constant->GetName() << "'";
-      success = false;
-    }
-    names.insert(constant->GetName());
-    success = success && constant->CheckValid(typenames);
-  }
-  return success;
 }
 
 // TODO: Remove this in favor of using the YACC parser b/25479378
@@ -620,9 +611,6 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
       }
       if (!check_and_assign_method_ids(interface->GetMethods())) {
         return AidlError::BAD_METHOD_ID;
-      }
-      if (!validate_constants(*interface, typenames)) {
-        return AidlError::BAD_CONSTANTS;
       }
     }
   }
