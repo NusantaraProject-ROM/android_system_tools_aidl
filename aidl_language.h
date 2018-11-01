@@ -211,7 +211,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   // resolution fails.
   bool Resolve(android::aidl::AidlTypenames& typenames);
 
-  bool CheckValid(AidlTypenames& typenames) const;
+  bool CheckValid() const;
 
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
@@ -255,7 +255,7 @@ class AidlVariableDeclaration : public AidlNode {
 
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
-  bool CheckValid(AidlTypenames& typenames) const;
+  bool CheckValid() const;
   std::string ToString() const;
   std::string Signature() const;
 
@@ -355,7 +355,7 @@ class AidlConstantDeclaration : public AidlMember {
   const AidlTypeSpecifier& GetType() const { return *type_; }
   const std::string& GetName() const { return name_; }
   const AidlConstantValue& GetValue() const { return *value_; }
-  bool CheckValid(AidlTypenames& typenames) const;
+  bool CheckValid() const;
 
   std::string ToString() const;
   std::string Signature() const;
