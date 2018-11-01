@@ -170,22 +170,44 @@ bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
   return result.second;
 }
 
-bool AidlTypeSpecifier::CheckValid() const {
+bool AidlTypeSpecifier::CheckValid(AidlTypenames& typenames) const {
   if (IsGeneric()) {
     const string& type_name = GetName();
     const int num = GetTypeParameters().size();
     if (type_name == "List") {
       if (num > 1) {
-        cerr << " List cannot have type parameters more than one, but got "
-             << "'" << ToString() << "'" << endl;
+        AIDL_ERROR(this) << " List cannot have type parameters more than one, but got "
+                         << "'" << ToString() << "'";
         return false;
       }
     } else if (type_name == "Map") {
       if (num != 0 && num != 2) {
-        cerr << "Map must have 0 or 2 type parameters, but got "
-             << "'" << ToString() << "'" << endl;
+        AIDL_ERROR(this) << "Map must have 0 or 2 type parameters, but got "
+                         << "'" << ToString() << "'";
         return false;
       }
+    }
+  }
+
+  if (GetName() == "void") {
+    if (IsArray() || IsNullable() || IsUtf8InCpp()) {
+      AIDL_ERROR(this) << "void type cannot be an array or nullable or utf8 string";
+      return false;
+    }
+  }
+
+  if (IsArray()) {
+    const auto definedType = typenames.TryGetDefinedType(GetName());
+    if (definedType != nullptr && definedType->AsInterface() != nullptr) {
+      AIDL_ERROR(this) << "Binder type cannot be an array";
+      return false;
+    }
+  }
+
+  if (IsNullable()) {
+    if (AidlTypenames::IsPrimitiveTypename(GetName()) && !IsArray()) {
+      AIDL_ERROR(this) << "Primitive type cannot get nullable annotation";
+      return false;
     }
   }
   return true;
@@ -205,11 +227,11 @@ AidlVariableDeclaration::AidlVariableDeclaration(const AidlLocation& location,
                                                  AidlConstantValue* default_value)
     : AidlNode(location), type_(type), name_(name), default_value_(default_value) {}
 
-bool AidlVariableDeclaration::CheckValid() const {
+bool AidlVariableDeclaration::CheckValid(AidlTypenames& typenames) const {
   bool valid = true;
-  valid &= type_->CheckValid();
+  valid &= type_->CheckValid(typenames);
 
-  if (default_value_ == nullptr) return true;
+  if (default_value_ == nullptr) return valid;
   valid &= default_value_->CheckValid();
 
   if (!valid) return false;
@@ -489,9 +511,9 @@ AidlConstantDeclaration::AidlConstantDeclaration(const AidlLocation& location,
                                                  AidlConstantValue* value)
     : AidlMember(location), type_(type), name_(name), value_(value) {}
 
-bool AidlConstantDeclaration::CheckValid() const {
+bool AidlConstantDeclaration::CheckValid(AidlTypenames& typenames) const {
   bool valid = true;
-  valid &= type_->CheckValid();
+  valid &= type_->CheckValid(typenames);
   valid &= value_->CheckValid();
   if (!valid) return false;
 
