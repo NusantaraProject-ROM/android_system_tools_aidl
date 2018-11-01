@@ -49,6 +49,9 @@ static const set<string> kBuiltinTypes = {
     "long", "float",   "double",         "String",       "List",
     "Map",  "IBinder", "FileDescriptor", "CharSequence", "ParcelFileDescriptor"};
 
+static const set<string> kPrimitiveTypes = {"void", "boolean", "byte",  "char",
+                                            "int",  "long",    "float", "double"};
+
 // Note: these types may look wrong because they look like Java
 // types, but they have long been supported from the time when Java
 // was the only target language of this compiler. They are added here for
@@ -108,6 +111,10 @@ bool AidlTypenames::AddPreprocessedType(unique_ptr<AidlDefinedType> type) {
 bool AidlTypenames::IsBuiltinTypename(const string& type_name) {
   return kBuiltinTypes.find(type_name) != kBuiltinTypes.end() ||
       kJavaLikeTypeToAidlType.find(type_name) != kJavaLikeTypeToAidlType.end();
+}
+
+bool AidlTypenames::IsPrimitiveTypename(const string& type_name) {
+  return kPrimitiveTypes.find(type_name) != kPrimitiveTypes.end();
 }
 
 const AidlDefinedType* AidlTypenames::TryGetDefinedType(const string& type_name) const {
