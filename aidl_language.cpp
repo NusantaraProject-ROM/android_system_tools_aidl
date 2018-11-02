@@ -170,22 +170,44 @@ bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
   return result.second;
 }
 
-bool AidlTypeSpecifier::CheckValid() const {
+bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
   if (IsGeneric()) {
     const string& type_name = GetName();
     const int num = GetTypeParameters().size();
     if (type_name == "List") {
       if (num > 1) {
-        cerr << " List cannot have type parameters more than one, but got "
-             << "'" << ToString() << "'" << endl;
+        AIDL_ERROR(this) << " List cannot have type parameters more than one, but got "
+                         << "'" << ToString() << "'";
         return false;
       }
     } else if (type_name == "Map") {
       if (num != 0 && num != 2) {
-        cerr << "Map must have 0 or 2 type parameters, but got "
-             << "'" << ToString() << "'" << endl;
+        AIDL_ERROR(this) << "Map must have 0 or 2 type parameters, but got "
+                         << "'" << ToString() << "'";
         return false;
       }
+    }
+  }
+
+  if (GetName() == "void") {
+    if (IsArray() || IsNullable() || IsUtf8InCpp()) {
+      AIDL_ERROR(this) << "void type cannot be an array or nullable or utf8 string";
+      return false;
+    }
+  }
+
+  if (IsArray()) {
+    const auto definedType = typenames.TryGetDefinedType(GetName());
+    if (definedType != nullptr && definedType->AsInterface() != nullptr) {
+      AIDL_ERROR(this) << "Binder type cannot be an array";
+      return false;
+    }
+  }
+
+  if (IsNullable()) {
+    if (AidlTypenames::IsPrimitiveTypename(GetName()) && !IsArray()) {
+      AIDL_ERROR(this) << "Primitive type cannot get nullable annotation";
+      return false;
     }
   }
   return true;
@@ -205,11 +227,11 @@ AidlVariableDeclaration::AidlVariableDeclaration(const AidlLocation& location,
                                                  AidlConstantValue* default_value)
     : AidlNode(location), type_(type), name_(name), default_value_(default_value) {}
 
-bool AidlVariableDeclaration::CheckValid() const {
+bool AidlVariableDeclaration::CheckValid(const AidlTypenames& typenames) const {
   bool valid = true;
-  valid &= type_->CheckValid();
+  valid &= type_->CheckValid(typenames);
 
-  if (default_value_ == nullptr) return true;
+  if (default_value_ == nullptr) return valid;
   valid &= default_value_->CheckValid();
 
   if (!valid) return false;
@@ -489,9 +511,9 @@ AidlConstantDeclaration::AidlConstantDeclaration(const AidlLocation& location,
                                                  AidlConstantValue* value)
     : AidlMember(location), type_(type), name_(name), value_(value) {}
 
-bool AidlConstantDeclaration::CheckValid() const {
+bool AidlConstantDeclaration::CheckValid(const AidlTypenames& typenames) const {
   bool valid = true;
-  valid &= type_->CheckValid();
+  valid &= type_->CheckValid(typenames);
   valid &= value_->CheckValid();
   if (!valid) return false;
 
@@ -608,6 +630,16 @@ void AidlStructuredParcelable::Write(CodeWriter* writer) const {
   writer->Write("}\n");
 }
 
+bool AidlStructuredParcelable::CheckValid(const AidlTypenames& typenames) const {
+  for (const auto& v : GetFields()) {
+    if (!(v->CheckValid(typenames))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 AidlInterface::AidlInterface(const AidlLocation& location, const std::string& name,
                              const std::string& comments, bool oneway,
                              std::vector<std::unique_ptr<AidlMember>>* members,
@@ -643,6 +675,62 @@ void AidlInterface::Write(CodeWriter* writer) const {
   }
   writer->Dedent();
   writer->Write("}\n");
+}
+
+bool AidlInterface::CheckValid(const AidlTypenames& typenames) const {
+  // Has to be a pointer due to deleting copy constructor. No idea why.
+  map<string, const AidlMethod*> method_names;
+  for (const auto& m : GetMethods()) {
+    bool oneway = m->IsOneway() || IsOneway();
+
+    if (!m->GetType().CheckValid(typenames)) {
+      return false;
+    }
+
+    if (oneway && m->GetType().GetName() != "void") {
+      AIDL_ERROR(m) << "oneway method '" << m->GetName() << "' cannot return a value";
+      return false;
+    }
+
+    set<string> argument_names;
+    for (const auto& arg : m->GetArguments()) {
+      auto it = argument_names.find(arg->GetName());
+      if (it != argument_names.end()) {
+        AIDL_ERROR(m) << "method '" << m->GetName() << "' has duplicate argument name '"
+                      << arg->GetName() << "'";
+        return false;
+      }
+      argument_names.insert(arg->GetName());
+
+      if (!arg->GetType().CheckValid(typenames)) {
+        return false;
+      }
+
+      if (oneway && arg->IsOut()) {
+        AIDL_ERROR(m) << "oneway method '" << m->GetName() << "' cannot have out parameters";
+        return false;
+      }
+    }
+
+    auto it = method_names.find(m->GetName());
+    // prevent duplicate methods
+    if (it == method_names.end()) {
+      method_names[m->GetName()] = m.get();
+    } else {
+      AIDL_ERROR(m) << "attempt to redefine method " << m->GetName() << ":";
+      AIDL_ERROR(it->second) << "previously defined here.";
+      return false;
+    }
+
+    static set<string> reserved_methods{"asBinder()", "getInterfaceVersion()",
+                                        "getTransactionName(int)"};
+
+    if (reserved_methods.find(m->Signature()) != reserved_methods.end()) {
+      AIDL_ERROR(m) << " method " << m->Signature() << " is reserved for internal use." << endl;
+      return false;
+    }
+  }
+  return true;
 }
 
 AidlQualifiedName::AidlQualifiedName(const AidlLocation& location, const std::string& term,
