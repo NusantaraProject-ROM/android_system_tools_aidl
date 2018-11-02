@@ -102,6 +102,23 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
         },
     },
     // TODO(b/111445392) {"FileDescriptor", ""},
+    {
+        "ParcelFileDescriptor",
+        {
+            "::ndk::ScopedFileDescriptor",
+            false,
+            [](const CodeGeneratorContext& c) {
+              c.writer << "AParcel_readParcelFileDescriptor(" << c.parcel << ", (" << c.var
+                       << ")->getR())";
+            },
+            [](const CodeGeneratorContext& c) {
+              c.writer << "AParcel_writeParcelFileDescriptor(" << c.parcel << ", " << c.var
+                       << ".get())";
+            },
+            nullptr,
+            nullptr,
+        },
+    }
     // TODO(b/111445392) {"CharSequence", ""},
 };
 
