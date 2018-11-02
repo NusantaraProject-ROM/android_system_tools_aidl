@@ -211,7 +211,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   // resolution fails.
   bool Resolve(android::aidl::AidlTypenames& typenames);
 
-  bool CheckValid() const;
+  bool CheckValid(const AidlTypenames& typenames) const;
 
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
@@ -255,7 +255,7 @@ class AidlVariableDeclaration : public AidlNode {
 
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
-  bool CheckValid() const;
+  bool CheckValid(const AidlTypenames& typenames) const;
   std::string ToString() const;
   std::string Signature() const;
 
@@ -355,7 +355,7 @@ class AidlConstantDeclaration : public AidlMember {
   const AidlTypeSpecifier& GetType() const { return *type_; }
   const std::string& GetName() const { return name_; }
   const AidlConstantValue& GetValue() const { return *value_; }
-  bool CheckValid() const;
+  bool CheckValid(const AidlTypenames& typenames) const;
 
   std::string ToString() const;
   std::string Signature() const;
@@ -482,6 +482,7 @@ class AidlDefinedType : public AidlAnnotatable {
   virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
+  virtual bool CheckValid(const AidlTypenames&) const { return true; }
 
   AidlStructuredParcelable* AsStructuredParcelable() {
     return const_cast<AidlStructuredParcelable*>(
@@ -560,6 +561,8 @@ class AidlStructuredParcelable : public AidlParcelable {
 
   void Write(CodeWriter* writer) const override;
 
+  bool CheckValid(const AidlTypenames& typenames) const override;
+
  private:
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
 
@@ -585,6 +588,8 @@ class AidlInterface final : public AidlDefinedType {
   std::string GetPreprocessDeclarationName() const override { return "interface"; }
 
   void Write(CodeWriter* writer) const override;
+
+  bool CheckValid(const AidlTypenames& typenames) const override;
 
  private:
   bool oneway_;
