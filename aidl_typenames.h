@@ -54,6 +54,7 @@ class AidlTypenames final {
   bool AddDefinedType(unique_ptr<AidlDefinedType> type);
   bool AddPreprocessedType(unique_ptr<AidlDefinedType> type);
   static bool IsBuiltinTypename(const string& type_name);
+  static bool IsPrimitiveTypename(const string& type_name);
   const AidlDefinedType* TryGetDefinedType(const string& type_name) const;
   pair<string, bool> ResolveTypename(const string& type_name) const;
   bool CanBeOutParameter(const AidlTypeSpecifier& type) const;
