@@ -27,6 +27,7 @@
 #include <android-base/stringprintf.h>
 
 #include "aidl_language.h"
+#include "aidl_to_cpp.h"
 #include "ast_cpp.h"
 #include "code_writer.h"
 #include "logging.h"
@@ -259,6 +260,29 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
         kTraceVarName, interface.GetName().c_str(), method.GetName().c_str()));
   }
 
+  if (options.GenLog()) {
+    string code;
+    CodeWriterPtr writer = CodeWriter::ForString(&code);
+    (*writer) << "Json::Value _log_input_args(Json::objectValue);\n";
+
+    (*writer) << "if (" << bp_name << "::logFunc != nullptr) {\n";
+    (*writer).Indent();
+
+    for (const auto& a : method.GetArguments()) {
+      if (a->IsIn()) {
+        WriteLogFor({*(writer.get()), types.typenames_, a->GetType(), a->GetName(), a->IsOut(),
+                     "_log_input_args"});
+      }
+    }
+
+    (*writer).Dedent();
+    (*writer) << "}\n";
+
+    (*writer) << "auto _log_start = std::chrono::steady_clock::now();\n";
+    writer->Close();
+    b->AddLiteral(code, false /* no semicolon */);
+  }
+
   // Add the name of the interface we're hoping to call.
   b->AddStatement(new Assignment(
       kAndroidStatusVarName,
@@ -385,6 +409,76 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
       StringPrintf("%s.setFromStatusT(%s)", kStatusVarName,
                    kAndroidStatusVarName));
 
+  if (options.GenLog()) {
+    string code;
+    CodeWriterPtr writer = CodeWriter::ForString(&code);
+
+    (*writer) << "if (" << bp_name << "::logFunc != nullptr) {\n";
+    (*writer).Indent();
+
+    // Write the log as a Json object. For example,
+    //
+    // Json log object for following interface description
+    //
+    // package foo.bar;
+    // interface IFoo {
+    //   String TestMethod(int arg1, inout String[] arg2, out double arg3);
+    // }
+    //
+    // would be:
+    //
+    // {
+    //   duration_ms: 100,
+    //   interface_name: "foo.bar.IFoo",
+    //   method_name: "TestMethod",
+    //   proxy_address: "0x12345678",
+    //   input_args: {
+    //     arg1: 30,
+    //     arg2: ["apple", "grape"],
+    //   },
+    //   output_args: {
+    //     arg2: ["mango", "banana"],
+    //     arg3: "10.5",
+    //   },
+    //   _aidl_return: "ok",
+    // }
+    (*writer) << "auto _log_end = std::chrono::steady_clock::now();\n";
+    (*writer) << "Json::Value _log_transaction(Json::objectValue);\n";
+    (*writer) << "_log_transaction[\"duration_ms\"] = "
+              << "std::chrono::duration_cast<std::chrono::milliseconds>(_log_end - "
+                 "_log_start).count();\n";
+    (*writer) << "_log_transaction[\"interface_name\"] = "
+              << "Json::Value(\"" << interface.GetCanonicalName() << "\");\n";
+    (*writer) << "_log_transaction[\"method_name\"] = "
+              << "Json::Value(\"" << method.GetName() << "\");\n";
+    (*writer) << "_log_transaction[\"proxy_address\"] = "
+              << "Json::Value(android::base::StringPrintf(\"0x%%p\", this));\n";
+    (*writer) << "_log_transaction[\"input_args\"] = _log_input_args;\n";
+    (*writer) << "Json::Value _log_output_args(Json::objectValue);\n";
+
+    for (const auto& a : method.GetOutArguments()) {
+      WriteLogFor({*(writer.get()), types.typenames_, a->GetType(), a->GetName(), true,
+                   "_log_output_args"});
+    }
+
+    (*writer) << "_log_transaction[\"output_args\"] = _log_output_args;\n";
+
+    if (method.GetType().GetName() != "void") {
+      WriteLogFor({*(writer.get()), types.typenames_, method.GetType(), kReturnVarName, true,
+                   "_log_transaction"});
+    }
+
+    // call the user-provided function with the Json object for the entire
+    // transaction
+    (*writer) << bp_name << "::logFunc(_log_transaction);\n";
+
+    (*writer).Dedent();
+    (*writer) << "}\n";
+
+    writer->Close();
+    b->AddLiteral(code, false /* no semicolon */);
+  }
+
   b->AddLiteral(StringPrintf("return %s", kStatusVarName));
 
   return unique_ptr<Declaration>(ret.release());
@@ -429,6 +523,12 @@ unique_ptr<Document> BuildClientSource(const TypeNamespace& types, const AidlInt
       kParcelHeader,
       kAndroidBaseMacrosHeader
   };
+  if (options.GenLog()) {
+    include_list.emplace_back("chrono");
+    include_list.emplace_back("functional");
+    include_list.emplace_back("json/value.h");
+    include_list.emplace_back("android-base/stringprintf.h");
+  }
   vector<unique_ptr<Declaration>> file_decls;
 
   // The constructor just passes the IBinder instance up to the super
@@ -439,6 +539,16 @@ unique_ptr<Document> BuildClientSource(const TypeNamespace& types, const AidlInt
       ArgList{StringPrintf("const ::android::sp<::android::IBinder>& %s",
                            kImplVarName)},
       { "BpInterface<" + i_name + ">(" + kImplVarName + ")" }}});
+
+  if (options.GenLog()) {
+    string code;
+    ClassName(interface, ClassNames::CLIENT);
+    CodeWriterPtr writer = CodeWriter::ForString(&code);
+    (*writer) << "std::function<void(const Json::Value&)> "
+              << ClassName(interface, ClassNames::CLIENT) << "::logFunc;\n";
+    writer->Close();
+    file_decls.push_back(unique_ptr<Declaration>(new LiteralDecl(code)));
+  }
 
   // Clients define a method per transaction.
   for (const auto& method : interface.GetMethods()) {
@@ -741,6 +851,9 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
 
+  set<string> includes = {kIBinderHeader, kIInterfaceHeader, "utils/Errors.h",
+                          HeaderFile(interface, ClassNames::INTERFACE, false)};
+
   unique_ptr<ConstructorDecl> constructor{new ConstructorDecl{
       bp_name,
       ArgList{StringPrintf("const ::android::sp<::android::IBinder>& %s",
@@ -764,6 +877,14 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
     }
   }
 
+  if (options.GenLog()) {
+    includes.insert("chrono");      // for std::chrono::steady_clock
+    includes.insert("functional");  // for std::function
+    includes.insert("json/value.h");
+    publics.emplace_back(
+        new LiteralDecl{"static std::function<void(const Json::Value&)> logFunc;\n"});
+  }
+
   vector<unique_ptr<Declaration>> privates;
 
   if (options.Version() > 0) {
@@ -777,13 +898,10 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
       std::move(privates),
   }};
 
-  return unique_ptr<Document>{new CppHeader{
-      BuildHeaderGuard(interface, ClassNames::CLIENT),
-      {kIBinderHeader,
-       kIInterfaceHeader,
-       "utils/Errors.h",
-       HeaderFile(interface, ClassNames::INTERFACE, false)},
-      NestInNamespaces(std::move(bp_class), interface.GetSplitPackage())}};
+  return unique_ptr<Document>{
+      new CppHeader{BuildHeaderGuard(interface, ClassNames::CLIENT),
+                    vector<string>(includes.begin(), includes.end()),
+                    NestInNamespaces(std::move(bp_class), interface.GetSplitPackage())}};
 }
 
 unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
