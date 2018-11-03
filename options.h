@@ -116,6 +116,8 @@ class Options final {
 
   int Version() const { return version_; }
 
+  bool GenLog() const { return gen_log_; }
+
   bool Ok() const { return error_message_.stream_.str().empty(); }
 
   string GetErrorMessage() const { return error_message_.stream_.str(); }
@@ -149,6 +151,7 @@ class Options final {
   vector<string> input_files_;
   string output_file_;
   int version_ = 0;
+  bool gen_log_ = false;
   ErrorMessage error_message_;
 };
 
