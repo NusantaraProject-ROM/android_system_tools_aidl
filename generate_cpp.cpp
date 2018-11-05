@@ -796,13 +796,13 @@ unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
     const AidlConstantValue& value = constant->GetValue();
     if (value.GetType() != AidlConstantValue::Type::STRING) continue;
 
-    unique_ptr<MethodImpl> getter(new MethodImpl(
-        "const ::android::String16&",
-        ClassName(interface, ClassNames::INTERFACE),
-        constant->GetName(),
-        {}));
+    std::string cppType = constant->GetType().GetLanguageType<Type>()->CppType();
+
+    unique_ptr<MethodImpl> getter(new MethodImpl("const " + cppType + "&",
+                                                 ClassName(interface, ClassNames::INTERFACE),
+                                                 constant->GetName(), {}));
     getter->GetStatementBlock()->AddLiteral(
-        StringPrintf("static const ::android::String16 value(%s)",
+        StringPrintf("static const %s value(%s)", cppType.c_str(),
                      constant->ValueString(ConstantValueDecorator).c_str()));
     getter->GetStatementBlock()->AddLiteral("return value");
     decls.push_back(std::move(getter));
@@ -972,8 +972,9 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
 
     switch (value.GetType()) {
       case AidlConstantValue::Type::STRING: {
-        unique_ptr<Declaration> getter(new MethodDecl(
-            "const ::android::String16&", constant->GetName(), {}, MethodDecl::IS_STATIC));
+        std::string cppType = constant->GetType().GetLanguageType<Type>()->CppType();
+        unique_ptr<Declaration> getter(new MethodDecl("const " + cppType + "&", constant->GetName(),
+                                                      {}, MethodDecl::IS_STATIC));
         string_constants.push_back(std::move(getter));
         break;
       }
