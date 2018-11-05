@@ -333,7 +333,7 @@ TEST_F(AidlTest, FailOnDuplicateConstantNames) {
                    )",
                    &cpp_types_,
                    &reported_error));
-  EXPECT_EQ(AidlError::BAD_CONSTANTS, reported_error);
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
 }
 
 TEST_F(AidlTest, FailOnManyDefinedTypes) {
@@ -369,7 +369,7 @@ TEST_F(AidlTest, FailOnMalformedConstHexValue) {
                    )",
                    &cpp_types_,
                    &reported_error));
-  EXPECT_EQ(AidlError::BAD_CONSTANTS, reported_error);
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
 }
 
 TEST_F(AidlTest, ParsePositiveConstHexValue) {

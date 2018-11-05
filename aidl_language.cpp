@@ -730,7 +730,19 @@ bool AidlInterface::CheckValid(const AidlTypenames& typenames) const {
       return false;
     }
   }
-  return true;
+
+  bool success = true;
+  set<string> constant_names;
+  for (const std::unique_ptr<AidlConstantDeclaration>& constant : GetConstantDeclarations()) {
+    if (constant_names.count(constant->GetName()) > 0) {
+      LOG(ERROR) << "Found duplicate constant name '" << constant->GetName() << "'";
+      success = false;
+    }
+    constant_names.insert(constant->GetName());
+    success = success && constant->CheckValid(typenames);
+  }
+
+  return success;
 }
 
 AidlQualifiedName::AidlQualifiedName(const AidlLocation& location, const std::string& term,
