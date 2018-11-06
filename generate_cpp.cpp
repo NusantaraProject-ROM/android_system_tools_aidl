@@ -851,7 +851,7 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
 
-  set<string> includes = {kIBinderHeader, kIInterfaceHeader, "utils/Errors.h",
+  vector<string> includes = {kIBinderHeader, kIInterfaceHeader, "utils/Errors.h",
                           HeaderFile(interface, ClassNames::INTERFACE, false)};
 
   unique_ptr<ConstructorDecl> constructor{new ConstructorDecl{
@@ -878,9 +878,9 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   }
 
   if (options.GenLog()) {
-    includes.insert("chrono");      // for std::chrono::steady_clock
-    includes.insert("functional");  // for std::function
-    includes.insert("json/value.h");
+    includes.emplace_back("chrono");      // for std::chrono::steady_clock
+    includes.emplace_back("functional");  // for std::function
+    includes.emplace_back("json/value.h");
     publics.emplace_back(
         new LiteralDecl{"static std::function<void(const Json::Value&)> logFunc;\n"});
   }
@@ -899,8 +899,7 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   }};
 
   return unique_ptr<Document>{
-      new CppHeader{BuildHeaderGuard(interface, ClassNames::CLIENT),
-                    vector<string>(includes.begin(), includes.end()),
+      new CppHeader{BuildHeaderGuard(interface, ClassNames::CLIENT), includes,
                     NestInNamespaces(std::move(bp_class), interface.GetSplitPackage())}};
 }
 
