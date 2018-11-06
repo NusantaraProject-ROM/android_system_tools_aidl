@@ -914,7 +914,7 @@ unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
                StringPrintf("const %s& %s", kAndroidParcelLiteral,
                             kDataVarName),
                StringPrintf("%s* %s", kAndroidParcelLiteral, kReplyVarName),
-               StringPrintf("uint32_t %s = 0", kFlagsVarName)}},
+               StringPrintf("uint32_t %s", kFlagsVarName)}},
       MethodDecl::IS_OVERRIDE
   }};
 

@@ -488,7 +488,7 @@ namespace os {
 
 class BnPingResponder : public ::android::BnInterface<IPingResponder> {
 public:
-  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags = 0) override;
+  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnPingResponder
 
 }  // namespace os
@@ -941,7 +941,7 @@ namespace os {
 
 class BnPingResponder : public ::android::BnInterface<IPingResponder> {
 public:
-  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags = 0) override;
+  ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnPingResponder
 
 }  // namespace os
