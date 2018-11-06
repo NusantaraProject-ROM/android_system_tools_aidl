@@ -82,7 +82,8 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
     {"double", PrimitiveType("double", "Double")},
     {"String",
      {"std::string", false, StandardRead("::ndk::AParcel_readString"),
-      StandardWrite("::ndk::AParcel_writeString"), nullptr, nullptr}},
+      StandardWrite("::ndk::AParcel_writeString"), StandardRead("::ndk::AParcel_readVector"),
+      StandardWrite("::ndk::AParcel_writeVector")}},
     // TODO(b/111445392) {"List", ""},
     // TODO(b/111445392) {"Map", ""},
     {
