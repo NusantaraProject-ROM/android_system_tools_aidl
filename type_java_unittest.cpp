@@ -46,7 +46,7 @@ TEST_F(JavaTypeNamespaceTest, ContainerTypeCreation) {
   EXPECT_FALSE(types_.HasTypeByCanonicalName("Foo"));
   EXPECT_FALSE(types_.HasTypeByCanonicalName("java.util.List<a.goog.Foo>"));
   unique_ptr<AidlParcelable> parcelable(new AidlParcelable(
-      AIDL_LOCATION_HERE, new AidlQualifiedName(AIDL_LOCATION_HERE, "Foo", ""), {"a", "goog"}));
+      AIDL_LOCATION_HERE, new AidlQualifiedName(AIDL_LOCATION_HERE, "Foo", ""), {"a", "goog"}, ""));
   // Add the parcelable type we care about.
   EXPECT_TRUE(types_.AddParcelableType(*parcelable.get(), __FILE__));
   // Now we can find the parcelable type, but not the List of them.

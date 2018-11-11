@@ -67,12 +67,14 @@ floatvalue  [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?f?
 \>                    { return '>'; }
 
     /* annotations */
-@{identifier}         { yylval->token = new AidlToken(yytext + 1, "");
+@{identifier}         { yylval->token = new AidlToken(yytext + 1, extra_text);
                         return yy::parser::token::ANNOTATION;
                       }
 
     /* keywords */
-parcelable            { return yy::parser::token::PARCELABLE; }
+parcelable            { yylval->token = new AidlToken("parcelable", extra_text);
+                        return yy::parser::token::PARCELABLE;
+                      }
 import                { return yy::parser::token::IMPORT; }
 package               { return yy::parser::token::PACKAGE; }
 in                    { return yy::parser::token::IN; }

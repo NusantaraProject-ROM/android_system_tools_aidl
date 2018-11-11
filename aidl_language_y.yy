@@ -47,7 +47,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
     char character;
     std::string *str;
     AidlAnnotation* annotation;
-    std::set<AidlAnnotation>* annotation_list;
+    std::vector<AidlAnnotation>* annotation_list;
     AidlTypeSpecifier* type;
     AidlArgument* arg;
     AidlArgument::Direction direction;
@@ -70,6 +70,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token<token> C_STR "string literal"
 %token<token> IDENTIFIER "identifier"
 %token<token> INTERFACE "interface"
+%token<token> PARCELABLE "parcelable"
 %token<token> ONEWAY "oneway"
 
 %token<character> CHARVALUE "char literal"
@@ -86,7 +87,6 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token INOUT "inout"
 %token OUT "out"
 %token PACKAGE "package"
-%token PARCELABLE "parcelable"
 %token TRUE_LITERAL "true"
 %token FALSE_LITERAL "false"
 
@@ -173,6 +173,11 @@ decl
       ps->AddError();
     }
 
+    if ($1->size() > 0) {
+      // copy comments from annotation to decl
+      $2->SetComments($1->begin()->GetComments());
+    }
+
     $$->Annotate(std::move(*$1));
     delete $1;
    }
@@ -187,14 +192,14 @@ unannotated_decl
 
 parcelable_decl
  : PARCELABLE qualified_name ';' {
-    $$ = new AidlParcelable(loc(@2), $2, ps->Package());
+    $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $1->GetComments());
   }
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
-    $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $4->GetText());
+    $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $1->GetComments(), $4->GetText());
   }
  | PARCELABLE identifier '{' variable_decls '}' {
     AidlQualifiedName* name = new AidlQualifiedName(loc(@2), $2->GetText(), $2->GetComments());
-    $$ = new AidlStructuredParcelable(loc(@2), name, ps->Package(), $4);
+    $$ = new AidlStructuredParcelable(loc(@2), name, ps->Package(), $1->GetComments(), $4);
  }
  | PARCELABLE error ';' {
     ps->AddError();
@@ -374,6 +379,10 @@ unannotated_type
 type
  : annotation_list unannotated_type {
     $$ = $2;
+    if ($1->size() > 0) {
+      // copy comments from annotation to type
+      $2->SetComments($1->begin()->GetComments());
+    }
     $2->Annotate(std::move(*$1));
     delete $1;
   };
@@ -389,11 +398,11 @@ type_args
 
 annotation_list
  :
-  { $$ = new std::set<AidlAnnotation>(); }
+  { $$ = new std::vector<AidlAnnotation>(); }
  | annotation_list annotation
   {
     if ($2 != nullptr) {
-      $1->insert(std::move(*$2));
+      $1->emplace_back(std::move(*$2));
       delete $2;
     }
   };
@@ -405,6 +414,7 @@ annotation
     if ($$ == nullptr) {
       ps->AddError();
     }
+    $$->SetComments($1->GetComments());
   };
 
 direction

@@ -411,6 +411,7 @@ static std::unique_ptr<Method> generate_interface_method(
   decl->returnType = method.GetType().GetLanguageType<Type>();
   decl->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   decl->name = method.GetName();
+  decl->annotations = generate_java_annotations(method.GetType());
 
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
     decl->parameters.push_back(
@@ -989,6 +990,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
   interface->what = Class::INTERFACE;
   interface->type = interfaceType;
   interface->interfaces.push_back(types->IInterfaceType());
+  interface->annotations = generate_java_annotations(*iface);
 
   if (options.Version()) {
     std::ostringstream code;
