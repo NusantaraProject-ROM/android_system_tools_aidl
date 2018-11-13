@@ -396,14 +396,15 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
     AidlLocation location = AidlLocation(filename, point, point);
 
     if (decl == "parcelable") {
-      AidlParcelable* doc =
-          new AidlParcelable(location, new AidlQualifiedName(location, class_name, ""), package);
+      AidlParcelable* doc = new AidlParcelable(
+          location, new AidlQualifiedName(location, class_name, ""), package, "" /* comments */);
       types->AddParcelableType(*doc, filename);
       typenames.AddPreprocessedType(unique_ptr<AidlParcelable>(doc));
     } else if (decl == "structured_parcelable") {
       auto temp = new std::vector<std::unique_ptr<AidlVariableDeclaration>>();
-      AidlStructuredParcelable* doc = new AidlStructuredParcelable(
-          location, new AidlQualifiedName(location, class_name, ""), package, temp);
+      AidlStructuredParcelable* doc =
+          new AidlStructuredParcelable(location, new AidlQualifiedName(location, class_name, ""),
+                                       package, "" /* comments */, temp);
       types->AddParcelableType(*doc, filename);
       typenames.AddPreprocessedType(unique_ptr<AidlStructuredParcelable>(doc));
     } else if (decl == "interface") {
