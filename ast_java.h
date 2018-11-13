@@ -114,6 +114,7 @@ struct FieldVariable : public Expression {
 
 struct Field : public ClassElement {
   std::string comment;
+  std::vector<std::string> annotations;
   int modifiers = 0;
   Variable* variable = nullptr;
   std::string value;
@@ -324,6 +325,7 @@ struct Break : public Statement {
 
 struct Method : public ClassElement {
   std::string comment;
+  std::vector<std::string> annotations;
   int modifiers = 0;
   const Type* returnType = nullptr;  // nullptr means constructor
   size_t returnTypeDimension = 0;
@@ -372,6 +374,7 @@ struct Class : public ClassElement {
   enum { CLASS, INTERFACE };
 
   std::string comment;
+  std::vector<std::string> annotations;
   int modifiers = 0;
   int what = CLASS;  // CLASS or INTERFACE
   const Type* type = nullptr;

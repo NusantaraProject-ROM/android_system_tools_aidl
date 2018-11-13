@@ -93,11 +93,16 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   parcel_class->what = Class::CLASS;
   parcel_class->type = parcelType;
   parcel_class->interfaces.push_back(types->ParcelableInterfaceType());
+  parcel_class->annotations = generate_java_annotations(*parcel);
 
   for (const auto& variable : parcel->GetFields()) {
     const Type* type = variable->GetType().GetLanguageType<Type>();
 
     std::ostringstream out;
+    out << variable->GetType().GetComments() << "\n";
+    for (const auto& a : generate_java_annotations(variable->GetType())) {
+      out << a << "\n";
+    }
     out << "public " << type->JavaType() << (variable->GetType().IsArray() ? "[]" : "") << " "
         << variable->GetName();
     if (variable->GetDefaultValue()) {
@@ -188,6 +193,14 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   parcel_class->elements.push_back(describe_contents_method);
 
   return parcel_class;
+}
+
+std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a) {
+  std::vector<std::string> result;
+  if (a.IsUnsupportedAppUsage()) {
+    result.emplace_back("@android.annotation.UnsupportedAppUsage");
+  }
+  return result;
 }
 
 }  // namespace java

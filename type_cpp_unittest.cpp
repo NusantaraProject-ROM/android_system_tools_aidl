@@ -62,7 +62,7 @@ TEST_F(CppTypeNamespaceTest, SupportsListString) {
 TEST_F(CppTypeNamespaceTest, SupportsNestedParcelableClass) {
   unique_ptr<AidlParcelable> parcelable(new AidlParcelable(
       AIDL_LOCATION_HERE, new AidlQualifiedName(AIDL_LOCATION_HERE, kParcelableDotName, ""),
-      {"a", "goog"}));
+      {"a", "goog"}, ""));
   EXPECT_EQ(parcelable->GetCppName(), kParcelableColonName);
 }
 

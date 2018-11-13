@@ -44,6 +44,7 @@ import android.test.CompoundParcelable;
 import android.bar.IAuxInterface;
 import android.test.IAuxInterface2;
 
+@UnsupportedAppUsage
 interface IExampleInterface {
     const int EXAMPLE_CONSTANT = 3;
     boolean isEnabled();
@@ -51,6 +52,7 @@ interface IExampleInterface {
     String getAddress();
 
     /* Test long comment */
+    @UnsupportedAppUsage
     ExampleParcelable[] getParcelables();
 
     // Test short comment
@@ -119,6 +121,7 @@ const char kExpectedJavaOutput[] =
  * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
+@android.annotation.UnsupportedAppUsage
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -559,6 +562,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
+  @android.annotation.UnsupportedAppUsage
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 
@@ -578,6 +582,7 @@ const char kExpectedJavaOutputWithTransactionNames[] =
  * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
+@android.annotation.UnsupportedAppUsage
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -1068,6 +1073,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
+  @android.annotation.UnsupportedAppUsage
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 
@@ -1087,6 +1093,7 @@ const char kExpectedJavaOutputWithTrace[] =
  * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
+@android.annotation.UnsupportedAppUsage
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -1607,6 +1614,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
+  @android.annotation.UnsupportedAppUsage
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 

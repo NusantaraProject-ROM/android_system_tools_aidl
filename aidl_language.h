@@ -131,10 +131,13 @@ class AidlAnnotation : public AidlNode {
 
   const string& GetName() const { return name_; }
   string ToString() const { return "@" + name_; }
+  const string& GetComments() const { return comments_; }
+  void SetComments(const string& comments) { comments_ = comments; }
 
  private:
   AidlAnnotation(const AidlLocation& location, const string& name);
   const string name_;
+  string comments_;
 };
 
 static inline bool operator<(const AidlAnnotation& lhs, const AidlAnnotation& rhs) {
@@ -152,15 +155,16 @@ class AidlAnnotatable : public AidlNode {
   AidlAnnotatable(AidlAnnotatable&&) = default;
   virtual ~AidlAnnotatable() = default;
 
-  void Annotate(set<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
+  void Annotate(vector<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
   bool IsNullable() const;
   bool IsUtf8InCpp() const;
+  bool IsUnsupportedAppUsage() const;
   std::string ToString() const;
 
-  const set<AidlAnnotation>& GetAnnotations() const { return annotations_; }
+  const vector<AidlAnnotation>& GetAnnotations() const { return annotations_; }
 
  private:
-  set<AidlAnnotation> annotations_;
+  vector<AidlAnnotation> annotations_;
 };
 
 class AidlQualifiedName;
@@ -199,6 +203,8 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
 
   const string& GetComments() const { return comments_; }
 
+  void SetComments(const string& comment) { comments_ = comment; }
+
   bool IsResolved() const { return fully_qualified_name_ != ""; }
 
   bool IsArray() const { return is_array_; }
@@ -228,7 +234,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   string fully_qualified_name_;
   bool is_array_;
   const shared_ptr<vector<unique_ptr<AidlTypeSpecifier>>> type_params_;
-  const string comments_;
+  string comments_;
   const android::aidl::ValidatableType* language_type_ = nullptr;
 };
 
@@ -471,6 +477,7 @@ class AidlDefinedType : public AidlAnnotatable {
 
   const std::string& GetName() const { return name_; };
   const std::string& GetComments() const { return comments_; }
+  void SetComments(const std::string comments) { comments_ = comments; }
 
   /* dot joined package, example: "android.package.foo" */
   std::string GetPackage() const;
@@ -528,7 +535,8 @@ class AidlDefinedType : public AidlAnnotatable {
 class AidlParcelable : public AidlDefinedType {
  public:
   AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
-                 const std::vector<std::string>& package, const std::string& cpp_header = "");
+                 const std::vector<std::string>& package, const std::string& comments,
+                 const std::string& cpp_header = "");
   virtual ~AidlParcelable() = default;
 
   // C++ uses "::" instead of "." to refer to a inner class.
@@ -550,7 +558,7 @@ class AidlParcelable : public AidlDefinedType {
 class AidlStructuredParcelable : public AidlParcelable {
  public:
   AidlStructuredParcelable(const AidlLocation& location, AidlQualifiedName* name,
-                           const std::vector<std::string>& package,
+                           const std::vector<std::string>& package, const std::string& comments,
                            std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables);
 
   const std::vector<std::unique_ptr<AidlVariableDeclaration>>& GetFields() const {

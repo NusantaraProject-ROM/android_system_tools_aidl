@@ -70,8 +70,9 @@ AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
 
 static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
+static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 
-static const set<string> kAnnotationNames{kNullable, kUtf8InCpp};
+static const set<string> kAnnotationNames{kNullable, kUtf8InCpp, kUnsupportedAppUsage};
 
 AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string& name) {
   if (kAnnotationNames.find(name) == kAnnotationNames.end()) {
@@ -91,7 +92,7 @@ AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string
 AidlAnnotation::AidlAnnotation(const AidlLocation& location, const string& name)
     : AidlNode(location), name_(name) {}
 
-static bool HasAnnotation(const set<AidlAnnotation>& annotations, const string& name) {
+static bool HasAnnotation(const vector<AidlAnnotation>& annotations, const string& name) {
   for (const auto& a : annotations) {
     if (a.GetName() == name) {
       return true;
@@ -108,6 +109,10 @@ bool AidlAnnotatable::IsNullable() const {
 
 bool AidlAnnotatable::IsUtf8InCpp() const {
   return HasAnnotation(annotations_, kUtf8InCpp);
+}
+
+bool AidlAnnotatable::IsUnsupportedAppUsage() const {
+  return HasAnnotation(annotations_, kUnsupportedAppUsage);
 }
 
 string AidlAnnotatable::ToString() const {
@@ -599,9 +604,9 @@ std::string AidlDefinedType::GetCanonicalName() const {
 }
 
 AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
-                               const std::vector<std::string>& package,
+                               const std::vector<std::string>& package, const std::string& comments,
                                const std::string& cpp_header)
-    : AidlDefinedType(location, name->GetDotName(), "" /*comments*/, package),
+    : AidlDefinedType(location, name->GetDotName(), comments, package),
       name_(name),
       cpp_header_(cpp_header) {
   // Strip off quotation marks if we actually have a cpp header.
@@ -616,8 +621,8 @@ void AidlParcelable::Write(CodeWriter* writer) const {
 
 AidlStructuredParcelable::AidlStructuredParcelable(
     const AidlLocation& location, AidlQualifiedName* name, const std::vector<std::string>& package,
-    std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables)
-    : AidlParcelable(location, name, package, "" /*cpp_header*/),
+    const std::string& comments, std::vector<std::unique_ptr<AidlVariableDeclaration>>* variables)
+    : AidlParcelable(location, name, package, comments, "" /*cpp_header*/),
       variables_(std::move(*variables)) {}
 
 void AidlStructuredParcelable::Write(CodeWriter* writer) const {

@@ -76,6 +76,9 @@ void Field::Write(CodeWriter* to) const {
   if (this->comment.length() != 0) {
     to->Write("%s\n", this->comment.c_str());
   }
+  for (const auto& a : this->annotations) {
+    to->Write("%s\n", a.c_str());
+  }
   WriteModifiers(to, this->modifiers, SCOPE_MASK | STATIC | FINAL | OVERRIDE);
   this->variable->WriteDeclaration(to);
 
@@ -392,6 +395,10 @@ void Method::Write(CodeWriter* to) const {
     to->Write("%s\n", this->comment.c_str());
   }
 
+  for (const auto& a : this->annotations) {
+    to->Write("%s\n", a.c_str());
+  }
+
   WriteModifiers(to, this->modifiers,
                  SCOPE_MASK | STATIC | ABSTRACT | FINAL | OVERRIDE);
 
@@ -452,6 +459,9 @@ void Class::Write(CodeWriter* to) const {
 
   if (this->comment.length() != 0) {
     to->Write("%s\n", this->comment.c_str());
+  }
+  for (const auto& a : this->annotations) {
+    to->Write("%s\n", a.c_str());
   }
 
   WriteModifiers(to, this->modifiers, ALL_MODIFIERS);
