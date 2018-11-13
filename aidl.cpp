@@ -139,30 +139,46 @@ bool check_filename(const std::string& filename, const AidlDefinedType& defined_
     return valid;
 }
 
-void register_types(const AidlStructuredParcelable* parcel, TypeNamespace* types) {
+bool register_types(const AidlStructuredParcelable* parcel, TypeNamespace* types) {
   for (const auto& v : parcel->GetFields()) {
-    types->MaybeAddContainerType(v->GetType());
+    if (!types->MaybeAddContainerType(v->GetType())) {
+      return false;
+    }
 
     const ValidatableType* type = types->GetReturnType(v->GetType(), *parcel);
+    if (type == nullptr) {
+      return false;
+    }
     v->GetMutableType()->SetLanguageType(type);
   }
+  return true;
 }
 
-void register_types(const AidlInterface* c, TypeNamespace* types) {
+bool register_types(const AidlInterface* c, TypeNamespace* types) {
   for (const auto& m : c->GetMethods()) {
-    types->MaybeAddContainerType(m->GetType());
+    if (!types->MaybeAddContainerType(m->GetType())) {
+      return false;
+    }
 
     const ValidatableType* return_type = types->GetReturnType(m->GetType(), *c);
 
+    if (return_type == nullptr) {
+      return false;
+    }
     m->GetMutableType()->SetLanguageType(return_type);
 
     set<string> argument_names;
 
     int index = 1;
     for (const auto& arg : m->GetArguments()) {
-      types->MaybeAddContainerType(arg->GetType());
+      if (!types->MaybeAddContainerType(arg->GetType())) {
+        return false;
+      }
 
       const ValidatableType* arg_type = types->GetArgType(*arg, index, *c);
+      if (arg_type == nullptr) {
+        return false;
+      }
       arg->GetMutableType()->SetLanguageType(arg_type);
     }
   }
@@ -170,8 +186,13 @@ void register_types(const AidlInterface* c, TypeNamespace* types) {
   for (const std::unique_ptr<AidlConstantDeclaration>& constant : c->GetConstantDeclarations()) {
     AidlTypeSpecifier* specifier = constant->GetMutableType();
     const ValidatableType* return_type = types->GetReturnType(*specifier, *c);
+    if (return_type == nullptr) {
+      return false;
+    }
     specifier->SetLanguageType(return_type);
   }
+
+  return true;
 }
 
 bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
@@ -539,20 +560,25 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     // using fully qualified names.
     return AidlError::BAD_TYPE;
   }
+  if (!is_check_api) {
+    for (const auto defined_type : main_parser->GetDefinedTypes()) {
+      AidlInterface* interface = defined_type->AsInterface();
+      AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
 
-  for (const auto defined_type : main_parser->GetDefinedTypes()) {
-    AidlInterface* interface = defined_type->AsInterface();
-    AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
+      // Link the AIDL type with the type of the target language. This will
+      // be removed when the migration to AidlTypenames is done.
+      defined_type->SetLanguageType(types->GetDefinedType(*defined_type));
 
-    // Link the AIDL type with the type of the target language. This will
-    // be removed when the migration to AidlTypenames is done.
-    defined_type->SetLanguageType(types->GetDefinedType(*defined_type));
-
-    if (interface != nullptr) {
-      register_types(interface, types);
-    }
-    if (parcelable != nullptr) {
-      register_types(parcelable, types);
+      if (interface != nullptr) {
+        if (!register_types(interface, types)) {
+          return AidlError::BAD_TYPE;
+        }
+      }
+      if (parcelable != nullptr) {
+        if (!register_types(parcelable, types)) {
+          return AidlError::BAD_TYPE;
+        }
+      }
     }
   }
 
