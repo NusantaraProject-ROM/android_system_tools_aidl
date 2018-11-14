@@ -468,7 +468,7 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& /*types*/,
       << clazz << ">* instance) {\n";
   out.Indent();
   out << "::ndk::SpAIBinder binder;\n";
-  out << "binder_status_t status = AParcel_readNullableStrongBinder(parcel, binder.getR());\n";
+  out << "binder_status_t status = AParcel_readStrongBinder(parcel, binder.getR());\n";
   out << "if (status != STATUS_OK) return status;\n";
   out << data_clazz << "* data = static_cast<" << data_clazz
       << "*>(AIBinder_getUserData(binder.get()));\n";
