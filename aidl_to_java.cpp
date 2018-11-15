@@ -274,7 +274,19 @@ bool WriteToParcelFor(const CodeGeneratorContext& c) {
        }},
       {"ParcelFileDescriptor",
        [](const CodeGeneratorContext& c) {
-         c.writer << c.parcel << ".writeTypedObject(" << c.var << ", " << GetFlagFor(c) << ");\n";
+         // This is same as writeTypedObject which was introduced with SDK 23.
+         // Keeping below code so that the generated code is buildable with older SDK.
+         c.writer << "if ((" << c.var << "!=null)) {\n";
+         c.writer.Indent();
+         c.writer << c.parcel << ".writeInt(1);\n";
+         c.writer << c.var << ".writeToParcel(" << c.parcel << ", " << GetFlagFor(c) << ");\n";
+         c.writer.Dedent();
+         c.writer << "}\n";
+         c.writer << "else {\n";
+         c.writer.Indent();
+         c.writer << c.parcel << ".writeInt(0);\n";
+         c.writer.Dedent();
+         c.writer << "}\n";
        }},
       {"ParcelFileDescriptor[]",
        [](const CodeGeneratorContext& c) {
@@ -462,8 +474,19 @@ bool CreateFromParcelFor(const CodeGeneratorContext& c) {
        }},
       {"ParcelFileDescriptor",
        [](const CodeGeneratorContext& c) {
-         c.writer << c.var << " = " << c.parcel
-                  << ".readTypedObject(android.os.ParcelFileDescriptor.CREATOR);\n";
+         // This is same as readTypedObject which was introduced with SDK 23.
+         // Keeping below code so that the generated code is buildable with older SDK.
+         c.writer << "if ((0!=" << c.parcel << ".readInt())) {\n";
+         c.writer.Indent();
+         c.writer << c.var << " = " << "android.os.ParcelFileDescriptor.CREATOR.createFromParcel(" << c.parcel
+                  << ");\n";
+         c.writer.Dedent();
+         c.writer << "}\n";
+         c.writer << "else {\n";
+         c.writer.Indent();
+         c.writer << c.var << " = null;\n";
+         c.writer.Dedent();
+         c.writer << "}\n";
        }},
       {"ParcelFileDescriptor[]",
        [](const CodeGeneratorContext& c) {
@@ -597,8 +620,11 @@ bool ReadFromParcelFor(const CodeGeneratorContext& c) {
        }},
       {"ParcelFileDescriptor",
        [](const CodeGeneratorContext& c) {
-         c.writer << c.var << " = " << c.parcel
-                  << ".readTypedObject(android.os.ParcelFileDescriptor.CREATOR);\n";
+         c.writer << "if ((0!=" << c.parcel << ".readInt())) {\n";
+         c.writer.Indent();
+         c.writer << c.var << " = " << "android.os.ParcelFileDescriptor.CREATOR.createFromParcel(" << c.parcel << ");\n";
+         c.writer.Dedent();
+         c.writer << "}\n";
        }},
       {"ParcelFileDescriptor[]",
        [](const CodeGeneratorContext& c) {
