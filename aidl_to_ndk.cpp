@@ -197,31 +197,15 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
              TypeInfo::Aspect{
                  .cpp_name = "::ndk::SpAIBinder",
                  .value_is_cheap = false,
-                 .read_func =
-                     [](const CodeGeneratorContext& c) {
-                       c.writer << "::ndk::AParcel_readRequiredStrongBinder(" << c.parcel << ", ("
-                                << c.var << ")->getR())";
-                     },
-                 .write_func =
-                     [](const CodeGeneratorContext& c) {
-                       c.writer << "::ndk::AParcel_writeRequiredStrongBinder(" << c.parcel << ", "
-                                << c.var << ".get())";
-                     },
+                 .read_func = StandardRead("::ndk::AParcel_readRequiredStrongBinder"),
+                 .write_func = StandardRead("::ndk::AParcel_writeRequiredStrongBinder"),
              },
          .array = nullptr,
          .nullable = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
              .cpp_name = "::ndk::SpAIBinder",
              .value_is_cheap = false,
-             .read_func =
-                 [](const CodeGeneratorContext& c) {
-                   c.writer << "AParcel_readStrongBinder(" << c.parcel << ", (" << c.var
-                            << ")->getR())";
-                 },
-             .write_func =
-                 [](const CodeGeneratorContext& c) {
-                   c.writer << "AParcel_writeStrongBinder(" << c.parcel << ", " << c.var
-                            << ".get())";
-                 },
+             .read_func = StandardRead("::ndk::AParcel_readNullableStrongBinder"),
+             .write_func = StandardRead("::ndk::AParcel_writeNullableStrongBinder"),
          }),
          .nullable_array = nullptr,
      }},
