@@ -96,7 +96,12 @@ TypeInfo PrimitiveType(const std::string& cpp_name, const std::string& pretty_na
           .write_func = StandardWrite("::ndk::AParcel_writeVector"),
       }),
       .nullable = nullptr,
-      .nullable_array = nullptr,
+      .nullable_array = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+          .cpp_name = "std::optional<std::vector<" + cpp_name + ">>",
+          .value_is_cheap = false,
+          .read_func = StandardRead("::ndk::AParcel_readVector"),
+          .write_func = StandardWrite("::ndk::AParcel_writeVector"),
+      }),
   };
 }
 
