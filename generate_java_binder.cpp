@@ -1085,7 +1085,7 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
   // the static field is defined in the proxy class, not in the interface class
   // because all fields in an interface class are by default final.
   proxy->elements.emplace_back(new LiteralClassElement(
-      StringPrintf("public static %s sDefaultImpl = null;\n", i_name.c_str())));
+      StringPrintf("public static %s sDefaultImpl;\n", i_name.c_str())));
 
   stub->finish();
 
