@@ -535,7 +535,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return _result;
       }
-      public static android.test.IExampleInterface sDefaultImpl = null;
+      public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
     static final int TRANSACTION_getState = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1);
@@ -1046,7 +1046,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return _result;
       }
-      public static android.test.IExampleInterface sDefaultImpl = null;
+      public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
     static final int TRANSACTION_getState = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1);
@@ -1587,7 +1587,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return _result;
       }
-      public static android.test.IExampleInterface sDefaultImpl = null;
+      public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
     static final int TRANSACTION_getState = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1);
@@ -1997,7 +1997,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return _result;
       }
-      public static android.test.IExampleInterface sDefaultImpl = null;
+      public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
     static final int TRANSACTION_getState = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1);
@@ -2518,7 +2518,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return mCachedVersion;
       }
-      public static android.test.IExampleInterface sDefaultImpl = null;
+      public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
     static final int TRANSACTION_getState = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1);
