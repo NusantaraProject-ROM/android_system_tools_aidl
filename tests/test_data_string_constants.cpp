@@ -106,7 +106,7 @@ public interface IStringConstants extends android.os.IInterface
       {
         return DESCRIPTOR;
       }
-      public static android.os.IStringConstants sDefaultImpl = null;
+      public static android.os.IStringConstants sDefaultImpl;
     }
     public static boolean setDefaultImpl(android.os.IStringConstants impl) {
       if (Stub.Proxy.sDefaultImpl == null && impl != null) {
@@ -330,7 +330,7 @@ public interface IStringConstants extends android.os.IInterface
         }
         return mCachedVersion;
       }
-      public static android.os.IStringConstants sDefaultImpl = null;
+      public static android.os.IStringConstants sDefaultImpl;
     }
     static final int TRANSACTION_getInterfaceVersion = (android.os.IBinder.FIRST_CALL_TRANSACTION + 1599489362);
     public static boolean setDefaultImpl(android.os.IStringConstants impl) {
