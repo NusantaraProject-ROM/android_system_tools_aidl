@@ -134,7 +134,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       new Variable(new Type(types, "android.os.Parcel", 0, false), "_aidl_parcel");
 
   Method* write_method = new Method;
-  write_method->modifiers = PUBLIC | OVERRIDE;
+  write_method->modifiers = PUBLIC | OVERRIDE | FINAL;
   write_method->returnType = new Type(types, "void", 0, false);
   write_method->name = "writeToParcel";
   write_method->parameters.push_back(parcel_variable);
@@ -158,7 +158,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   parcel_class->elements.push_back(write_method);
 
   Method* read_method = new Method;
-  read_method->modifiers = PUBLIC;
+  read_method->modifiers = PUBLIC | FINAL;
   read_method->returnType = new Type(types, "void", 0, false);
   read_method->name = "readFromParcel";
   read_method->parameters.push_back(parcel_variable);
