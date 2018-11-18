@@ -189,9 +189,7 @@ MethodDecl::MethodDecl(const std::string& return_type,
                        ArgList&& arg_list)
     : MethodDecl(return_type, name, std::move(arg_list), 0u) {}
 
-MethodDecl::MethodDecl(const std::string& return_type,
-                       const std::string& name,
-                       ArgList&& arg_list,
+MethodDecl::MethodDecl(const std::string& return_type, const std::string& name, ArgList&& arg_list,
                        uint32_t modifiers)
     : return_type_(return_type),
       name_(name),
@@ -200,7 +198,8 @@ MethodDecl::MethodDecl(const std::string& return_type,
       is_virtual_(modifiers & IS_VIRTUAL),
       is_override_(modifiers & IS_OVERRIDE),
       is_pure_virtual_(modifiers & IS_PURE_VIRTUAL),
-      is_static_(modifiers & IS_STATIC) {}
+      is_static_(modifiers & IS_STATIC),
+      is_final_(modifiers & IS_FINAL) {}
 
 void MethodDecl::Write(CodeWriter* to) const {
   if (is_virtual_)
@@ -218,6 +217,8 @@ void MethodDecl::Write(CodeWriter* to) const {
 
   if (is_override_)
     to->Write(" override");
+
+  if (is_final_) to->Write(" final");
 
   if (is_pure_virtual_)
     to->Write(" = 0");

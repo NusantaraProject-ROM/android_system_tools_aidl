@@ -175,6 +175,7 @@ class MethodDecl : public Declaration {
     IS_OVERRIDE = 1 << 2,
     IS_PURE_VIRTUAL = 1 << 3,
     IS_STATIC = 1 << 4,
+    IS_FINAL = 1 << 5,
   };
 
   MethodDecl(const std::string& return_type,
@@ -197,6 +198,7 @@ class MethodDecl : public Declaration {
   bool is_override_ = false;
   bool is_pure_virtual_ = false;
   bool is_static_ = true;
+  bool is_final_ = false;
 
   DISALLOW_COPY_AND_ASSIGN(MethodDecl);
 };  // class MethodDecl

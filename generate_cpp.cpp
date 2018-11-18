@@ -1075,11 +1075,11 @@ std::unique_ptr<Document> BuildParcelHeader(const TypeNamespace& /*types*/,
 
   unique_ptr<MethodDecl> read(new MethodDecl(kAndroidStatusLiteral, "readFromParcel",
                                              ArgList("const ::android::Parcel* _aidl_parcel"),
-                                             MethodDecl::IS_OVERRIDE));
+                                             MethodDecl::IS_OVERRIDE | MethodDecl::IS_FINAL));
   parcel_class->AddPublic(std::move(read));
-  unique_ptr<MethodDecl> write(new MethodDecl(kAndroidStatusLiteral, "writeToParcel",
-                                              ArgList("::android::Parcel* _aidl_parcel"),
-                                              MethodDecl::IS_OVERRIDE | MethodDecl::IS_CONST));
+  unique_ptr<MethodDecl> write(new MethodDecl(
+      kAndroidStatusLiteral, "writeToParcel", ArgList("::android::Parcel* _aidl_parcel"),
+      MethodDecl::IS_OVERRIDE | MethodDecl::IS_CONST | MethodDecl::IS_FINAL));
   parcel_class->AddPublic(std::move(write));
 
   return unique_ptr<Document>{new CppHeader{
