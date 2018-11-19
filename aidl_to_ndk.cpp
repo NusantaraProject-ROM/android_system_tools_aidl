@@ -216,19 +216,16 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
              TypeInfo::Aspect{
                  .cpp_name = "::ndk::ScopedFileDescriptor",
                  .value_is_cheap = false,
-                 .read_func =
-                     [](const CodeGeneratorContext& c) {
-                       c.writer << "AParcel_readParcelFileDescriptor(" << c.parcel << ", (" << c.var
-                                << ")->getR())";
-                     },
-                 .write_func =
-                     [](const CodeGeneratorContext& c) {
-                       c.writer << "AParcel_writeParcelFileDescriptor(" << c.parcel << ", " << c.var
-                                << ".get())";
-                     },
+                 .read_func = StandardRead("::ndk::AParcel_readRequiredParcelFileDescriptor"),
+                 .write_func = StandardRead("::ndk::AParcel_writeRequiredParcelFileDescriptor"),
              },
          .array = nullptr,
-         .nullable = nullptr,
+         .nullable = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+             .cpp_name = "::ndk::ScopedFileDescriptor",
+             .value_is_cheap = false,
+             .read_func = StandardRead("::ndk::AParcel_readNullableParcelFileDescriptor"),
+             .write_func = StandardRead("::ndk::AParcel_writeNullableParcelFileDescriptor"),
+         }),
          .nullable_array = nullptr,
      }},
     // TODO(b/111445392) {"CharSequence", ""},
