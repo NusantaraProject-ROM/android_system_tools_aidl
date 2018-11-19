@@ -567,6 +567,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
   out << "\n";
   out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
       << ">& instance);";
+  out << "\n";
   out << "static binder_status_t readFromParcel(const AParcel* parcel, std::shared_ptr<" << clazz
       << ">* instance);";
   out << "\n";
