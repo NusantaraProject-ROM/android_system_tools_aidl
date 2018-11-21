@@ -814,7 +814,9 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
     if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
       Case* c = new Case(transactCodeName);
       std::ostringstream code;
-      code << "reply.writeInt(" << kGetInterfaceVersion << "());\n"
+      code << "data.enforceInterface(descriptor);\n"
+           << "reply.writeNoException();\n"
+           << "reply.writeInt(" << kGetInterfaceVersion << "());\n"
            << "return true;\n";
       c->statements->Add(new LiteralStatement(code.str()));
       stubClass->transact_switch->cases.push_back(c);
@@ -839,6 +841,7 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
            << "    android.os.Parcel data = android.os.Parcel.obtain();\n"
            << "    android.os.Parcel reply = android.os.Parcel.obtain();\n"
            << "    try {\n"
+           << "      data.writeInterfaceToken(DESCRIPTOR);\n"
            << "      mRemote.transact(Stub." << transactCodeName << ", "
            << "data, reply, 0);\n"
            << "      mCachedVersion = reply.readInt();\n"

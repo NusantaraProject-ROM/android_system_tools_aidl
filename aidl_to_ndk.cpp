@@ -312,33 +312,22 @@ void ReadFromParcelFor(const CodeGeneratorContext& c) {
   aspect.read_func(c);
 }
 
-std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method) {
+std::string NdkArgList(
+    const AidlTypenames& types, const AidlMethod& method,
+    std::function<std::string(const std::string& type, const std::string& name, bool isOut)>
+        formatter) {
   std::vector<std::string> method_arguments;
   for (const auto& a : method.GetArguments()) {
     StorageMode mode = a->IsOut() ? StorageMode::OUT_ARGUMENT : StorageMode::ARGUMENT;
     std::string type = NdkNameOf(types, a->GetType(), mode);
     std::string name = cpp::BuildVarName(*a);
-    method_arguments.emplace_back(type + " " + name);
+    method_arguments.emplace_back(formatter(type, name, a->IsOut()));
   }
 
   if (method.GetType().GetName() != "void") {
-    std::string return_type = NdkNameOf(types, method.GetType(), StorageMode::OUT_ARGUMENT);
-    method_arguments.emplace_back(return_type + " _aidl_return");
-  }
-
-  return Join(method_arguments, ", ");
-}
-
-std::string NdkCallListFor(const AidlMethod& method) {
-  std::vector<std::string> method_arguments;
-  for (const auto& a : method.GetArguments()) {
-    std::string reference_prefix = a->IsOut() ? "&" : "";
-    std::string name = cpp::BuildVarName(*a);
-    method_arguments.emplace_back(reference_prefix + name);
-  }
-
-  if (method.GetType().GetName() != "void") {
-    method_arguments.emplace_back("&_aidl_return");
+    std::string type = NdkNameOf(types, method.GetType(), StorageMode::OUT_ARGUMENT);
+    std::string name = "_aidl_return";
+    method_arguments.emplace_back(formatter(type, name, true));
   }
 
   return Join(method_arguments, ", ");
@@ -348,7 +337,7 @@ std::string NdkMethodDecl(const AidlTypenames& types, const AidlMethod& method,
                           const std::string& clazz) {
   std::string class_prefix = clazz.empty() ? "" : (clazz + "::");
   return "::ndk::ScopedAStatus " + class_prefix + method.GetName() + "(" +
-         NdkArgListOf(types, method) + ")";
+         NdkArgList(types, method, FormatArgForDecl) + ")";
 }
 
 }  // namespace ndk
