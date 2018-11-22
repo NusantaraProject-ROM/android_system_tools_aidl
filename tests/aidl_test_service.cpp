@@ -473,7 +473,7 @@ class NativeService : public BnTestService {
 
   android::status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply,
                                uint32_t flags) override {
-    if (code == Call::UNIMPLEMENTEDMETHOD) {
+    if (code == ::android::IBinder::FIRST_CALL_TRANSACTION + 45 /* UnimplementedMethod */) {
       // pretend that UnimplementedMethod isn't implemented by this service.
       return android::UNKNOWN_TRANSACTION;
     } else {

@@ -132,7 +132,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 0 /* Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->Ping(input, _aidl_return);
   }
@@ -168,7 +168,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEPING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 1 /* NullablePing */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->NullablePing(input, _aidl_return);
   }
@@ -204,7 +204,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::UTF8PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 2 /* Utf8Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->Utf8Ping(input, _aidl_return);
   }
@@ -240,7 +240,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEUTF8PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 3 /* NullableUtf8Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->NullableUtf8Ping(input, _aidl_return);
   }
@@ -276,7 +276,7 @@ namespace os {
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
-  case Call::PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 0 /* Ping */:
   {
     ::android::String16 in_input;
     ::android::String16 _aidl_return;
@@ -302,7 +302,7 @@ namespace os {
     }
   }
   break;
-  case Call::NULLABLEPING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 1 /* NullablePing */:
   {
     ::std::unique_ptr<::android::String16> in_input;
     ::std::unique_ptr<::android::String16> _aidl_return;
@@ -328,7 +328,7 @@ namespace os {
     }
   }
   break;
-  case Call::UTF8PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 2 /* Utf8Ping */:
   {
     ::std::string in_input;
     ::std::string _aidl_return;
@@ -354,7 +354,7 @@ namespace os {
     }
   }
   break;
-  case Call::NULLABLEUTF8PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 3 /* NullableUtf8Ping */:
   {
     ::std::unique_ptr<::std::string> in_input;
     ::std::unique_ptr<::std::string> _aidl_return;
@@ -420,12 +420,6 @@ public:
   virtual ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>& input, ::std::unique_ptr<::android::String16>* _aidl_return) = 0;
   virtual ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) = 0;
   virtual ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) = 0;
-  enum Call {
-    PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 0,
-    NULLABLEPING = ::android::IBinder::FIRST_CALL_TRANSACTION + 1,
-    UTF8PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 2,
-    NULLABLEUTF8PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 3,
-  };
 };  // class IPingResponder
 
 class IPingResponderDefault : public IPingResponder {
@@ -498,9 +492,8 @@ public:
 #endif  // AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 )";
 
-
 const char kExpectedCppOutputWithVersion[] =
-R"(#include <android/os/IPingResponder.h>
+    R"(#include <android/os/IPingResponder.h>
 #include <android/os/BpPingResponder.h>
 
 namespace android {
@@ -561,7 +554,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 0 /* Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->Ping(input, _aidl_return);
   }
@@ -597,7 +590,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEPING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 1 /* NullablePing */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->NullablePing(input, _aidl_return);
   }
@@ -633,7 +626,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::UTF8PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 2 /* Utf8Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->Utf8Ping(input, _aidl_return);
   }
@@ -669,7 +662,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = remote()->transact(IPingResponder::NULLABLEUTF8PING, _aidl_data, &_aidl_reply);
+  _aidl_ret_status = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 3 /* NullableUtf8Ping */, _aidl_data, &_aidl_reply);
   if (UNLIKELY(_aidl_ret_status == ::android::UNKNOWN_TRANSACTION && IPingResponder::getDefaultImpl())) {
      return IPingResponder::getDefaultImpl()->NullableUtf8Ping(input, _aidl_return);
   }
@@ -696,7 +689,7 @@ int32_t BpPingResponder::getInterfaceVersion() {
   if (cached_version_ != -1) {
     ::android::Parcel data;
     ::android::Parcel reply;
-    ::android::status_t err = remote()->transact(IPingResponder::GETINTERFACEVERSION, data, &reply);
+    ::android::status_t err = remote()->transact(1599489362 /* getInterfaceVersion */, data, &reply);
     if (err == ::android::OK) {
       cached_version_ = reply.readInt32();
     }
@@ -717,7 +710,7 @@ namespace os {
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
-  case Call::PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 0 /* Ping */:
   {
     ::android::String16 in_input;
     ::android::String16 _aidl_return;
@@ -743,7 +736,7 @@ namespace os {
     }
   }
   break;
-  case Call::NULLABLEPING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 1 /* NullablePing */:
   {
     ::std::unique_ptr<::android::String16> in_input;
     ::std::unique_ptr<::android::String16> _aidl_return;
@@ -769,7 +762,7 @@ namespace os {
     }
   }
   break;
-  case Call::UTF8PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 2 /* Utf8Ping */:
   {
     ::std::string in_input;
     ::std::string _aidl_return;
@@ -795,7 +788,7 @@ namespace os {
     }
   }
   break;
-  case Call::NULLABLEUTF8PING:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 3 /* NullableUtf8Ping */:
   {
     ::std::unique_ptr<::std::string> in_input;
     ::std::unique_ptr<::std::string> _aidl_return;
@@ -821,7 +814,7 @@ namespace os {
     }
   }
   break;
-  case Call::GETINTERFACEVERSION:
+  case 1599489362 /* getInterfaceVersion */:
   {
     _aidl_reply->writeInt32(IPingResponder::VERSION);
   }
@@ -868,13 +861,6 @@ public:
   virtual ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) = 0;
   virtual ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) = 0;
   virtual int32_t getInterfaceVersion() = 0;
-  enum Call {
-    PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 0,
-    NULLABLEPING = ::android::IBinder::FIRST_CALL_TRANSACTION + 1,
-    UTF8PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 2,
-    NULLABLEUTF8PING = ::android::IBinder::FIRST_CALL_TRANSACTION + 3,
-    GETINTERFACEVERSION = 1599489362,
-  };
 };  // class IPingResponder
 
 class IPingResponderDefault : public IPingResponder {
