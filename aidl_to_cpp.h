@@ -39,6 +39,7 @@ struct CodeGeneratorContext {
 // the Json object
 void WriteLogFor(const CodeGeneratorContext& c);
 
+std::string GetTransactionIdFor(const AidlMethod& method);
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android

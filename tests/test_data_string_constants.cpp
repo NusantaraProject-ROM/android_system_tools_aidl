@@ -369,9 +369,6 @@ public:
   const int32_t VERSION = 10;
   static const ::android::String16& EXAMPLE_CONSTANT();
   virtual int32_t getInterfaceVersion() = 0;
-  enum Call {
-    GETINTERFACEVERSION = 1599489362,
-  };
 };  // class IStringConstants
 
 class IStringConstantsDefault : public IStringConstants {
@@ -430,7 +427,7 @@ int32_t BpStringConstants::getInterfaceVersion() {
   if (cached_version_ != -1) {
     ::android::Parcel data;
     ::android::Parcel reply;
-    ::android::status_t err = remote()->transact(IStringConstants::GETINTERFACEVERSION, data, &reply);
+    ::android::status_t err = remote()->transact(1599489362 /* getInterfaceVersion */, data, &reply);
     if (err == ::android::OK) {
       cached_version_ = reply.readInt32();
     }
@@ -451,7 +448,7 @@ namespace os {
 ::android::status_t BnStringConstants::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
-  case Call::GETINTERFACEVERSION:
+  case 1599489362 /* getInterfaceVersion */:
   {
     _aidl_reply->writeInt32(IStringConstants::VERSION);
   }
