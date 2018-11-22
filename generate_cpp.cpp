@@ -92,13 +92,6 @@ unique_ptr<AstNode> ReturnOnStatusNotOk() {
   return unique_ptr<AstNode>(ret);
 }
 
-string UpperCase(const std::string& s) {
-  string result = s;
-  for (char& c : result)
-    c = toupper(c);
-  return result;
-}
-
 ArgList BuildArgList(const TypeNamespace& types, const AidlMethod& method, bool for_declaration,
                      bool type_name_only = false) {
   // Build up the argument list for the server method call.
@@ -319,8 +312,7 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
   }
 
   // Invoke the transaction on the remote binder and confirm status.
-  string transaction_code = StringPrintf(
-      "%s::%s", i_name.c_str(), UpperCase(method.GetName()).c_str());
+  string transaction_code = GetTransactionIdFor(method);
 
   vector<string> args = {transaction_code, kDataVarName,
                          StringPrintf("&%s", kReplyVarName)};
@@ -501,8 +493,8 @@ unique_ptr<Declaration> DefineClientMetaTransaction(const TypeNamespace&,
          << "  if (cached_version_ != -1) {\n"
          << "    ::android::Parcel data;\n"
          << "    ::android::Parcel reply;\n"
-         << "    ::android::status_t err = remote()->transact(" << iface
-         << "::" << UpperCase(kGetInterfaceVersion) << ", data, &reply);\n"
+         << "    ::android::status_t err = remote()->transact(" << GetTransactionIdFor(method)
+         << ", data, &reply);\n"
          << "    if (err == ::android::OK) {\n"
          << "      cached_version_ = reply.readInt32();\n"
          << "    }\n"
@@ -729,7 +721,7 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInt
 
   // The switch statement has a case statement for each transaction code.
   for (const auto& method : interface.GetMethods()) {
-    StatementBlock* b = s->AddCase("Call::" + UpperCase(method->GetName()));
+    StatementBlock* b = s->AddCase(GetTransactionIdFor(*method));
     if (!b) { return nullptr; }
 
     bool success = false;
@@ -1004,20 +996,14 @@ unique_ptr<Document> BuildInterfaceHeader(const TypeNamespace& types,
   }
 
   if (!interface.GetMethods().empty()) {
-    unique_ptr<Enum> call_enum{new Enum{"Call"}};
     for (const auto& method : interface.GetMethods()) {
       if (method->IsUserDefined()) {
         // Each method gets an enum entry and pure virtual declaration.
         if_class->AddPublic(BuildMethodDecl(*method, types, true));
-        call_enum->AddValue(
-            UpperCase(method->GetName()),
-            StringPrintf("::android::IBinder::FIRST_CALL_TRANSACTION + %d", method->GetId()));
       } else {
         if_class->AddPublic(BuildMetaMethodDecl(*method, types, options, true));
-        call_enum->AddValue(UpperCase(method->GetName()), std::to_string(method->GetId()));
       }
     }
-    if_class->AddPublic(std::move(call_enum));
   }
 
   vector<unique_ptr<Declaration>> decls;

@@ -21,6 +21,8 @@
 #include <functional>
 #include <unordered_map>
 
+using std::ostringstream;
+
 namespace android {
 namespace aidl {
 namespace cpp {
@@ -138,6 +140,15 @@ void WriteLogFor(const CodeGeneratorContext& c) {
   c.writer << "\n";
 }
 
+std::string GetTransactionIdFor(const AidlMethod& method) {
+  ostringstream output;
+
+  if (method.IsUserDefined()) {
+    output << "::android::IBinder::FIRST_CALL_TRANSACTION + ";
+  }
+  output << method.GetId() << " /* " << method.GetName() << " */";
+  return output.str();
+}
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
