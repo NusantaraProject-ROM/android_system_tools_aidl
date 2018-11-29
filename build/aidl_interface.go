@@ -15,6 +15,11 @@
 package aidl
 
 import (
+	"android/soong/android"
+	"android/soong/cc"
+	"android/soong/genrule"
+	"android/soong/java"
+	"android/soong/phony"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -25,12 +30,6 @@ import (
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/pathtools"
 	"github.com/google/blueprint/proptools"
-
-	"android/soong/android"
-	"android/soong/cc"
-	"android/soong/genrule"
-	"android/soong/java"
-	"android/soong/phony"
 )
 
 var (
@@ -39,6 +38,7 @@ var (
 	langCpp             = "cpp"
 	langJava            = "java"
 	langNdk             = "ndk"
+	futureVersion       = "10000"
 
 	pctx = android.NewPackageContext("android/aidl")
 
@@ -55,13 +55,13 @@ var (
 
 	aidlJavaRule = pctx.StaticRule("aidlJavaRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
-			`${aidlCmd} --lang=java --structured --ninja -d ${out}.d ` +
+			`${aidlCmd} --lang=java ${optionalFlags} --structured --ninja -d ${out}.d ` +
 			`-o ${outDir} ${imports} ${in}`,
 		Depfile:     "${out}.d",
 		Deps:        blueprint.DepsGCC,
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL Java ${in}",
-	}, "imports", "outDir")
+	}, "imports", "outDir", "optionalFlags")
 
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
 		Command: `rm -rf "${out}" && mkdir -p "${out}" && ` +
@@ -120,6 +120,7 @@ type aidlGenProperties struct {
 	Lang     string // target language [java|cpp|ndk]
 	BaseName string
 	GenLog   bool
+	Version  string
 }
 
 type aidlGenRule struct {
@@ -166,6 +167,11 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
 
+	var optionalFlags []string
+	if g.properties.Version != "" {
+		optionalFlags = append(optionalFlags, "--version "+g.properties.Version)
+	}
+
 	if g.properties.Lang == langJava {
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:      aidlJavaRule,
@@ -173,8 +179,9 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			Implicits: checkApiTimestamps,
 			Outputs:   g.genOutputs,
 			Args: map[string]string{
-				"imports": imports,
-				"outDir":  outDir.String(),
+				"imports":       imports,
+				"outDir":        outDir.String(),
+				"optionalFlags": strings.Join(optionalFlags, " "),
 			},
 		})
 	} else {
@@ -203,10 +210,10 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
 			"Bn"+baseName+".h"))
 
-		var optionalFlags []string
 		if g.properties.GenLog {
 			optionalFlags = append(optionalFlags, "--log")
 		}
+
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:            aidlCppRule,
 			Input:           input,
@@ -555,14 +562,14 @@ func (i *aidlInterface) checkImports(mctx android.LoadHookContext) {
 
 func (i *aidlInterface) versionedName(version string) string {
 	name := i.ModuleBase.Name()
-	if version != "" {
+	if version != futureVersion && version != "" {
 		name = name + "-V" + version
 	}
 	return name
 }
 
 func (i *aidlInterface) srcsForVersion(mctx android.LoadHookContext, version string) (srcs []string, base string) {
-	if version == "" {
+	if version == futureVersion || version == "" {
 		return i.rawSrcs, i.properties.Local_include_dir
 	} else {
 		var apiDir string
@@ -600,21 +607,26 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 
 	var libs []string
 
+	currentVersion := ""
+	if len(i.properties.Versions) > 0 {
+		currentVersion = futureVersion
+	}
+
 	if i.shouldGenerateCppBackend() {
-		libs = append(libs, addCppLibrary(mctx, i, "", langCpp))
+		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langCpp))
 		for _, version := range i.properties.Versions {
 			addCppLibrary(mctx, i, version, langCpp)
 		}
 	}
 
 	if i.shouldGenerateNdkBackend() {
-		libs = append(libs, addCppLibrary(mctx, i, "", langNdk))
+		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langNdk))
 		for _, version := range i.properties.Versions {
 			addCppLibrary(mctx, i, version, langNdk)
 		}
 	}
 
-	libs = append(libs, addJavaLibrary(mctx, i, ""))
+	libs = append(libs, addJavaLibrary(mctx, i, currentVersion))
 	for _, version := range i.properties.Versions {
 		addJavaLibrary(mctx, i, version)
 	}
@@ -660,6 +672,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 			Lang:     lang,
 			BaseName: i.ModuleBase.Name(),
 			GenLog:   genLog,
+			Version:  version,
 		})
 		cppGeneratedSources = append(cppGeneratedSources, cppSourceGenName)
 	}
@@ -728,6 +741,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 			Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 			Lang:     langJava,
 			BaseName: i.ModuleBase.Name(),
+			Version:  version,
 		})
 		javaGeneratedSources = append(javaGeneratedSources, javaSourceGenName)
 	}

@@ -490,9 +490,10 @@ unique_ptr<Declaration> DefineClientMetaTransaction(const TypeNamespace&,
     // give write the same value to cached_version_.
     std::ostringstream code;
     code << "int32_t " << proxy << "::" << kGetInterfaceVersion << "() {\n"
-         << "  if (cached_version_ != -1) {\n"
+         << "  if (cached_version_ == -1) {\n"
          << "    ::android::Parcel data;\n"
          << "    ::android::Parcel reply;\n"
+         << "    data.writeInterfaceToken(getInterfaceDescriptor());\n"
          << "    ::android::status_t err = remote()->transact(" << GetTransactionIdFor(method)
          << ", data, &reply);\n"
          << "    if (err == ::android::OK) {\n"
@@ -684,7 +685,8 @@ bool HandleServerMetaTransaction(const TypeNamespace&, const AidlInterface& inte
 
   if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
     std::ostringstream code;
-    code << "_aidl_reply->writeInt32(" << ClassName(interface, ClassNames::INTERFACE)
+    code << "_aidl_data.checkInterface(this);\n"
+         << "_aidl_reply->writeInt32(" << ClassName(interface, ClassNames::INTERFACE)
          << "::VERSION)";
     b->AddLiteral(code.str());
     return true;
