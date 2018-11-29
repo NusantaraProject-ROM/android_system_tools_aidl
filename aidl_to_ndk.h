@@ -51,11 +51,32 @@ struct CodeGeneratorContext {
 void WriteToParcelFor(const CodeGeneratorContext& c);
 void ReadFromParcelFor(const CodeGeneratorContext& c);
 
-// -> 'type name, type name, type name' for a method
-std::string NdkArgListOf(const AidlTypenames& types, const AidlMethod& method);
+// Returns argument list of a method where each arg is formatted by the fomatter
+std::string NdkArgList(
+    const AidlTypenames& types, const AidlMethod& method,
+    std::function<std::string(const std::string& type, const std::string& name, bool isOut)>
+        formatter);
 
-// -> 'name, name, name' for a method where out arguments are '&name'
-std::string NdkCallListFor(const AidlMethod& method);
+inline std::string FormatArgForDecl(const std::string& type, const std::string& name,
+                                    bool /*isOut*/) {
+  return type + " " + name;
+}
+
+inline std::string FormatArgNameUnused(const std::string& type, const std::string& name,
+                                       bool /*isOut*/) {
+  return type + " /*" + name + "*/";
+}
+
+inline std::string FormatArgForCall(const std::string& /*type*/, const std::string& name,
+                                    bool isOut) {
+  std::string reference_prefix = isOut ? "&" : "";
+  return reference_prefix + name;
+}
+
+inline std::string FormatArgNameOnly(const std::string& /*type*/, const std::string& name,
+                                     bool /*isOut*/) {
+  return name;
+}
 
 // -> 'status (class::)name(type name, ...)' for a method
 std::string NdkMethodDecl(const AidlTypenames& types, const AidlMethod& method,
