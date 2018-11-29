@@ -686,10 +686,11 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
 }
 
 int32_t BpPingResponder::getInterfaceVersion() {
-  if (cached_version_ != -1) {
+  if (cached_version_ == -1) {
     ::android::Parcel data;
     ::android::Parcel reply;
-    ::android::status_t err = remote()->transact(1599489362 /* getInterfaceVersion */, data, &reply);
+    data.writeInterfaceToken(getInterfaceDescriptor());
+    ::android::status_t err = remote()->transact(16777214 /* getInterfaceVersion */, data, &reply);
     if (err == ::android::OK) {
       cached_version_ = reply.readInt32();
     }
@@ -814,8 +815,9 @@ namespace os {
     }
   }
   break;
-  case 1599489362 /* getInterfaceVersion */:
+  case 16777214 /* getInterfaceVersion */:
   {
+    _aidl_data.checkInterface(this);
     _aidl_reply->writeInt32(IPingResponder::VERSION);
   }
   break;
