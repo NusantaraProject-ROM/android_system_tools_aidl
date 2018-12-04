@@ -834,7 +834,13 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
   out << "binder_status_t _aidl_ret_status;\n";
 
   out << "int32_t _aidl_null;\n";
+  out << "int32_t _aidl_parcelable_size;\n";
+  out << "int32_t _aidl_start_pos;\n";
   out << "_aidl_ret_status = AParcel_readInt32(parcel, &_aidl_null);\n";
+  StatusCheckReturn(out);
+  out << "_aidl_start_pos = AParcel_getDataPosition(parcel);\n";
+  out << "_aidl_ret_status = AParcel_readInt32(parcel, &_aidl_parcelable_size);\n";
+  out << "if (_aidl_parcelable_size < 0) return STATUS_BAD_VALUE;\n";
   StatusCheckReturn(out);
 
   // TODO(b/117281836)
@@ -845,8 +851,13 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
     ReadFromParcelFor({out, types, variable->GetType(), "parcel", "&" + variable->GetName()});
     out << ";\n";
     StatusCheckReturn(out);
+    out << "if (AParcel_getDataPosition(parcel) - _aidl_start_pos >= _aidl_parcelable_size) {\n"
+        << "  AParcel_setDataPosition(parcel, _aidl_start_pos + _aidl_parcelable_size);\n"
+        << "  return _aidl_ret_status;\n"
+        << "}\n";
   }
-  out << "return _aidl_ret_status;\n";
+  out << "AParcel_setDataPosition(parcel, _aidl_start_pos + _aidl_parcelable_size);\n"
+      << "return _aidl_ret_status;\n";
   out.Dedent();
   out << "}\n";
 
@@ -857,6 +868,9 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
   // non-null
   out << "_aidl_ret_status = AParcel_writeInt32(parcel, 1);\n";
   StatusCheckReturn(out);
+  out << "size_t _aidl_start_pos = AParcel_getDataPosition(parcel);\n";
+  out << "_aidl_ret_status = AParcel_writeInt32(parcel, 0);\n";
+  StatusCheckReturn(out);
 
   for (const auto& variable : defined_type.GetFields()) {
     out << "_aidl_ret_status = ";
@@ -864,6 +878,11 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
     out << ";\n";
     StatusCheckReturn(out);
   }
+  out << "size_t _aidl_end_pos = AParcel_getDataPosition(parcel);\n";
+  out << "AParcel_setDataPosition(parcel, _aidl_start_pos);\n";
+  out << "AParcel_writeInt32(parcel, _aidl_end_pos - _aidl_start_pos);\n";
+  out << "AParcel_setDataPosition(parcel, _aidl_end_pos);\n";
+
   out << "return _aidl_ret_status;\n";
   out.Dedent();
   out << "}\n";
