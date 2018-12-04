@@ -546,6 +546,7 @@ TEST_F(AidlTest, ApiDump) {
                                "   IFoo foo;\n"
                                "   List<IFoo> a;\n"
                                "   List<foo.bar.IFoo> b;\n"
+                               "   @nullable String[] c;\n"
                                "}\n");
   io_delegate_.SetFileContents("api.aidl", "");
   vector<string> args = {"aidl", "--dumpapi", "--out=dump", "foo/bar/IFoo.aidl",
@@ -574,6 +575,7 @@ parcelable Data {
   foo.bar.IFoo foo;
   List<foo.bar.IFoo> a;
   List<foo.bar.IFoo> b;
+  @nullable String[] c;
 }
 )");
 }
@@ -762,6 +764,16 @@ TEST_F(AidlTest, ConflictWithMetaTransactions) {
                                "package p; interface IFoo {"
                                "String getTransactionName(); }");
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
+TEST_F(AidlTest, DiffrentOrderAnnotationsInCheckAPI) {
+  Options options = Options::From("aidl --checkapi old new");
+  io_delegate_.SetFileContents("old/p/IFoo.aidl",
+                               "package p; interface IFoo{ @utf8InCpp @nullable String foo();}");
+  io_delegate_.SetFileContents("new/p/IFoo.aidl",
+                               "package p; interface IFoo{ @nullable @utf8InCpp String foo();}");
+
+  EXPECT_TRUE(::android::aidl::check_api(options, io_delegate_));
 }
 
 TEST_F(AidlTest, SuccessOnIdenticalApiDumps) {

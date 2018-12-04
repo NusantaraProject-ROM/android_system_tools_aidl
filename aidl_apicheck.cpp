@@ -33,7 +33,11 @@ using std::vector;
 
 static bool have_compatible_annotations(const AidlAnnotatable& older,
                                         const AidlAnnotatable& newer) {
-  if (older.GetAnnotations() != newer.GetAnnotations()) {
+  set<AidlAnnotation> olderAnnotations(older.GetAnnotations().begin(),
+                                       older.GetAnnotations().end());
+  set<AidlAnnotation> newerAnnotations(newer.GetAnnotations().begin(),
+                                       newer.GetAnnotations().end());
+  if (olderAnnotations != newerAnnotations) {
     const string from = older.ToString().empty() ? "(empty)" : older.ToString();
     const string to = newer.ToString().empty() ? "(empty)" : newer.ToString();
     AIDL_ERROR(newer) << "Changed annotations: " << from << " to " << to;
