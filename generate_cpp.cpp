@@ -1083,6 +1083,13 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
   StatementBlock* read_block = read->GetStatementBlock();
   read_block->AddLiteral(
       StringPrintf("%s %s = %s", kAndroidStatusLiteral, kAndroidStatusVarName, kAndroidStatusOk));
+
+  read_block->AddLiteral(
+      "size_t _aidl_start_pos = _aidl_parcel->dataPosition();\n"
+      "int32_t _aidl_parcelable_raw_size = _aidl_parcel->readInt32();\n"
+      "if (_aidl_parcelable_raw_size < 0) return ::android::BAD_VALUE;\n"
+      "size_t _aidl_parcelable_size = static_cast<size_t>(_aidl_parcelable_raw_size);\n");
+
   for (const auto& variable : parcel.GetFields()) {
     string method = variable->GetType().GetLanguageType<Type>()->ReadFromParcelMethod();
 
@@ -1090,6 +1097,12 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
         kAndroidStatusVarName, new MethodCall(StringPrintf("_aidl_parcel->%s", method.c_str()),
                                               ArgList("&" + variable->GetName()))));
     read_block->AddStatement(ReturnOnStatusNotOk());
+    read_block->AddLiteral(StringPrintf(
+        "if (_aidl_parcel->dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) {\n"
+        "  _aidl_parcel->setDataPosition(_aidl_start_pos + _aidl_parcelable_size);\n"
+        "  return %s;\n"
+        "}",
+        kAndroidStatusVarName));
   }
   read_block->AddLiteral(StringPrintf("return %s", kAndroidStatusVarName));
 
@@ -1099,6 +1112,11 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
   StatementBlock* write_block = write->GetStatementBlock();
   write_block->AddLiteral(
       StringPrintf("%s %s = %s", kAndroidStatusLiteral, kAndroidStatusVarName, kAndroidStatusOk));
+
+  write_block->AddLiteral(
+      "auto _aidl_start_pos = _aidl_parcel->dataPosition();\n"
+      "_aidl_parcel->writeInt32(0);");
+
   for (const auto& variable : parcel.GetFields()) {
     string method = variable->GetType().GetLanguageType<Type>()->WriteToParcelMethod();
 
@@ -1107,6 +1125,12 @@ std::unique_ptr<Document> BuildParcelSource(const TypeNamespace& /*types*/,
                                               ArgList(variable->GetName()))));
     write_block->AddStatement(ReturnOnStatusNotOk());
   }
+
+  write_block->AddLiteral(
+      "auto _aidl_end_pos = _aidl_parcel->dataPosition();\n"
+      "_aidl_parcel->setDataPosition(_aidl_start_pos);\n"
+      "_aidl_parcel->writeInt32(_aidl_end_pos - _aidl_start_pos);\n"
+      "_aidl_parcel->setDataPosition(_aidl_end_pos);");
   write_block->AddLiteral(StringPrintf("return %s", kAndroidStatusVarName));
 
   vector<unique_ptr<Declaration>> file_decls;
