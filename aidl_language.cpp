@@ -245,7 +245,7 @@ bool AidlVariableDeclaration::CheckValid(const AidlTypenames& typenames) const {
 }
 
 string AidlVariableDeclaration::ToString() const {
-  string ret = type_->ToString() + " " + name_;
+  string ret = type_->Signature() + " " + name_;
   if (default_value_ != nullptr) {
     ret += " = " + ValueString(AidlConstantValueDecorator);
   }
