@@ -190,7 +190,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   out.str("");
   out << "  if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;\n";
 
-  auto sizeCheck = new LiteralStatement(out.str());
+  LiteralStatement* sizeCheck = nullptr;
   // keep this across different fields in order to create the classloader
   // at most once.
   bool is_classloader_created = false;
@@ -209,6 +209,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     CreateFromParcelFor(context);
     writer->Close();
     read_method->statements->Add(new LiteralStatement(code));
+    if (!sizeCheck) sizeCheck = new LiteralStatement(out.str());
     read_method->statements->Add(sizeCheck);
   }
 
