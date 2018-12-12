@@ -117,7 +117,8 @@ public class Rect implements android.os.Parcelable
   }
   @Override public int describeContents()
   {
-    return 0;}
+    return 0;
+  }
 }
 )";
 
