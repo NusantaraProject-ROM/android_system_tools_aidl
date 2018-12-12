@@ -238,6 +238,9 @@ std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a) {
   if (a.IsUnsupportedAppUsage()) {
     result.emplace_back("@android.annotation.UnsupportedAppUsage");
   }
+  if (a.IsSystemApi()) {
+    result.emplace_back("@android.annotation.SystemApi");
+  }
   return result;
 }
 

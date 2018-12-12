@@ -71,8 +71,9 @@ AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
 static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
+static const string kSystemApi("SystemApi");
 
-static const set<string> kAnnotationNames{kNullable, kUtf8InCpp, kUnsupportedAppUsage};
+static const set<string> kAnnotationNames{kNullable, kUtf8InCpp, kUnsupportedAppUsage, kSystemApi};
 
 AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string& name) {
   if (kAnnotationNames.find(name) == kAnnotationNames.end()) {
@@ -113,6 +114,10 @@ bool AidlAnnotatable::IsUtf8InCpp() const {
 
 bool AidlAnnotatable::IsUnsupportedAppUsage() const {
   return HasAnnotation(annotations_, kUnsupportedAppUsage);
+}
+
+bool AidlAnnotatable::IsSystemApi() const {
+  return HasAnnotation(annotations_, kSystemApi);
 }
 
 string AidlAnnotatable::ToString() const {
