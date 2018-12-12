@@ -62,6 +62,65 @@ R"( : \
 p/Foo.aidl :
 )";
 
+const char kExepectedJavaParcelableOutputContests[] =
+    R"(/*
+ * This file is auto-generated.  DO NOT MODIFY.
+ * Original file: Rect.aidl
+ */
+@android.annotation.SystemApi
+public class Rect implements android.os.Parcelable
+{
+  // Comment
+
+  @android.annotation.SystemApi
+  public int x = 5;
+
+  @android.annotation.UnsupportedAppUsage
+  @android.annotation.SystemApi
+  public int y;
+  public static final android.os.Parcelable.Creator<Rect> CREATOR = new android.os.Parcelable.Creator<Rect>() {
+    @Override
+    public Rect createFromParcel(android.os.Parcel _aidl_source) {
+      Rect _aidl_out = new Rect();
+      _aidl_out.readFromParcel(_aidl_source);
+      return _aidl_out;
+    }
+    @Override
+    public Rect[] newArray(int _aidl_size) {
+      return new Rect[_aidl_size];
+    }
+  };
+  @Override public final void writeToParcel(android.os.Parcel _aidl_parcel, int _aidl_flag)
+  {
+    int _aidl_start_pos = _aidl_parcel.dataPosition();
+    _aidl_parcel.writeInt(0);
+    _aidl_parcel.writeInt(x);
+    _aidl_parcel.writeInt(y);
+    int _aidl_end_pos = _aidl_parcel.dataPosition();
+    _aidl_parcel.setDataPosition(_aidl_start_pos);
+    _aidl_parcel.writeInt(_aidl_end_pos - _aidl_start_pos);
+    _aidl_parcel.setDataPosition(_aidl_end_pos);
+  }
+  public final void readFromParcel(android.os.Parcel _aidl_parcel)
+  {
+    int _aidl_start_pos = _aidl_parcel.dataPosition();
+    int _aidl_parcelable_size = _aidl_parcel.readInt();
+    if (_aidl_parcelable_size < 0) return;
+    try {
+      x = _aidl_parcel.readInt();
+      if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;
+      y = _aidl_parcel.readInt();
+      if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;
+    } finally {
+      _aidl_parcel.setDataPosition(_aidl_start_pos + _aidl_parcelable_size);
+    }
+  }
+  @Override public int describeContents()
+  {
+    return 0;}
+}
+)";
+
 }  // namespace
 
 class AidlTest : public ::testing::Test {
@@ -262,6 +321,27 @@ TEST_F(AidlTest, WritePreprocessedFile) {
   string output;
   EXPECT_TRUE(io_delegate_.GetWrittenContents("preprocessed", &output));
   EXPECT_EQ("parcelable p.Outer.Inner;\ninterface one.IBar;\n", output);
+}
+
+TEST_F(AidlTest, JavaParcelableOutput) {
+  io_delegate_.SetFileContents("Rect.aidl",
+                               "@SystemApi\n"
+                               "parcelable Rect {\n"
+                               "  // Comment\n"
+                               "  @SystemApi\n"
+                               "  int x=5;\n"
+                               "  @SystemApi\n"
+                               "  @UnsupportedAppUsage\n"
+                               "  int y;\n"
+                               "}");
+
+  vector<string> args{"aidl", "Rect.aidl"};
+  Options options = Options::From(args);
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+
+  string output;
+  EXPECT_TRUE(io_delegate_.GetWrittenContents("Rect.java", &output));
+  EXPECT_EQ(kExepectedJavaParcelableOutputContests, output);
 }
 
 TEST_F(AidlTest, RequireOuterClass) {
