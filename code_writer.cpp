@@ -61,7 +61,7 @@ bool CodeWriter::Write(const char* format, ...) {
   }
 
   std::string indented;
-  for (auto line : lines) {
+  for (const auto& line : lines) {
     indented.append(ApplyIndent(line));
   }
 
