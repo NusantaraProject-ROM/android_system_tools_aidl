@@ -93,14 +93,14 @@ bool ConfirmPersistableBundles(const sp<ITestService>& s) {
   PersistableBundle non_empty_bundle;
   non_empty_bundle.putBoolean(String16("test_bool"), false);
   non_empty_bundle.putInt(String16("test_int"), 33);
-  non_empty_bundle.putLong(String16("test_long"), 34359738368l);
+  non_empty_bundle.putLong(String16("test_long"), 34359738368L);
   non_empty_bundle.putDouble(String16("test_double"), 1.1);
   non_empty_bundle.putString(String16("test_string"), String16("Woot!"));
   non_empty_bundle.putBooleanVector(String16("test_bool_vector"),
                                     {true, false, true});
   non_empty_bundle.putIntVector(String16("test_int_vector"), {33, 44, 55, 142});
   non_empty_bundle.putLongVector(String16("test_long_vector"),
-                                 {34l, 8371l, 34359738375l});
+                                 {34L, 8371L, 34359738375L});
   non_empty_bundle.putDoubleVector(String16("test_double_vector"), {2.2, 5.4});
   non_empty_bundle.putStringVector(String16("test_string_vector"),
                                    {String16("hello"), String16("world!")});
@@ -125,7 +125,7 @@ bool ConfirmPersistableBundles(const sp<ITestService>& s) {
   PersistableBundle second;
   PersistableBundle third;
   first.putInt(String16("test_int"), 1231);
-  second.putLong(String16("test_long"), 222222l);
+  second.putLong(String16("test_long"), 222222L);
   third.putDouble(String16("test_double"), 10.8);
   const vector<PersistableBundle> original{first, second, third};
 
