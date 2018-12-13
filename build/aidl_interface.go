@@ -38,6 +38,7 @@ var (
 	langCpp             = "cpp"
 	langJava            = "java"
 	langNdk             = "ndk"
+	langNdkPlatform     = "ndk_platform"
 	futureVersion       = "10000"
 
 	pctx = android.NewPackageContext("android/aidl")
@@ -201,7 +202,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		}
 
 		prefix := ""
-		if g.properties.Lang == langNdk {
+		if g.properties.Lang == langNdk || g.properties.Lang == langNdkPlatform {
 			prefix = "aidl"
 		}
 
@@ -217,6 +218,11 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			optionalFlags = append(optionalFlags, "--log")
 		}
 
+		aidlLang := g.properties.Lang
+		if aidlLang == langNdkPlatform {
+			aidlLang = "ndk"
+		}
+
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:            aidlCppRule,
 			Input:           input,
@@ -225,7 +231,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			ImplicitOutputs: headers,
 			Args: map[string]string{
 				"imports":       imports,
-				"lang":          g.properties.Lang,
+				"lang":          aidlLang,
 				"headerDir":     g.genHeaderDir.String(),
 				"outDir":        outDir.String(),
 				"optionalFlags": strings.Join(optionalFlags, " "),
@@ -629,6 +635,10 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 		for _, version := range i.properties.Versions {
 			addCppLibrary(mctx, i, version, langNdk)
 		}
+		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langNdkPlatform))
+		for _, version := range i.properties.Versions {
+			addCppLibrary(mctx, i, version, langNdkPlatform)
+		}
 	}
 
 	libs = append(libs, addJavaLibrary(mctx, i, currentVersion))
@@ -699,6 +709,8 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
 		sdkVersion = proptools.StringPtr("current")
 		stl = proptools.StringPtr("c++_shared")
+	} else if lang == langNdkPlatform {
+		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
 	} else {
 		panic("Unrecognized language: " + lang)
 	}
