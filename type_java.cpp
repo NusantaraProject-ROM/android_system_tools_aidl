@@ -220,18 +220,14 @@ UserDataArrayType::UserDataArrayType(const JavaTypeNamespace* types, const strin
 // ================================================================
 
 InterfaceType::InterfaceType(const JavaTypeNamespace* types, const string& package,
-                             const string& name, bool builtIn, bool oneway, const string& declFile,
-                             int declLine, const Type* stub, const Type* proxy,
-                             const Type* defaultImpl)
+                             const string& name, bool builtIn, const string& declFile, int declLine,
+                             const Type* stub, const Type* proxy, const Type* defaultImpl)
     : Type(types, package, name,
            builtIn ? ValidatableType::KIND_BUILT_IN : ValidatableType::KIND_INTERFACE, true,
            declFile, declLine),
-      m_oneway(oneway),
       stub_(stub),
       proxy_(proxy),
       defaultImpl_(defaultImpl) {}
-
-bool InterfaceType::OneWay() const { return m_oneway; }
 
 // ================================================================
 
@@ -349,8 +345,8 @@ bool JavaTypeNamespace::AddBinderType(const AidlInterface& b,
                          ValidatableType::KIND_GENERATED, false, filename);
   Type* defaultImpl = new Type(this, b.GetPackage(), b.GetName() + ".Default",
                                ValidatableType::KIND_GENERATED, false, filename);
-  Type* type = new InterfaceType(this, b.GetPackage(), b.GetName(), false, b.IsOneway(), filename,
-                                 -1, stub, proxy, defaultImpl);
+  Type* type = new InterfaceType(this, b.GetPackage(), b.GetName(), false, filename, -1, stub,
+                                 proxy, defaultImpl);
 
   bool success = true;
   success &= Add(type);
