@@ -396,7 +396,11 @@ class AidlMethod : public AidlMember {
   const std::string& GetComments() const { return comments_; }
   const AidlTypeSpecifier& GetType() const { return *type_; }
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
+
+  // if this method is part of an interface that is marked oneway
+  void SetInterfaceOneway(bool oneway) { oneway_ = oneway_ || oneway; }
   bool IsOneway() const { return oneway_; }
+
   const std::string& GetName() const { return name_; }
   bool HasId() const { return has_id_; }
   int GetId() const { return id_; }
@@ -586,7 +590,6 @@ class AidlInterface final : public AidlDefinedType {
                 const std::vector<std::string>& package);
   virtual ~AidlInterface() = default;
 
-  bool IsOneway() const { return oneway_; }
   const std::vector<std::unique_ptr<AidlMethod>>& GetMethods() const
       { return methods_; }
   std::vector<std::unique_ptr<AidlMethod>>& GetMutableMethods() { return methods_; }
@@ -602,7 +605,6 @@ class AidlInterface final : public AidlDefinedType {
   bool CheckValid(const AidlTypenames& typenames) const override;
 
  private:
-  bool oneway_;
   std::vector<std::unique_ptr<AidlMethod>> methods_;
   std::vector<std::unique_ptr<AidlConstantDeclaration>> constants_;
 
