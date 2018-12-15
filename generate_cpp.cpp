@@ -317,7 +317,7 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
   vector<string> args = {transaction_code, kDataVarName,
                          StringPrintf("&%s", kReplyVarName)};
 
-  if (interface.IsOneway() || method.IsOneway()) {
+  if (method.IsOneway()) {
     args.push_back("::android::IBinder::FLAG_ONEWAY");
   }
 
@@ -345,7 +345,7 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
 
   b->AddStatement(GotoErrorOnBadStatus());
 
-  if (!interface.IsOneway() && !method.IsOneway()) {
+  if (!method.IsOneway()) {
     // Strip off the exception header and fail if we see a remote exception.
     // _aidl_ret_status = _aidl_status.readFromParcel(_aidl_reply);
     // if (_aidl_ret_status != ::android::OK) { goto error; }
