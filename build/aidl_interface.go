@@ -712,6 +712,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Sdk_version:               sdkVersion,
 		Stl:                       stl,
 		Cpp_std:                   cpp_std,
+		Cflags:                    []string{"-Wextra", "-Wall", "-Werror"},
 	}, &i.properties.VndkProperties)
 
 	return cppModuleGen
