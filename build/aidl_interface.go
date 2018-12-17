@@ -71,9 +71,11 @@ var (
 
 	aidlFreezeApiRule = pctx.AndroidStaticRule("aidlFreezeApiRule",
 		blueprint.RuleParams{
-			Command: `rm -rf ${to}/* && ` +
+			Command: `mkdir -p ${to} && rm -rf ${to}/* && ` +
+				`${bpmodifyCmd} -w -m ${name} -parameter versions -a ${version} ${bp} && ` +
 				`cp -rf ${in}/* ${to} && touch ${out}`,
-		}, "to")
+			CommandDeps: []string{"${bpmodifyCmd}"},
+		}, "to", "name", "version", "bp")
 
 	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
 		Command:     `${aidlCmd} --checkapi ${old} ${new} && touch ${out}`,
@@ -84,6 +86,7 @@ var (
 
 func init() {
 	pctx.HostBinToolVariable("aidlCmd", "aidl")
+	pctx.HostBinToolVariable("bpmodifyCmd", "bpmodify")
 	android.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
 }
 
@@ -329,6 +332,9 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 
 func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir android.Path, apiFiles android.Paths, version string) android.WritablePath {
 	timestampFile := android.PathForModuleOut(ctx, "freezeapi_"+version+".timestamp")
+
+	modulePath := android.PathForModuleSrc(ctx).String()
+
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:        aidlFreezeApiRule,
 		Description: "Freezing AIDL API of " + m.properties.BaseName + " as version " + version,
@@ -336,7 +342,10 @@ func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir a
 		Implicits:   apiFiles,
 		Output:      timestampFile,
 		Args: map[string]string{
-			"to": android.PathForModuleSrc(ctx, m.apiDir(), version).String(),
+			"to":      filepath.Join(modulePath, m.apiDir(), version),
+			"name":    m.properties.BaseName,
+			"version": version,
+			"bp":      android.PathForModuleSrc(ctx, "Android.bp").String(),
 		},
 	})
 	return timestampFile
@@ -361,10 +370,6 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 }
 
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
-	if len(m.properties.Versions) == 0 {
-		return
-	}
-
 	apiDirs := make(map[string]android.ModuleSrcPath)
 	apiFiles := make(map[string]android.Paths)
 	for _, ver := range m.properties.Versions {
@@ -375,17 +380,32 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	latestVersion := m.latestVersion()
 	isLatestVersionEmpty := len(apiFiles[latestVersion]) == 0
 
+	var freezeVersion string
+	if latestVersion == "" {
+		freezeVersion = "1"
+	} else if isLatestVersionEmpty {
+		freezeVersion = latestVersion
+	} else {
+		i, err := strconv.ParseInt(latestVersion, 10, 64)
+		if err != nil {
+			ctx.PropertyErrorf("version", "must be integer")
+			return
+		}
+		freezeVersion = strconv.FormatInt(i+1, 10)
+	}
+
+	freezeDumpDir, freezeApiFiles := m.createApiDumpFromSource(ctx)
+	m.freezeApiTimestamp = m.freezeApiDumpAsVersion(ctx, freezeDumpDir, freezeApiFiles.Paths(), freezeVersion)
+
+	// TODO(b/121051028): also check latest version against ToT
+	//
 	// Check that version X is backward compatible with version X-1
 	// If the directory for the latest version is empty, it means the we are
 	// in the process of creating a new version. Dump an API from the source
 	// code and freezing it by putting it to the empty directory.
-	for i, ver := range m.properties.Versions {
-		if ver == latestVersion && isLatestVersionEmpty {
-			apiDumpDir, apiFiles := m.createApiDumpFromSource(ctx)
-			m.freezeApiTimestamp = m.freezeApiDumpAsVersion(ctx, apiDumpDir, apiFiles.Paths(), latestVersion)
-		} else if i != 0 {
+	for i, newVersion := range m.properties.Versions {
+		if i != 0 {
 			oldVersion := m.properties.Versions[i-1]
-			newVersion := m.properties.Versions[i]
 			checkApiTimestamp := m.checkCompatibility(ctx, apiDirs[oldVersion], apiFiles[oldVersion], apiDirs[newVersion], apiFiles[newVersion])
 			m.checkApiTimestamps = append(m.checkApiTimestamps, checkApiTimestamp)
 		}
@@ -398,19 +418,7 @@ func (m *aidlApi) AndroidMk() android.AndroidMkData {
 			android.WriteAndroidMkData(w, data)
 			targetName := m.properties.BaseName + "-freeze-api"
 			fmt.Fprintln(w, ".PHONY:", targetName)
-			if m.freezeApiTimestamp != nil {
-				fmt.Fprintln(w, targetName+":", m.freezeApiTimestamp.String())
-			} else {
-				fmt.Fprintln(w, targetName+":")
-				if m.latestVersion() == "" {
-					fmt.Fprintln(w, "\t@echo Directory to freeze API into is not specified. Use versions property to add.")
-				} else {
-					fmt.Fprintln(w, "\t@echo Can not freeze API because "+
-						filepath.Join(moduleDir, m.apiDir(), m.latestVersion())+
-						" already has the frozen API dump. Create a new version.")
-				}
-				fmt.Fprintln(w, "\t@exit 1")
-			}
+			fmt.Fprintln(w, targetName+":", m.freezeApiTimestamp.String())
 		},
 	}
 }
