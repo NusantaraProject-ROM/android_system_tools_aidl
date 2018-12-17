@@ -664,7 +664,7 @@ AidlInterface::AidlInterface(const AidlLocation& location, const std::string& na
     CHECK(method == nullptr || constant == nullptr);
 
     if (method) {
-      method->SetInterfaceOneway(oneway);
+      method->ApplyInterfaceOneway(oneway);
       methods_.emplace_back(method);
     } else if (constant) {
       constants_.emplace_back(constant);
