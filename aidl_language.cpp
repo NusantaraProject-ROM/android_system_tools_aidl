@@ -585,7 +585,8 @@ string AidlMethod::ToString() const {
   for (const auto& arg : GetArguments()) {
     arg_strings.emplace_back(arg->Signature());
   }
-  string ret = GetType().Signature() + " " + GetName() + "(" + Join(arg_strings, ", ") + ")";
+  string ret = (IsOneway() ? "oneway " : "") + GetType().Signature() + " " + GetName() + "(" +
+               Join(arg_strings, ", ") + ")";
   if (HasId()) {
     ret += " = " + std::to_string(GetId());
   }
