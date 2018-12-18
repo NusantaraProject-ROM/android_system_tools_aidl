@@ -68,7 +68,7 @@ static bool are_compatible_interfaces(const AidlInterface& older, const AidlInte
   for (const auto& old_m : older.AsInterface()->GetMethods()) {
     const auto found = new_methods.find(old_m->Signature());
     if (found == new_methods.end()) {
-      AIDL_ERROR(old_m) << "Removed method: " << older.GetCanonicalName() << "."
+      AIDL_ERROR(old_m) << "Removed or changed method: " << older.GetCanonicalName() << "."
                         << old_m->Signature();
       compatible = false;
       continue;
@@ -78,6 +78,13 @@ static bool are_compatible_interfaces(const AidlInterface& older, const AidlInte
     // textual order, so if there is an ID mismatch, that means reordering
     // has happened.
     const auto new_m = found->second;
+
+    if (old_m->IsOneway() != new_m->IsOneway()) {
+      AIDL_ERROR(new_m) << "Oneway attribute " << (old_m->IsOneway() ? "removed" : "added") << ": "
+                        << older.GetCanonicalName() << "." << old_m->Signature();
+      compatible = false;
+    }
+
     if (old_m->GetId() != new_m->GetId()) {
       AIDL_ERROR(new_m) << "Transaction ID changed: " << older.GetCanonicalName() << "."
                         << old_m->Signature() << " is changed from " << old_m->GetId() << " to "
