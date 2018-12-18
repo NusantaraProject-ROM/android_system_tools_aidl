@@ -19,7 +19,7 @@ package test_package;
 import some_package.IBar;
 
 interface IBaz {
-    void CanYouDealWithThisBar(in IBar bar);
+    oneway void CanYouDealWithThisBar(in IBar bar);
     void MethodAddedInVersion2();
 
     ParcelFileDescriptor readPFD();

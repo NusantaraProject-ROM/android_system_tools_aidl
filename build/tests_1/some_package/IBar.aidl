@@ -18,6 +18,6 @@ package some_package;
 
 import some_package.IFoo;
 
-interface IBar {
+oneway interface IBar {
     void CanYouDealWithThisFoo(in IFoo foo);
 }
