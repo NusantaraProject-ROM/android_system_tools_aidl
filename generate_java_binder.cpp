@@ -35,7 +35,6 @@
 using android::base::Join;
 using android::base::StringPrintf;
 
-using std::pair;
 using std::string;
 using std::unique_ptr;
 using std::vector;

@@ -25,14 +25,9 @@
 
 #include "logging.h"
 
-using std::cerr;
-using std::endl;
-using std::set;
 using std::string;
-using std::unique_ptr;
 using std::vector;
 
-using android::base::Split;
 using android::base::Join;
 using android::base::StringPrintf;
 

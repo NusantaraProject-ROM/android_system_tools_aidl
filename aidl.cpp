@@ -57,7 +57,6 @@ using android::base::Join;
 using android::base::Split;
 using std::cerr;
 using std::endl;
-using std::map;
 using std::set;
 using std::string;
 using std::unique_ptr;
