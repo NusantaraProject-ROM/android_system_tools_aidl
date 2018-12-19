@@ -397,8 +397,8 @@ class AidlMethod : public AidlMember {
   const AidlTypeSpecifier& GetType() const { return *type_; }
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
-  // if this method is part of an interface that is marked oneway
-  void SetInterfaceOneway(bool oneway) { oneway_ = oneway_ || oneway; }
+  // set if this method is part of an interface that is marked oneway
+  void ApplyInterfaceOneway(bool oneway) { oneway_ = oneway_ || oneway; }
   bool IsOneway() const { return oneway_; }
 
   const std::string& GetName() const { return name_; }
