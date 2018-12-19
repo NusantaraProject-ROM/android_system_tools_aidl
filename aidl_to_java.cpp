@@ -34,7 +34,6 @@ namespace java {
 
 using android::base::Join;
 
-using std::cerr;
 using std::endl;
 using std::function;
 using std::map;

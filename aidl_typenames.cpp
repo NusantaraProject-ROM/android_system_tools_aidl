@@ -27,10 +27,7 @@
 #include <utility>
 #include <vector>
 
-using android::base::EndsWith;
-using android::base::Join;
 using android::base::Split;
-using android::base::Trim;
 
 using std::make_pair;
 using std::map;

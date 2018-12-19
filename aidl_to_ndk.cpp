@@ -23,7 +23,6 @@
 #include <functional>
 
 using ::android::base::Join;
-using ::android::base::Split;
 
 namespace android {
 namespace aidl {

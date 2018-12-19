@@ -24,8 +24,6 @@
 #include "logging.h"
 
 using android::base::StringPrintf;
-using android::base::Split;
-using android::base::Trim;
 using std::string;
 using std::vector;
 

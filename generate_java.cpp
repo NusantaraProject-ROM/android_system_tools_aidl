@@ -31,7 +31,6 @@
 using std::unique_ptr;
 using ::android::aidl::java::Variable;
 using std::string;
-using android::base::StringPrintf;
 
 namespace android {
 namespace aidl {
