@@ -291,11 +291,20 @@ func (m *aidlApi) apiDir() string {
 	}
 }
 
-func (m *aidlApi) latestVersion() string {
+// Version of the interface at ToT if it is frozen
+func (m *aidlApi) validateCurrentVersion(ctx android.ModuleContext) string {
 	if len(m.properties.Versions) == 0 {
-		return ""
+		return "1"
 	} else {
-		return m.properties.Versions[len(m.properties.Versions)-1]
+		latestVersion := m.properties.Versions[len(m.properties.Versions)-1]
+
+		i, err := strconv.ParseInt(latestVersion, 10, 64)
+		if err != nil {
+			ctx.PropertyErrorf("versions", "must be integers")
+			return ""
+		}
+
+		return strconv.FormatInt(i+1, 10)
 	}
 }
 
@@ -370,40 +379,28 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 }
 
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
-	apiDirs := make(map[string]android.ModuleSrcPath)
+	currentVersion := m.validateCurrentVersion(ctx)
+
+	if ctx.Failed() {
+		return
+	}
+
+	currentDumpDir, currentApiFiles := m.createApiDumpFromSource(ctx)
+	m.freezeApiTimestamp = m.freezeApiDumpAsVersion(ctx, currentDumpDir, currentApiFiles.Paths(), currentVersion)
+
+	apiDirs := make(map[string]android.Path)
 	apiFiles := make(map[string]android.Paths)
 	for _, ver := range m.properties.Versions {
-		apiDirs[ver] = android.PathForModuleSrc(ctx, m.apiDir(), ver)
-		apiFiles[ver] = ctx.Glob(apiDirs[ver].Join(ctx, "**/*.aidl").String(), nil)
+		apiDir := android.PathForModuleSrc(ctx, m.apiDir(), ver)
+		apiDirs[ver] = apiDir
+		apiFiles[ver] = ctx.Glob(apiDir.Join(ctx, "**/*.aidl").String(), nil)
 	}
+	apiDirs[currentVersion] = currentDumpDir
+	apiFiles[currentVersion] = currentApiFiles.Paths()
 
-	latestVersion := m.latestVersion()
-	isLatestVersionEmpty := len(apiFiles[latestVersion]) == 0
-
-	var freezeVersion string
-	if latestVersion == "" {
-		freezeVersion = "1"
-	} else if isLatestVersionEmpty {
-		freezeVersion = latestVersion
-	} else {
-		i, err := strconv.ParseInt(latestVersion, 10, 64)
-		if err != nil {
-			ctx.PropertyErrorf("version", "must be integer")
-			return
-		}
-		freezeVersion = strconv.FormatInt(i+1, 10)
-	}
-
-	freezeDumpDir, freezeApiFiles := m.createApiDumpFromSource(ctx)
-	m.freezeApiTimestamp = m.freezeApiDumpAsVersion(ctx, freezeDumpDir, freezeApiFiles.Paths(), freezeVersion)
-
-	// TODO(b/121051028): also check latest version against ToT
-	//
-	// Check that version X is backward compatible with version X-1
-	// If the directory for the latest version is empty, it means the we are
-	// in the process of creating a new version. Dump an API from the source
-	// code and freezing it by putting it to the empty directory.
-	for i, newVersion := range m.properties.Versions {
+	// Check that version X is backward compatible with version X-1, and that the currentVersion (ToT)
+	// is backwards compatible with latest frozen version.
+	for i, newVersion := range append(m.properties.Versions, currentVersion) {
 		if i != 0 {
 			oldVersion := m.properties.Versions[i-1]
 			checkApiTimestamp := m.checkCompatibility(ctx, apiDirs[oldVersion], apiFiles[oldVersion], apiDirs[newVersion], apiFiles[newVersion])
