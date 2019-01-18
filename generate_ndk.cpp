@@ -551,6 +551,20 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
   GenerateConstantDefinitions(out, defined_type);
   out << "\n";
 
+  out << "std::shared_ptr<" << clazz << "> " << clazz
+      << "::fromBinder(const ::ndk::SpAIBinder& binder) {\n";
+  out << data_clazz << "* data = static_cast<" << data_clazz
+      << "*>(AIBinder_getUserData(binder.get()));\n";
+  out << "if (data) {\n";
+  out.Indent();
+  out << "return data->instance;\n";
+  out.Dedent();
+  out << "}";
+  // If it is local, it is not an 'ndk' instance, and parceling will happen locally.
+  out << "return " << NdkFullClassName(defined_type, ClassNames::CLIENT)
+      << "::associate(binder);\n";
+  out << "}\n\n";
+
   out << "binder_status_t " << clazz << "::writeToParcel(AParcel* parcel, const std::shared_ptr<"
       << clazz << ">& instance) {\n";
   out.Indent();
@@ -565,18 +579,7 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
   out << "::ndk::SpAIBinder binder;\n";
   out << "binder_status_t status = AParcel_readStrongBinder(parcel, binder.getR());\n";
   out << "if (status != STATUS_OK) return status;\n";
-  out << data_clazz << "* data = static_cast<" << data_clazz
-      << "*>(AIBinder_getUserData(binder.get()));\n";
-  out << "if (data) {\n";
-  out.Indent();
-  out << "*instance = data->instance;\n";
-  out.Dedent();
-  out << "} else {\n";
-  out.Indent();
-  out << "*instance = " << NdkFullClassName(defined_type, ClassNames::CLIENT)
-      << "::associate(binder);\n";
-  out.Dedent();
-  out << "}\n";
+  out << "*instance = " << clazz << "::fromBinder(binder);\n";
   out << "return STATUS_OK;\n";
   out.Dedent();
   out << "}\n";
@@ -743,6 +746,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
         << ";\n";
   }
   out << "\n";
+  out << "static std::shared_ptr<" << clazz << "> fromBinder(const ::ndk::SpAIBinder& binder);";
   out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
       << ">& instance);";
   out << "\n";
