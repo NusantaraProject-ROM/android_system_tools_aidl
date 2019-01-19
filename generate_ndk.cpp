@@ -553,16 +553,18 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
 
   out << "std::shared_ptr<" << clazz << "> " << clazz
       << "::fromBinder(const ::ndk::SpAIBinder& binder) {\n";
+  out.Indent();
   out << data_clazz << "* data = static_cast<" << data_clazz
       << "*>(AIBinder_getUserData(binder.get()));\n";
   out << "if (data) {\n";
   out.Indent();
   out << "return data->instance;\n";
   out.Dedent();
-  out << "}";
+  out << "}\n";
   // If it is local, it is not an 'ndk' instance, and parceling will happen locally.
   out << "return " << NdkFullClassName(defined_type, ClassNames::CLIENT)
       << "::associate(binder);\n";
+  out.Dedent();
   out << "}\n\n";
 
   out << "binder_status_t " << clazz << "::writeToParcel(AParcel* parcel, const std::shared_ptr<"
@@ -746,7 +748,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
         << ";\n";
   }
   out << "\n";
-  out << "static std::shared_ptr<" << clazz << "> fromBinder(const ::ndk::SpAIBinder& binder);";
+  out << "static std::shared_ptr<" << clazz << "> fromBinder(const ::ndk::SpAIBinder& binder);\n";
   out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
       << ">& instance);";
   out << "\n";
