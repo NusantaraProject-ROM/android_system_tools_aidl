@@ -178,9 +178,7 @@ cc_library_shared {
         include_dirs: ["frameworks/native/aidl/binder"],
     },
     srcs: [
-        "tests/android/aidl/tests/ITestService.aidl",
-        "tests/android/aidl/tests/INamedCallback.aidl",
-        "tests/android/aidl/tests/StructuredParcelable.aidl",
+        "tests/android/aidl/tests/*.aidl",
         "tests/simple_parcelable.cpp",
     ],
 }
@@ -222,9 +220,7 @@ android_app {
     manifest: "tests/java_app/AndroidManifest.xml",
     resource_dirs: ["tests/java_app/resources"],
     srcs: [
-        "tests/android/aidl/tests/INamedCallback.aidl",
-        "tests/android/aidl/tests/ITestService.aidl",
-        "tests/android/aidl/tests/StructuredParcelable.aidl",
+        "tests/android/aidl/tests/*.aidl",
         "tests/java_app/src/android/aidl/tests/NullableTests.java",
         "tests/java_app/src/android/aidl/tests/SimpleParcelable.java",
         "tests/java_app/src/android/aidl/tests/TestFailException.java",
@@ -240,10 +236,10 @@ android_app {
 }
 
 aidl_interface {
-    name: "aidl_test_interface",
+    name: "aidl_test_loggable_interface",
     local_include_dir: "tests",
     srcs: [
-        "tests/android/aidl/tests/LoggableInterface.aidl",
+        "tests/android/aidl/loggable/LoggableInterface.aidl",
     ],
     backend: {
         cpp: {
