@@ -56,7 +56,7 @@ R"(place/for/output/p/IFoo.java : \
 )";
 
 const char kExpectedParcelableDepFileContents[] =
-R"( : \
+    R"(place/for/output/p/Foo.java : \
   p/Foo.aidl
 
 p/Foo.aidl :

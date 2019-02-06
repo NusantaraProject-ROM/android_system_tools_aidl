@@ -1,4 +1,4 @@
-package android.aidl.tests;
+package android.aidl.loggable;
 
 interface LoggableInterface {
     String[] LogThis(boolean boolValue, inout boolean[] boolArray,
