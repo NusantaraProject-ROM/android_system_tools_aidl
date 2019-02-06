@@ -86,11 +86,24 @@ void GenerateNdkParcel(const string& output_file, const Options& options,
   CHECK(source_writer->Close());
 }
 
+void GenerateNdkParcelDeclaration(const std::string& filename, const IoDelegate& io_delegate) {
+  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
+  *code_writer
+      << "// This file is intentionally left blank as placeholder for parcel declaration.\n";
+  CHECK(code_writer->Close());
+}
+
 void GenerateNdk(const string& output_file, const Options& options, const AidlTypenames& types,
                  const AidlDefinedType& defined_type, const IoDelegate& io_delegate) {
   const AidlStructuredParcelable* parcelable = defined_type.AsStructuredParcelable();
   if (parcelable != nullptr) {
     GenerateNdkParcel(output_file, options, types, *parcelable, io_delegate);
+    return;
+  }
+
+  const AidlParcelable* parcelable_decl = defined_type.AsParcelable();
+  if (parcelable_decl != nullptr) {
+    GenerateNdkParcelDeclaration(output_file, io_delegate);
     return;
   }
 

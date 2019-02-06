@@ -611,9 +611,19 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     CHECK(defined_type != nullptr);
     AidlParcelable* unstructuredParcelable = defined_type->AsUnstructuredParcelable();
     if (unstructuredParcelable != nullptr) {
-      AIDL_ERROR(unstructuredParcelable)
-          << "Refusing to generate code with unstructured parcelables. Declared parcelables should "
-             "be in their own file and/or cannot be used with --structured interfaces.";
+      if (options.IsStructured()) {
+        AIDL_ERROR(unstructuredParcelable)
+            << "Cannot declared parcelable in a --structured interface. Parcelable must be defined "
+               "in AIDL directly.";
+        return AidlError::NOT_STRUCTURED;
+      }
+      if (options.FailOnParcelable()) {
+        AIDL_ERROR(unstructuredParcelable)
+            << "Refusing to generate code with unstructured parcelables. Declared parcelables "
+               "should be in their own file and/or cannot be used with --structured interfaces.";
+        // Continue parsing for more errors
+      }
+
       contains_unstructured_parcelable = true;
       continue;
     }
@@ -713,17 +723,8 @@ int compile_aidl(const Options& options, const IoDelegate& io_delegate) {
 
     AidlError aidl_err = internals::load_and_validate_aidl(input_file, options, io_delegate, types,
                                                            &defined_types, &imported_files);
-    if (aidl_err == AidlError::FOUND_PARCELABLE && !options.FailOnParcelable()) {
-      // We aborted code generation because this file contains parcelables.
-      // However, we were not told to complain if we find parcelables.
-      // Just generate a dep file and exit quietly.  The dep file is for a legacy
-      // use case by the SDK.
-      for (const auto defined_type : defined_types) {
-        write_dep_file(options, *defined_type, imported_files, io_delegate, input_file, "");
-      }
-      return 0;
-    }
-    if (aidl_err != AidlError::OK) {
+    bool allowError = aidl_err == AidlError::FOUND_PARCELABLE && !options.FailOnParcelable();
+    if (aidl_err != AidlError::OK && !allowError) {
       return 1;
     }
 

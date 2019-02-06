@@ -1293,11 +1293,24 @@ bool GenerateCppParcel(const string& output_file, const Options& options,
   return true;
 }
 
+bool GenerateCppParcelDeclaration(const std::string& filename, const IoDelegate& io_delegate) {
+  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
+  *code_writer
+      << "// This file is intentionally left blank as placeholder for parcel declaration.\n";
+
+  return true;
+}
+
 bool GenerateCpp(const string& output_file, const Options& options, const TypeNamespace& types,
                  const AidlDefinedType& defined_type, const IoDelegate& io_delegate) {
   const AidlStructuredParcelable* parcelable = defined_type.AsStructuredParcelable();
   if (parcelable != nullptr) {
     return GenerateCppParcel(output_file, options, types, *parcelable, io_delegate);
+  }
+
+  const AidlParcelable* parcelable_decl = defined_type.AsParcelable();
+  if (parcelable_decl != nullptr) {
+    return GenerateCppParcelDeclaration(output_file, io_delegate);
   }
 
   const AidlInterface* interface = defined_type.AsInterface();

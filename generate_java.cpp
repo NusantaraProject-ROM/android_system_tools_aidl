@@ -64,12 +64,25 @@ bool generate_java_parcel(const std::string& filename, const std::string& origin
   return true;
 }
 
+bool generate_java_parcel_declaration(const std::string& filename, const IoDelegate& io_delegate) {
+  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
+  *code_writer
+      << "// This file is intentionally left blank as placeholder for parcel declaration.\n";
+
+  return true;
+}
+
 bool generate_java(const std::string& filename, const std::string& original_src,
                    const AidlDefinedType* defined_type, JavaTypeNamespace* types,
                    const IoDelegate& io_delegate, const Options& options) {
   const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
   if (parcelable != nullptr) {
     return generate_java_parcel(filename, original_src, parcelable, types, io_delegate, options);
+  }
+
+  const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
+  if (parcelable_decl != nullptr) {
+    return generate_java_parcel_declaration(filename, io_delegate);
   }
 
   const AidlInterface* interface = defined_type->AsInterface();
