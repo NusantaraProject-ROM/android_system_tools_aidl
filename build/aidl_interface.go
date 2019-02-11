@@ -631,10 +631,14 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	}
 
 	if i.shouldGenerateNdkBackend() {
-		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langNdk))
-		for _, version := range i.properties.Versions {
-			addCppLibrary(mctx, i, version, langNdk)
+		// TODO(b/119771576): inherit properties and export 'is vendor' computation from cc.go
+		if !proptools.Bool(i.properties.Vendor_available) {
+			libs = append(libs, addCppLibrary(mctx, i, currentVersion, langNdk))
+			for _, version := range i.properties.Versions {
+				addCppLibrary(mctx, i, version, langNdk)
+			}
 		}
+		// TODO(b/121157555): combine with '-ndk' variant
 		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langNdkPlatform))
 		for _, version := range i.properties.Versions {
 			addCppLibrary(mctx, i, version, langNdkPlatform)
