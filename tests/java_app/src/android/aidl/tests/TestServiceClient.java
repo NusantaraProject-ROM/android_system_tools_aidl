@@ -69,7 +69,7 @@ public class TestServiceClient extends Activity {
     }
 
     private ITestService getService() throws TestFailException {
-        IBinder service = new ServiceManager().getService(
+        IBinder service = ServiceManager.getService(
                 ITestService.class.getName());
         if (service == null) {
             mLog.logAndThrow("Failed to obtain binder...");
