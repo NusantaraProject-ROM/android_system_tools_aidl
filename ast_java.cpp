@@ -100,19 +100,16 @@ void StringLiteralExpression::Write(CodeWriter* to) const {
   to->Write("\"%s\"", this->value.c_str());
 }
 
-Variable::Variable(const Type* t, const string& n)
-    : type(t), name(n), dimension(0) {}
+Variable::Variable(const string& t, const string& n) : type(t), name(n), dimension(0) {}
 
-Variable::Variable(const Type* t, const string& n, int d)
-    : type(t), name(n), dimension(d) {}
+Variable::Variable(const string& t, const string& n, int d) : type(t), name(n), dimension(d) {}
 
 void Variable::WriteDeclaration(CodeWriter* to) const {
   string dim;
   for (int i = 0; i < this->dimension; i++) {
     dim += "[]";
   }
-  to->Write("%s%s %s", this->type->JavaType().c_str(), dim.c_str(),
-            this->name.c_str());
+  to->Write("%s%s %s", this->type.c_str(), dim.c_str(), this->name.c_str());
 }
 
 void Variable::Write(CodeWriter* to) const { to->Write("%s", name.c_str()); }

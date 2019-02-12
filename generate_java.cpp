@@ -141,9 +141,8 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   out << "};\n";
   parcel_class->elements.push_back(new LiteralClassElement(out.str()));
 
-  Variable* flag_variable = new Variable(new Type(types, "int", 0, false), "_aidl_flag");
-  Variable* parcel_variable =
-      new Variable(new Type(types, "android.os.Parcel", 0, false), "_aidl_parcel");
+  Variable* flag_variable = new Variable("int", "_aidl_flag");
+  Variable* parcel_variable = new Variable("android.os.Parcel", "_aidl_parcel");
 
   Method* write_method = new Method;
   write_method->modifiers = PUBLIC | OVERRIDE | FINAL;
