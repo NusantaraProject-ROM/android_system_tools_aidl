@@ -48,6 +48,19 @@ java_defaults {
 
 // Tests
 
+// Copy of test-piece-1 as test only. Creating a separate library because 'vendor_available' is
+// contagious.
+aidl_interface {
+    name: "test-vendor",
+    local_include_dir: "tests_1",
+    vendor_available: true,
+    srcs: [
+        "tests_1/some_package/IFoo.aidl",
+        "tests_1/some_package/Thing.aidl",
+        "tests_1/some_package/sub_package/*.aidl",
+    ],
+}
+
 aidl_interface {
     name: "test-piece-1",
     local_include_dir: "tests_1",
