@@ -389,14 +389,14 @@ static void generate_write_to_parcel(const AidlTypeSpecifier& type, StatementBlo
 
 static void generate_int_constant(Class* interface, const std::string& name,
                                   const std::string& value) {
-  IntConstant* decl = new IntConstant(name, value);
-  interface->elements.push_back(decl);
+  auto code = StringPrintf("public static final int %s = %s;\n", name.c_str(), value.c_str());
+  interface->elements.push_back(new LiteralClassElement(code));
 }
 
 static void generate_string_constant(Class* interface, const std::string& name,
                                      const std::string& value) {
-  StringConstant* decl = new StringConstant(name, value);
-  interface->elements.push_back(decl);
+  auto code = StringPrintf("public static final String %s = %s;\n", name.c_str(), value.c_str());
+  interface->elements.push_back(new LiteralClassElement(code));
 }
 
 static std::unique_ptr<Method> generate_interface_method(
