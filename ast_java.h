@@ -222,17 +222,6 @@ struct NewArrayExpression : public Expression {
   void Write(CodeWriter* to) const override;
 };
 
-struct Ternary : public Expression {
-  Expression* condition = nullptr;
-  Expression* ifpart = nullptr;
-  Expression* elsepart = nullptr;
-
-  Ternary() = default;
-  Ternary(Expression* condition, Expression* ifpart, Expression* elsepart);
-  virtual ~Ternary() = default;
-  void Write(CodeWriter* to) const override;
-};
-
 struct Cast : public Expression {
   const Type* type = nullptr;
   Expression* expression = nullptr;
@@ -281,15 +270,6 @@ struct TryStatement : public Statement {
   void Write(CodeWriter* to) const override;
 };
 
-struct CatchStatement : public Statement {
-  StatementBlock* statements;
-  Variable* exception;
-
-  explicit CatchStatement(Variable* exception);
-  virtual ~CatchStatement() = default;
-  void Write(CodeWriter* to) const override;
-};
-
 struct FinallyStatement : public Statement {
   StatementBlock* statements = new StatementBlock;
 
@@ -317,12 +297,6 @@ struct SwitchStatement : public Statement {
   void Write(CodeWriter* to) const override;
 };
 
-struct Break : public Statement {
-  Break() = default;
-  virtual ~Break() = default;
-  void Write(CodeWriter* to) const override;
-};
-
 struct Method : public ClassElement {
   std::string comment;
   std::vector<std::string> annotations;
@@ -345,27 +319,6 @@ struct LiteralClassElement : public ClassElement {
 
   LiteralClassElement(std::string e) : element(e) {}
   virtual ~LiteralClassElement() = default;
-
-  void Write(CodeWriter* to) const override;
-};
-
-struct IntConstant : public ClassElement {
-  const std::string name;
-  const std::string value;
-
-  IntConstant(const std::string& name, const std::string& value) : name(name), value(value) {}
-  virtual ~IntConstant() = default;
-
-  void Write(CodeWriter* to) const override;
-};
-
-struct StringConstant : public ClassElement {
-  const std::string name;
-  const std::string value;
-
-  StringConstant(std::string name, std::string value)
-      : name(name), value(value) {}
-  ~StringConstant() override = default;
 
   void Write(CodeWriter* to) const override;
 };
