@@ -145,7 +145,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   // asBinder
   Method* asBinder = new Method;
   asBinder->modifiers = PUBLIC | OVERRIDE;
-  asBinder->returnType = types->IBinderType();
+  asBinder->returnType = types->IBinderType()->JavaType();
   asBinder->name = "asBinder";
   asBinder->statements = new StatementBlock;
   asBinder->statements->Add(new ReturnStatement(THIS_VALUE));
@@ -155,7 +155,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
     // getDefaultTransactionName
     Method* getDefaultTransactionName = new Method;
     getDefaultTransactionName->modifiers = PUBLIC | STATIC;
-    getDefaultTransactionName->returnType = types->StringType();
+    getDefaultTransactionName->returnType = types->StringType()->JavaType();
     getDefaultTransactionName->name = "getDefaultTransactionName";
     Variable* code = new Variable(types->IntType()->JavaType(), "transactionCode");
     getDefaultTransactionName->parameters.push_back(code);
@@ -167,7 +167,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
     // getTransactionName
     Method* getTransactionName = new Method;
     getTransactionName->modifiers = PUBLIC;
-    getTransactionName->returnType = types->StringType();
+    getTransactionName->returnType = types->StringType()->JavaType();
     getTransactionName->name = "getTransactionName";
     Variable* code2 = new Variable(types->IntType()->JavaType(), "transactionCode");
     getTransactionName->parameters.push_back(code2);
@@ -184,7 +184,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   this->transact_flags = new Variable(types->IntType()->JavaType(), "flags");
   Method* onTransact = new Method;
   onTransact->modifiers = PUBLIC | OVERRIDE;
-  onTransact->returnType = types->BoolType();
+  onTransact->returnType = types->BoolType()->JavaType();
   onTransact->name = "onTransact";
   onTransact->parameters.push_back(this->transact_code);
   onTransact->parameters.push_back(this->transact_data);
@@ -192,7 +192,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   onTransact->parameters.push_back(this->transact_flags);
   onTransact->statements = new StatementBlock;
   transact_statements = onTransact->statements;
-  onTransact->exceptions.push_back(types->RemoteExceptionType());
+  onTransact->exceptions.push_back(types->RemoteExceptionType()->JavaType());
   this->elements.push_back(onTransact);
   this->transact_switch = new SwitchStatement(this->transact_code);
 }
@@ -260,7 +260,7 @@ void StubClass::make_as_interface(const InterfaceType* interfaceType,
   m->comment += " interface,\n";
   m->comment += " * generating a proxy if needed.\n */";
   m->modifiers = PUBLIC | STATIC;
-  m->returnType = interfaceType;
+  m->returnType = interfaceType->JavaType();
   m->name = "asInterface";
   m->parameters.push_back(obj);
   m->statements = new StatementBlock;
@@ -344,7 +344,7 @@ ProxyClass::ProxyClass(const JavaTypeNamespace* types, const Type* type,
   // IBinder asBinder()
   Method* asBinder = new Method;
   asBinder->modifiers = PUBLIC | OVERRIDE;
-  asBinder->returnType = types->IBinderType();
+  asBinder->returnType = types->IBinderType()->JavaType();
   asBinder->name = "asBinder";
   asBinder->statements = new StatementBlock;
   asBinder->statements->Add(new ReturnStatement(mRemote));
@@ -403,7 +403,7 @@ static std::unique_ptr<Method> generate_interface_method(
   std::unique_ptr<Method> decl(new Method);
   decl->comment = method.GetComments();
   decl->modifiers = PUBLIC;
-  decl->returnType = method.GetType().GetLanguageType<Type>();
+  decl->returnType = method.GetType().GetLanguageType<Type>()->JavaType();
   decl->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   decl->name = method.GetName();
   decl->annotations = generate_java_annotations(method.GetType());
@@ -413,7 +413,7 @@ static std::unique_ptr<Method> generate_interface_method(
                                             arg->GetName(), arg->GetType().IsArray() ? 1 : 0));
   }
 
-  decl->exceptions.push_back(types->RemoteExceptionType());
+  decl->exceptions.push_back(types->RemoteExceptionType()->JavaType());
 
   return decl;
 }
@@ -563,12 +563,12 @@ static void generate_stub_case_outline(const AidlInterface& iface, const AidlMet
     Variable* transact_reply = new Variable(types->ParcelType()->JavaType(), "reply");
     Method* onTransact_case = new Method;
     onTransact_case->modifiers = PRIVATE;
-    onTransact_case->returnType = types->BoolType();
+    onTransact_case->returnType = types->BoolType()->JavaType();
     onTransact_case->name = outline_name;
     onTransact_case->parameters.push_back(transact_data);
     onTransact_case->parameters.push_back(transact_reply);
     onTransact_case->statements = new StatementBlock;
-    onTransact_case->exceptions.push_back(types->RemoteExceptionType());
+    onTransact_case->exceptions.push_back(types->RemoteExceptionType()->JavaType());
     stubClass->elements.push_back(onTransact_case);
 
     generate_stub_code(iface, method, oneway, transact_data, transact_reply, types,
@@ -596,7 +596,7 @@ static std::unique_ptr<Method> generate_proxy_method(
   std::unique_ptr<Method> proxy(new Method);
   proxy->comment = method.GetComments();
   proxy->modifiers = PUBLIC | OVERRIDE;
-  proxy->returnType = method.GetType().GetLanguageType<Type>();
+  proxy->returnType = method.GetType().GetLanguageType<Type>()->JavaType();
   proxy->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   proxy->name = method.GetName();
   proxy->statements = new StatementBlock;
@@ -604,7 +604,7 @@ static std::unique_ptr<Method> generate_proxy_method(
     proxy->parameters.push_back(new Variable(arg->GetType().GetLanguageType<Type>()->JavaType(),
                                              arg->GetName(), arg->GetType().IsArray() ? 1 : 0));
   }
-  proxy->exceptions.push_back(types->RemoteExceptionType());
+  proxy->exceptions.push_back(types->RemoteExceptionType()->JavaType());
 
   // the parcels
   Variable* _data = new Variable(types->ParcelType()->JavaType(), "_data");
@@ -620,8 +620,7 @@ static std::unique_ptr<Method> generate_proxy_method(
   // the return value
   Variable* _result = nullptr;
   if (method.GetType().GetName() != "void") {
-    _result =
-        new Variable(proxy->returnType->JavaType(), "_result", method.GetType().IsArray() ? 1 : 0);
+    _result = new Variable(*proxy->returnType, "_result", method.GetType().IsArray() ? 1 : 0);
     proxy->statements->Add(new VariableDeclaration(_result));
   }
 
@@ -859,7 +858,7 @@ static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy,
   // and the proxy-side method returning the descriptor directly
   Method* getDesc = new Method;
   getDesc->modifiers = PUBLIC;
-  getDesc->returnType = types->StringType();
+  getDesc->returnType = types->StringType()->JavaType();
   getDesc->returnTypeDimension = 0;
   getDesc->name = "getInterfaceDescriptor";
   getDesc->statements = new StatementBlock;
@@ -910,7 +909,7 @@ static unique_ptr<ClassElement> generate_default_impl_method(const AidlMethod& m
   unique_ptr<Method> default_method(new Method);
   default_method->comment = method.GetComments();
   default_method->modifiers = PUBLIC | OVERRIDE;
-  default_method->returnType = method.GetType().GetLanguageType<Type>();
+  default_method->returnType = method.GetType().GetLanguageType<Type>()->JavaType();
   default_method->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   default_method->name = method.GetName();
   default_method->statements = new StatementBlock;
@@ -919,8 +918,11 @@ static unique_ptr<ClassElement> generate_default_impl_method(const AidlMethod& m
         new Variable(arg->GetType().GetLanguageType<Type>()->JavaType(), arg->GetName(),
                      arg->GetType().IsArray() ? 1 : 0));
   }
-  default_method->exceptions.push_back(
-      method.GetType().GetLanguageType<Type>()->GetTypeNamespace()->RemoteExceptionType());
+  default_method->exceptions.push_back(method.GetType()
+                                           .GetLanguageType<Type>()
+                                           ->GetTypeNamespace()
+                                           ->RemoteExceptionType()
+                                           ->JavaType());
 
   if (method.GetType().GetName() != "void") {
     const string& defaultValue = DefaultJavaValueOf(method.GetType());
