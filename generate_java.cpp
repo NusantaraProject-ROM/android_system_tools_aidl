@@ -97,14 +97,12 @@ bool generate_java(const std::string& filename, const std::string& original_src,
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
                                                   java::JavaTypeNamespace* types,
                                                   const Options& /*options*/) {
-  const ParcelType* parcelType = parcel->GetLanguageType<ParcelType>();
-
   Class* parcel_class = new Class;
   parcel_class->comment = parcel->GetComments();
   parcel_class->modifiers = PUBLIC;
   parcel_class->what = Class::CLASS;
-  parcel_class->type = parcelType;
-  parcel_class->interfaces.push_back(types->ParcelableInterfaceType());
+  parcel_class->type = parcel->GetCanonicalName();
+  parcel_class->interfaces.push_back("android.os.Parcelable");
   parcel_class->annotations = generate_java_annotations(*parcel);
 
   for (const auto& variable : parcel->GetFields()) {
