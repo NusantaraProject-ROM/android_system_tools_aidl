@@ -115,9 +115,9 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   this->comment = "/** Local-side IPC implementation stub class. */";
   this->modifiers = PUBLIC | ABSTRACT | STATIC;
   this->what = Class::CLASS;
-  this->type = type;
-  this->extends = types->BinderNativeType();
-  this->interfaces.push_back(interfaceType);
+  this->type = type->JavaType();
+  this->extends = types->BinderNativeType()->JavaType();
+  this->interfaces.push_back(interfaceType->JavaType());
 
   // descriptor
   Field* descriptor = new Field(STATIC | FINAL | PRIVATE,
@@ -319,8 +319,8 @@ ProxyClass::ProxyClass(const JavaTypeNamespace* types, const Type* type,
     : Class() {
   this->modifiers = PRIVATE | STATIC;
   this->what = Class::CLASS;
-  this->type = type;
-  this->interfaces.push_back(interfaceType);
+  this->type = type->JavaType();
+  this->interfaces.push_back(interfaceType->JavaType());
 
   // IBinder mRemote
   mRemote = new Variable(types->IBinderType()->JavaType(), "mRemote");
@@ -936,8 +936,8 @@ static unique_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
   default_class->comment = "/** Default implementation for " + iface.GetName() + ". */";
   default_class->modifiers = PUBLIC | STATIC;
   default_class->what = Class::CLASS;
-  default_class->type = iface.GetLanguageType<InterfaceType>()->GetDefaultImpl();
-  default_class->interfaces.emplace_back(iface.GetLanguageType<InterfaceType>());
+  default_class->type = iface.GetLanguageType<InterfaceType>()->GetDefaultImpl()->JavaType();
+  default_class->interfaces.emplace_back(iface.GetLanguageType<InterfaceType>()->JavaType());
 
   for (const auto& m : iface.GetMethods()) {
     if (m->IsUserDefined()) {
@@ -978,8 +978,8 @@ Class* generate_binder_interface_class(const AidlInterface* iface, JavaTypeNames
   interface->comment = iface->GetComments();
   interface->modifiers = PUBLIC;
   interface->what = Class::INTERFACE;
-  interface->type = interfaceType;
-  interface->interfaces.push_back(types->IInterfaceType());
+  interface->type = interfaceType->JavaType();
+  interface->interfaces.push_back(types->IInterfaceType()->JavaType());
   interface->annotations = generate_java_annotations(*iface);
 
   if (options.Version()) {
