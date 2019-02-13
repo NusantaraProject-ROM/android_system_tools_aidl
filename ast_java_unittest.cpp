@@ -47,8 +47,8 @@ TEST(AstJavaTests, GeneratesClass) {
   a_class.comment = "// class comment";
   a_class.modifiers = FINAL;
   a_class.what = Class::CLASS;
-  a_class.type = &class_type;
-  a_class.extends = &extend_type;
+  a_class.type = class_type.JavaType();
+  a_class.extends = extend_type.JavaType();
 
   string actual_output;
   a_class.Write(CodeWriter::ForString(&actual_output).get());
