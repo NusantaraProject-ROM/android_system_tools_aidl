@@ -608,13 +608,13 @@ static std::unique_ptr<Method> generate_proxy_method(
 
   // the parcels
   Variable* _data = new Variable(types->ParcelType()->JavaType(), "_data");
-  proxy->statements->Add(new VariableDeclaration(
-      _data, new MethodCall(types->ParcelType(), "obtain")));
+  proxy->statements->Add(
+      new VariableDeclaration(_data, new MethodCall(types->ParcelType()->JavaType(), "obtain")));
   Variable* _reply = nullptr;
   if (!oneway) {
     _reply = new Variable(types->ParcelType()->JavaType(), "_reply");
-    proxy->statements->Add(new VariableDeclaration(
-        _reply, new MethodCall(types->ParcelType(), "obtain")));
+    proxy->statements->Add(
+        new VariableDeclaration(_reply, new MethodCall(types->ParcelType()->JavaType(), "obtain")));
   }
 
   // the return value

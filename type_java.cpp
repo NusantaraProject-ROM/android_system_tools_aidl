@@ -54,7 +54,7 @@ Expression* Type::BuildWriteToParcelFlags(int flags) const {
     return new LiteralExpression("0");
   }
   if ((flags & PARCELABLE_WRITE_RETURN_VALUE) != 0) {
-    return new FieldVariable(m_types->ParcelableInterfaceType(),
+    return new FieldVariable(m_types->ParcelableInterfaceType()->JavaType(),
                              "PARCELABLE_WRITE_RETURN_VALUE");
   }
   return new LiteralExpression("0");
