@@ -371,12 +371,12 @@ void Method::Write(CodeWriter* to) const {
   WriteModifiers(to, this->modifiers,
                  SCOPE_MASK | STATIC | ABSTRACT | FINAL | OVERRIDE);
 
-  if (this->returnType != nullptr) {
+  if (this->returnType) {
     string dim;
     for (i = 0; i < this->returnTypeDimension; i++) {
       dim += "[]";
     }
-    to->Write("%s%s ", this->returnType->JavaType().c_str(), dim.c_str());
+    to->Write("%s%s ", this->returnType->c_str(), dim.c_str());
   }
 
   to->Write("%s(", this->name.c_str());
@@ -398,7 +398,7 @@ void Method::Write(CodeWriter* to) const {
     } else {
       to->Write(", ");
     }
-    to->Write("%s", this->exceptions[i]->JavaType().c_str());
+    to->Write("%s", this->exceptions[i].c_str());
   }
 
   if (this->statements == nullptr) {
