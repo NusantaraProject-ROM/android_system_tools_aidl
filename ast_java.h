@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <memory>
 #include <stdarg.h>
 #include <stdio.h>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -330,9 +331,9 @@ struct Class : public ClassElement {
   std::vector<std::string> annotations;
   int modifiers = 0;
   int what = CLASS;  // CLASS or INTERFACE
-  const Type* type = nullptr;
-  const Type* extends = nullptr;
-  std::vector<const Type*> interfaces;
+  std::string type;
+  std::optional<std::string> extends = std::nullopt;
+  std::vector<std::string> interfaces;
   std::vector<ClassElement*> elements;
 
   Class() = default;

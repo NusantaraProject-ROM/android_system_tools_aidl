@@ -431,7 +431,7 @@ void Class::Write(CodeWriter* to) const {
     to->Write("interface ");
   }
 
-  string name = this->type->JavaType();
+  string name = this->type;
   size_t pos = name.rfind('.');
   if (pos != string::npos) {
     name = name.c_str() + pos + 1;
@@ -439,8 +439,8 @@ void Class::Write(CodeWriter* to) const {
 
   to->Write("%s", name.c_str());
 
-  if (this->extends != nullptr) {
-    to->Write(" extends %s", this->extends->JavaType().c_str());
+  if (this->extends) {
+    to->Write(" extends %s", this->extends->c_str());
   }
 
   N = this->interfaces.size();
@@ -451,7 +451,7 @@ void Class::Write(CodeWriter* to) const {
       to->Write(" extends");
     }
     for (i = 0; i < N; i++) {
-      to->Write(" %s", this->interfaces[i]->JavaType().c_str());
+      to->Write(" %s", this->interfaces[i].c_str());
     }
   }
 
