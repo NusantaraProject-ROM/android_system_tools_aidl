@@ -302,11 +302,11 @@ struct Method : public ClassElement {
   std::string comment;
   std::vector<std::string> annotations;
   int modifiers = 0;
-  const Type* returnType = nullptr;  // nullptr means constructor
+  std::optional<std::string> returnType = std::nullopt;  // nullopt means constructor
   size_t returnTypeDimension = 0;
   std::string name;
   std::vector<Variable*> parameters;
-  std::vector<const Type*> exceptions;
+  std::vector<std::string> exceptions;
   StatementBlock* statements = nullptr;
 
   Method() = default;
