@@ -37,8 +37,7 @@ android::aidl::java::Class* generate_binder_interface_class(const AidlInterface*
                                                             const Options& options);
 
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
-                                                  java::JavaTypeNamespace* types,
-                                                  const Options& options);
+                                                  AidlTypenames& typenames);
 
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a);
 
