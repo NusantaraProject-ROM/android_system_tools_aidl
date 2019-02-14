@@ -50,8 +50,6 @@ namespace android {
 namespace aidl {
 namespace java {
 
-class Type;
-
 // Write the modifiers that are set in both mod and mask
 void WriteModifiers(CodeWriter* to, int mod, int mask);
 
@@ -201,11 +199,11 @@ struct Comparison : public Expression {
 };
 
 struct NewExpression : public Expression {
-  const Type* type;
+  const std::string instantiableName;
   std::vector<Expression*> arguments;
 
-  explicit NewExpression(const Type* type);
-  NewExpression(const Type* type, int argc, ...);
+  explicit NewExpression(const std::string& name);
+  NewExpression(const std::string& name, int argc, ...);
   virtual ~NewExpression() = default;
   void Write(CodeWriter* to) const override;
 
@@ -214,32 +212,30 @@ struct NewExpression : public Expression {
 };
 
 struct NewArrayExpression : public Expression {
-  const Type* type;
+  const std::string type;
   Expression* size;
 
-  NewArrayExpression(const Type* type, Expression* size);
+  NewArrayExpression(const std::string& type, Expression* size);
   virtual ~NewArrayExpression() = default;
   void Write(CodeWriter* to) const override;
 };
 
 struct Cast : public Expression {
-  const Type* type = nullptr;
+  const std::string type;
   Expression* expression = nullptr;
 
   Cast() = default;
-  Cast(const Type* type, Expression* expression);
+  Cast(const std::string& type, Expression* expression);
   virtual ~Cast() = default;
   void Write(CodeWriter* to) const override;
 };
 
 struct VariableDeclaration : public Statement {
   Variable* lvalue = nullptr;
-  const Type* cast = nullptr;
   Expression* rvalue = nullptr;
 
   explicit VariableDeclaration(Variable* lvalue);
-  VariableDeclaration(Variable* lvalue, Expression* rvalue,
-                      const Type* cast = nullptr);
+  VariableDeclaration(Variable* lvalue, Expression* rvalue);
   virtual ~VariableDeclaration() = default;
   void Write(CodeWriter* to) const override;
 };
