@@ -15,9 +15,7 @@
  */
 
 #include "ast_java.h"
-
 #include "code_writer.h"
-#include "type_java.h"
 
 using std::vector;
 using std::string;
@@ -237,9 +235,9 @@ void Comparison::Write(CodeWriter* to) const {
   to->Write(")");
 }
 
-NewExpression::NewExpression(const Type* t) : type(t) {}
+NewExpression::NewExpression(const std::string& n) : instantiableName(n) {}
 
-NewExpression::NewExpression(const Type* t, int argc = 0, ...) : type(t) {
+NewExpression::NewExpression(const std::string& n, int argc = 0, ...) : instantiableName(n) {
   va_list args;
   va_start(args, argc);
   init(argc, args);
@@ -254,31 +252,28 @@ void NewExpression::init(int n, va_list args) {
 }
 
 void NewExpression::Write(CodeWriter* to) const {
-  to->Write("new %s(", this->type->InstantiableName().c_str());
+  to->Write("new %s(", this->instantiableName.c_str());
   WriteArgumentList(to, this->arguments);
   to->Write(")");
 }
 
-NewArrayExpression::NewArrayExpression(const Type* t, Expression* s)
-    : type(t), size(s) {}
+NewArrayExpression::NewArrayExpression(const std::string& t, Expression* s) : type(t), size(s) {}
 
 void NewArrayExpression::Write(CodeWriter* to) const {
-  to->Write("new %s[", this->type->JavaType().c_str());
+  to->Write("new %s[", this->type.c_str());
   size->Write(to);
   to->Write("]");
 }
 
-Cast::Cast(const Type* t, Expression* e) : type(t), expression(e) {}
+Cast::Cast(const std::string& t, Expression* e) : type(t), expression(e) {}
 
 void Cast::Write(CodeWriter* to) const {
-  to->Write("((%s)", this->type->JavaType().c_str());
+  to->Write("((%s)", this->type.c_str());
   expression->Write(to);
   to->Write(")");
 }
 
-VariableDeclaration::VariableDeclaration(Variable* l, Expression* r,
-                                         const Type* c)
-    : lvalue(l), cast(c), rvalue(r) {}
+VariableDeclaration::VariableDeclaration(Variable* l, Expression* r) : lvalue(l), rvalue(r) {}
 
 VariableDeclaration::VariableDeclaration(Variable* l) : lvalue(l) {}
 
@@ -286,9 +281,6 @@ void VariableDeclaration::Write(CodeWriter* to) const {
   this->lvalue->WriteDeclaration(to);
   if (this->rvalue != nullptr) {
     to->Write(" = ");
-    if (this->cast != nullptr) {
-      to->Write("(%s)", this->cast->JavaType().c_str());
-    }
     this->rvalue->Write(to);
   }
   to->Write(";\n");
