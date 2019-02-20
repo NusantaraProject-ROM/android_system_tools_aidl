@@ -36,13 +36,13 @@ namespace android {
 namespace aidl {
 namespace java {
 
-bool generate_java_interface(const string& filename, const string& original_src,
-                             const AidlInterface* iface, JavaTypeNamespace* types,
-                             const IoDelegate& io_delegate, const Options& options) {
+bool generate_java_interface(const string& filename, const AidlInterface* iface,
+                             JavaTypeNamespace* types, const IoDelegate& io_delegate,
+                             const Options& options) {
   Class* cl = generate_binder_interface_class(iface, types, options);
 
   Document* document =
-      new Document("" /* no comment */, iface->GetPackage(), original_src, unique_ptr<Class>(cl));
+      new Document("" /* no comment */, iface->GetPackage(), unique_ptr<Class>(cl));
 
   CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
   document->Write(code_writer.get());
@@ -50,13 +50,12 @@ bool generate_java_interface(const string& filename, const string& original_src,
   return true;
 }
 
-bool generate_java_parcel(const std::string& filename, const std::string& original_src,
-                          const AidlStructuredParcelable* parcel, AidlTypenames& typenames,
-                          const IoDelegate& io_delegate) {
+bool generate_java_parcel(const std::string& filename, const AidlStructuredParcelable* parcel,
+                          AidlTypenames& typenames, const IoDelegate& io_delegate) {
   Class* cl = generate_parcel_class(parcel, typenames);
 
   Document* document =
-      new Document("" /* no comment */, parcel->GetPackage(), original_src, unique_ptr<Class>(cl));
+      new Document("" /* no comment */, parcel->GetPackage(), unique_ptr<Class>(cl));
 
   CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
   document->Write(code_writer.get());
@@ -72,12 +71,12 @@ bool generate_java_parcel_declaration(const std::string& filename, const IoDeleg
   return true;
 }
 
-bool generate_java(const std::string& filename, const std::string& original_src,
-                   const AidlDefinedType* defined_type, JavaTypeNamespace* types,
-                   const IoDelegate& io_delegate, const Options& options) {
+bool generate_java(const std::string& filename, const AidlDefinedType* defined_type,
+                   JavaTypeNamespace* types, const IoDelegate& io_delegate,
+                   const Options& options) {
   const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
   if (parcelable != nullptr) {
-    return generate_java_parcel(filename, original_src, parcelable, types->typenames_, io_delegate);
+    return generate_java_parcel(filename, parcelable, types->typenames_, io_delegate);
   }
 
   const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
@@ -87,7 +86,7 @@ bool generate_java(const std::string& filename, const std::string& original_src,
 
   const AidlInterface* interface = defined_type->AsInterface();
   if (interface != nullptr) {
-    return generate_java_interface(filename, original_src, interface, types, io_delegate, options);
+    return generate_java_interface(filename, interface, types, io_delegate, options);
   }
 
   CHECK(false) << "Unrecognized type sent for cpp generation.";

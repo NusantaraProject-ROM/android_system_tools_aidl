@@ -65,7 +65,6 @@ p/Foo.aidl :
 const char kExepectedJavaParcelableOutputContests[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: Rect.aidl
  */
 @android.annotation.SystemApi
 public class Rect implements android.os.Parcelable

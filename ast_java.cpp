@@ -462,27 +462,11 @@ void Class::Write(CodeWriter* to) const {
   to->Write("}\n");
 }
 
-static string escape_backslashes(const string& str) {
-  string result;
-  const size_t I = str.length();
-  for (size_t i = 0; i < I; i++) {
-    char c = str[i];
-    if (c == '\\') {
-      result += "\\\\";
-    } else {
-      result += c;
-    }
-  }
-  return result;
-}
-
 Document::Document(const std::string& comment,
                    const std::string& package,
-                   const std::string& original_src,
                    std::unique_ptr<Class> clazz)
     : comment_(comment),
       package_(package),
-      original_src_(original_src),
       clazz_(std::move(clazz)) {
 }
 
@@ -493,9 +477,7 @@ void Document::Write(CodeWriter* to) const {
   to->Write(
       "/*\n"
       " * This file is auto-generated.  DO NOT MODIFY.\n"
-      " * Original file: %s\n"
-      " */\n",
-      escape_backslashes(original_src_).c_str());
+      " */\n");
   if (!package_.empty()) {
     to->Write("package %s;\n", package_.c_str());
   }
