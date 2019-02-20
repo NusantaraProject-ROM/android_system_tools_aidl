@@ -120,7 +120,6 @@ android/test/IExampleInterface.aidl :
 const char kExpectedJavaOutput[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
 @android.annotation.UnsupportedAppUsage
@@ -583,7 +582,6 @@ public interface IExampleInterface extends android.os.IInterface
 const char kExpectedJavaOutputWithTransactionNames[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
 @android.annotation.UnsupportedAppUsage
@@ -1096,7 +1094,6 @@ public interface IExampleInterface extends android.os.IInterface
 const char kExpectedJavaOutputWithTrace[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
 @android.annotation.UnsupportedAppUsage
@@ -1639,7 +1636,6 @@ public interface IExampleInterface extends android.os.IInterface
 const char kExpectedJavaOutputOutlining[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
 public interface IExampleInterface extends android.os.IInterface
@@ -2128,7 +2124,6 @@ public interface IExampleInterface extends android.os.IInterface
 const char kExpectedJavaOutputWithVersion[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: android/test/IExampleInterface.aidl
  */
 package android.test;
 public interface IExampleInterface extends android.os.IInterface

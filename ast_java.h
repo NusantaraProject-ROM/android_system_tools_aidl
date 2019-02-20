@@ -341,7 +341,6 @@ class Document : public AstNode {
  public:
   Document(const std::string& comment,
            const std::string& package,
-           const std::string& original_src,
            std::unique_ptr<Class> clazz);
   virtual ~Document() = default;
   void Write(CodeWriter* to) const override;
@@ -349,7 +348,6 @@ class Document : public AstNode {
  private:
   std::string comment_;
   std::string package_;
-  std::string original_src_;
   std::unique_ptr<Class> clazz_;
 };
 
