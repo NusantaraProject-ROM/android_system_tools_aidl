@@ -17,7 +17,14 @@ package aidl
 type nameProperties struct {
 	Name *string
 }
+type staticLib struct {
+	Whole_static_libs []string
+}
 
+type sharedLib struct {
+	Shared_libs               []string
+	Export_shared_lib_headers []string
+}
 type ccProperties struct {
 	Name                      *string
 	Owner                     *string
@@ -25,6 +32,8 @@ type ccProperties struct {
 	Vendor_available          *bool
 	Generated_sources         []string
 	Generated_headers         []string
+	Shared                    sharedLib
+	Static                    staticLib
 	Shared_libs               []string
 	Export_shared_lib_headers []string
 	Export_generated_headers  []string
