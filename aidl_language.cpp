@@ -72,8 +72,10 @@ static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 static const string kSystemApi("SystemApi");
+static const string kStableParcelable("JavaOnlyStableParcelable");
 
-static const set<string> kAnnotationNames{kNullable, kUtf8InCpp, kUnsupportedAppUsage, kSystemApi};
+static const set<string> kAnnotationNames{kNullable, kUtf8InCpp, kUnsupportedAppUsage, kSystemApi,
+                                          kStableParcelable};
 
 AidlAnnotation* AidlAnnotation::Parse(const AidlLocation& location, const string& name) {
   if (kAnnotationNames.find(name) == kAnnotationNames.end()) {
@@ -118,6 +120,10 @@ bool AidlAnnotatable::IsUnsupportedAppUsage() const {
 
 bool AidlAnnotatable::IsSystemApi() const {
   return HasAnnotation(annotations_, kSystemApi);
+}
+
+bool AidlAnnotatable::IsStableParcelable() const {
+  return HasAnnotation(annotations_, kStableParcelable);
 }
 
 string AidlAnnotatable::ToString() const {
@@ -619,6 +625,24 @@ AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* 
   if (cpp_header_.length() >= 2) {
     cpp_header_ = cpp_header_.substr(1, cpp_header_.length() - 2);
   }
+}
+
+bool AidlParcelable::CheckValid(const AidlTypenames&) const {
+  static const std::set<string> allowed{kStableParcelable};
+  for (const auto& v : GetAnnotations()) {
+    if (allowed.find(v.GetName()) == allowed.end()) {
+      std::ostringstream stream;
+      stream << "Unstructured parcelable can contain only";
+      for (const string& kv : allowed) {
+        stream << " " << kv;
+      }
+      stream << ".";
+      AIDL_ERROR(this) << stream.str();
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void AidlParcelable::Write(CodeWriter* writer) const {
