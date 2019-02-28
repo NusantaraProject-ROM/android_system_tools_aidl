@@ -168,11 +168,6 @@ decl
    {
     $$ = $2;
 
-    if ($$->AsUnstructuredParcelable() != nullptr && !$1->empty()) {
-      AIDL_ERROR($$) << "unstructured parcelables cannot be annotated";
-      ps->AddError();
-    }
-
     if ($1->size() > 0) {
       // copy comments from annotation to decl
       $2->SetComments($1->begin()->GetComments());
