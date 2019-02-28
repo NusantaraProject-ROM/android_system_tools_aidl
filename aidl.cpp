@@ -611,7 +611,11 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     CHECK(defined_type != nullptr);
     AidlParcelable* unstructuredParcelable = defined_type->AsUnstructuredParcelable();
     if (unstructuredParcelable != nullptr) {
-      if (options.IsStructured()) {
+      if (!unstructuredParcelable->CheckValid(typenames)) {
+        return AidlError::BAD_TYPE;
+      }
+      bool isStable = unstructuredParcelable->IsStableParcelable();
+      if (options.IsStructured() && !isStable) {
         AIDL_ERROR(unstructuredParcelable)
             << "Cannot declared parcelable in a --structured interface. Parcelable must be defined "
                "in AIDL directly.";
@@ -667,7 +671,8 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
 
   if (options.IsStructured()) {
     typenames.IterateTypes([&](const AidlDefinedType& type) {
-      if (type.AsUnstructuredParcelable() != nullptr) {
+      if (type.AsUnstructuredParcelable() != nullptr &&
+          !type.AsUnstructuredParcelable()->IsStableParcelable()) {
         err = AidlError::NOT_STRUCTURED;
         LOG(ERROR) << type.GetCanonicalName()
                    << " is not structured, but this is a structured interface.";

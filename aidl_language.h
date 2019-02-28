@@ -160,6 +160,7 @@ class AidlAnnotatable : public AidlNode {
   bool IsUtf8InCpp() const;
   bool IsUnsupportedAppUsage() const;
   bool IsSystemApi() const;
+  bool IsStableParcelable() const;
   std::string ToString() const;
 
   const vector<AidlAnnotation>& GetAnnotations() const { return annotations_; }
@@ -547,6 +548,8 @@ class AidlParcelable : public AidlDefinedType {
   // C++ uses "::" instead of "." to refer to a inner class.
   std::string GetCppName() const { return name_->GetColonName(); }
   std::string GetCppHeader() const { return cpp_header_; }
+
+  bool CheckValid(const AidlTypenames& typenames) const override;
 
   const AidlParcelable* AsParcelable() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
