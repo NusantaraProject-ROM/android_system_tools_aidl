@@ -397,6 +397,7 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& types,
   const std::string on_create = data_clazz + "_onCreate";
   const std::string on_destroy = data_clazz + "_onDestory";
   const std::string on_transact = data_clazz + "_onTransact";
+  const std::string on_dump = data_clazz + "_onDump";
 
   out << "struct " << data_clazz << " {\n";
   out.Indent();
@@ -444,9 +445,18 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& types,
   out.Dedent();
   out << "};\n\n";
 
-  out << "AIBinder_Class* " << data_clazz << ":: " << kClazz << " = AIBinder_Class_define(" << clazz
-      << "::" << kDescriptor << ", " << on_create << ", " << on_destroy << ", " << on_transact
-      << ");\n\n";
+  out << "static binder_status_t " << on_dump
+      << "(AIBinder* binder, int fd, const char** args, uint32_t numArgs) {\n";
+  out.Indent();
+  out << data_clazz << "* data = static_cast<" << data_clazz
+      << "*>(AIBinder_getUserData(binder));\n";
+  out << "return data->instance->dump(fd, args, numArgs);\n";
+  out.Dedent();
+  out << "};\n\n";
+
+  out << "AIBinder_Class* " << data_clazz << ":: " << kClazz
+      << " = ::ndk::ICInterface::defineClass(" << clazz << "::" << kDescriptor << ", " << on_create
+      << ", " << on_destroy << ", " << on_transact << ", " << on_dump << ");\n\n";
 }
 void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
                           const AidlInterface& defined_type, const Options& options) {
