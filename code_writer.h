@@ -42,8 +42,8 @@ class CodeWriter {
   // Write a formatted string to this writer in the usual printf sense.
   // Returns false on error.
   virtual bool Write(const char* format, ...);
-  inline void Indent() { indent_level_++; }
-  inline void Dedent() { indent_level_--; }
+  void Indent();
+  void Dedent();
   virtual bool Close();
   virtual ~CodeWriter() = default;
   CodeWriter() = default;
