@@ -21,6 +21,7 @@
 #include <sstream>
 #include <vector>
 
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
 namespace android {
@@ -67,6 +68,15 @@ bool CodeWriter::Write(const char* format, ...) {
 
   (*ostream_) << indented;
   return !ostream_->fail();
+}
+
+void CodeWriter::Indent() {
+  indent_level_++;
+}
+void CodeWriter::Dedent() {
+  CHECK(indent_level_ > 0);
+
+  indent_level_--;
 }
 
 bool CodeWriter::Close() {
