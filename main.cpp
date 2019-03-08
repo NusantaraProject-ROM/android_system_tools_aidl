@@ -50,6 +50,8 @@ int main(int argc, char* argv[]) {
       return android::aidl::dump_api(options, io_delegate) ? 0 : 1;
     case Options::Task::CHECK_API:
       return android::aidl::check_api(options, io_delegate) ? 0 : 1;
+    case Options::Task::DUMP_MAPPINGS:
+      return android::aidl::dump_mappings(options, io_delegate) ? 0 : 1;
     default:
       LOG(FATAL) << "aidl: internal error" << std::endl;
       return 1;

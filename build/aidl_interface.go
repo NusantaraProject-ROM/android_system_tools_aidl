@@ -70,6 +70,13 @@ var (
 		CommandDeps: []string{"${aidlCmd}"},
 	}, "imports")
 
+	aidlDumpMappingsRule = pctx.StaticRule("aidlDumpMappingsRule", blueprint.RuleParams{
+		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
+			`${aidlCmd} --apimapping ${outDir}/intermediate.txt ${in} ${imports} && ` +
+			`${aidlToJniCmd} ${outDir}/intermediate.txt ${out}`,
+		CommandDeps: []string{"${aidlCmd}"},
+	}, "imports", "outDir")
+
 	aidlFreezeApiRule = pctx.AndroidStaticRule("aidlFreezeApiRule",
 		blueprint.RuleParams{
 			Command: `mkdir -p ${to} && rm -rf ${to}/* && ` +
@@ -88,7 +95,9 @@ var (
 func init() {
 	pctx.HostBinToolVariable("aidlCmd", "aidl")
 	pctx.HostBinToolVariable("bpmodifyCmd", "bpmodify")
+	pctx.SourcePathVariable("aidlToJniCmd", "system/tools/aidl/build/aidl_to_jni.py")
 	android.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
+	android.RegisterModuleType("aidl_mapping", aidlMappingFactory)
 }
 
 // wrap(p, a, s) = [p + v + s for v in a]
@@ -831,4 +840,102 @@ func lookupInterface(name string) *aidlInterface {
 		}
 	}
 	return nil
+}
+
+type aidlMappingProperties struct {
+	// Source file of this prebuilt.
+	Srcs   []string `android:"arch_variant"`
+	Output string
+}
+
+type aidlMapping struct {
+	android.ModuleBase
+	properties     aidlMappingProperties
+	outputFilePath android.WritablePath
+}
+
+func (s *aidlMapping) DepsMutator(ctx android.BottomUpMutatorContext) {
+	android.ExtractSourcesDeps(ctx, s.properties.Srcs)
+}
+
+func addItemsToMap(dest map[string]bool, src []string) {
+	for _, item := range src {
+		dest[item] = true
+	}
+}
+
+func (s *aidlMapping) GenerateAndroidBuildActions(ctx android.ModuleContext) {
+	var srcs android.Paths
+	var all_import_dirs map[string]bool = make(map[string]bool)
+
+	ctx.VisitDirectDeps(func(module android.Module) {
+		for _, property := range module.GetProperties() {
+			if jproperty, ok := property.(*java.CompilerProperties); ok {
+				for _, src := range jproperty.Srcs {
+					if strings.HasSuffix(src, ".aidl") {
+						full_path := android.PathForModuleSrc(ctx, src)
+						srcs = append(srcs, full_path)
+						all_import_dirs[filepath.Dir(full_path.String())] = true
+					} else if pathtools.IsGlob(src) {
+						globbedSrcFiles, err := ctx.GlobWithDeps(src, nil)
+						if err == nil {
+							for _, globbedSrc := range globbedSrcFiles {
+								full_path := android.PathForModuleSrc(ctx, globbedSrc)
+								all_import_dirs[full_path.String()] = true
+							}
+						}
+					}
+				}
+			} else if jproperty, ok := property.(*java.CompilerDeviceProperties); ok {
+				addItemsToMap(all_import_dirs, jproperty.Aidl.Include_dirs)
+				for _, include_dir := range jproperty.Aidl.Export_include_dirs {
+					var full_path = filepath.Join(ctx.ModuleDir(), include_dir)
+					all_import_dirs[full_path] = true
+				}
+				for _, include_dir := range jproperty.Aidl.Local_include_dirs {
+					var full_path = filepath.Join(ctx.ModuleSubDir(), include_dir)
+					all_import_dirs[full_path] = true
+				}
+			}
+		}
+	})
+
+	var import_dirs []string
+	for dir := range all_import_dirs {
+		import_dirs = append(import_dirs, dir)
+	}
+	imports := strings.Join(wrap("-I", import_dirs, ""), " ")
+	s.outputFilePath = android.PathForModuleOut(ctx, s.properties.Output)
+	outDir := android.PathForModuleGen(ctx)
+	ctx.Build(pctx, android.BuildParams{
+		Rule:   aidlDumpMappingsRule,
+		Inputs: srcs,
+		Output: s.outputFilePath,
+		Args: map[string]string{
+			"imports": imports,
+			"outDir":  outDir.String(),
+		},
+	})
+}
+
+func InitAidlMappingModule(s *aidlMapping) {
+	s.AddProperties(&s.properties)
+}
+
+func aidlMappingFactory() android.Module {
+	module := &aidlMapping{}
+	InitAidlMappingModule(module)
+	android.InitAndroidModule(module)
+	return module
+}
+
+func (m *aidlMapping) AndroidMk() android.AndroidMkData {
+	return android.AndroidMkData{
+		Custom: func(w io.Writer, name, prefix, moduleDir string, data android.AndroidMkData) {
+			android.WriteAndroidMkData(w, data)
+			targetName := m.Name()
+			fmt.Fprintln(w, ".PHONY:", targetName)
+			fmt.Fprintln(w, targetName+":", m.outputFilePath.String())
+		},
+	}
 }

@@ -61,7 +61,7 @@ class Options final {
  public:
   enum class Language { UNSPECIFIED, JAVA, CPP, NDK };
 
-  enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMP_API, CHECK_API };
+  enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMP_API, CHECK_API, DUMP_MAPPINGS };
 
   Options(int argc, const char* const argv[], Language default_lang = Language::UNSPECIFIED);
 
@@ -123,6 +123,8 @@ class Options final {
   string GetErrorMessage() const { return error_message_.stream_.str(); }
 
   string GetUsage() const;
+
+  bool GenApiMapping() const { return task_ == Task::DUMP_MAPPINGS; }
 
   // The following are for testability, but cannot be influenced on the command line.
   // Threshold of interface methods to enable outlining of onTransact cases.

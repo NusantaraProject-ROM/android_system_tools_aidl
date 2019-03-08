@@ -96,6 +96,14 @@ string Options::GetUsage() const {
        << "          tool, that part will not be traced." << endl
        << "  --transaction_names" << endl
        << "          Generate transaction names." << endl
+       << "  --apimapping" << endl
+       << "          Generates a mapping of declared aidl method signatures to" << endl
+       << "          the original line number. e.g.: " << endl
+       << "              If line 39 of foo/bar/IFoo.aidl contains:"
+       << "              void doFoo(int bar, String baz);" << endl
+       << "              Then the result would be:" << endl
+       << "              foo.bar.Baz|doFoo|int,String,|void" << endl
+       << "              foo/bar/IFoo.aidl:39" << endl
        << "  -v VER, --version=VER" << endl
        << "          Set the version of the interface and parcelable to VER." << endl
        << "          VER must be an interger greater than 0." << endl
@@ -152,6 +160,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"dumpapi", no_argument, 0, 'u'},
         {"checkapi", no_argument, 0, 'A'},
 #endif
+        {"apimapping", required_argument, 0, 'i'},
         {"include", required_argument, 0, 'I'},
         {"import", required_argument, 0, 'm'},
         {"preprocessed", required_argument, 0, 'p'},
@@ -279,6 +288,10 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       case 'e':
         std::cerr << GetUsage();
         exit(0);
+      case 'i':
+        output_file_ = Trim(optarg);
+        task_ = Task::DUMP_MAPPINGS;
+        break;
       default:
         std::cerr << GetUsage();
         exit(1);
@@ -341,7 +354,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
                        << "got " << (argc - optind) << "." << endl;
         return;
       }
-      if (task_ != Options::Task::CHECK_API) {
+      if (task_ != Options::Task::CHECK_API && task_ != Options::Task::DUMP_MAPPINGS) {
         output_file_ = argv[optind++];
       }
     }
