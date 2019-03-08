@@ -22,6 +22,16 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
+class AidlNode;
+
+namespace android {
+namespace aidl {
+namespace mappings {
+std::string dump_location(const AidlNode& method);
+}  // namespace mappings
+}  // namespace aidl
+}  // namespace android
+
 class AidlToken {
  public:
   AidlToken(const std::string& text, const std::string& comments);
@@ -46,6 +56,7 @@ class AidlLocation {
   AidlLocation(const std::string& file, Point begin, Point end);
 
   friend std::ostream& operator<<(std::ostream& os, const AidlLocation& l);
+  friend class AidlNode;
 
  private:
   const std::string file_;
@@ -75,8 +86,10 @@ class AidlNode {
 
   // To be able to print AidlLocation (nothing else should use this information)
   friend class AidlError;
+  friend std::string android::aidl::mappings::dump_location(const AidlNode&);
 
  private:
+  std::string PrintLocation() const;
   const AidlLocation location_;
 };
 

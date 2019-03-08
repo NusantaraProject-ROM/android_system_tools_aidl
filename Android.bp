@@ -57,6 +57,7 @@ cc_library_static {
         "generate_ndk.cpp",
         "generate_java.cpp",
         "generate_java_binder.cpp",
+        "generate_aidl_mappings.cpp",
         "import_resolver.cpp",
         "line_reader.cpp",
         "io_delegate.cpp",
