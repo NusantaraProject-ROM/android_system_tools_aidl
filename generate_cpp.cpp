@@ -253,7 +253,8 @@ const string GenLogBeforeExecute(const string className, const AidlMethod& metho
 
 const string GenLogAfterExecute(const string className, const AidlInterface& interface,
                                 const AidlMethod& method, const TypeNamespace& types,
-                                const string kReturnVarName, bool isServer) {
+                                const string& statusVarName, const string& returnVarName,
+                                bool isServer) {
   string code;
   CodeWriterPtr writer = CodeWriter::ForString(&code);
 
@@ -301,6 +302,18 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
   (*writer) << "_log_transaction[\"input_args\"] = _log_input_args;\n";
   (*writer) << "Json::Value _log_output_args(Json::objectValue);\n";
 
+  (*writer) << "Json::Value _log_status(Json::objectValue);\n";
+  (*writer) << "_log_status[\"exception_code\"] = Json::Value(" << statusVarName
+            << ".exceptionCode());\n";
+  (*writer) << "_log_status[\"exception_message\"] = Json::Value(" << statusVarName
+            << ".exceptionMessage());\n";
+  (*writer) << "_log_status[\"transaction_error\"] = Json::Value(" << statusVarName
+            << ".transactionError());\n";
+  (*writer) << "_log_status[\"service_specific_error_code\"] = Json::Value(" << statusVarName
+            << ".serviceSpecificErrorCode());\n";
+
+  (*writer) << "_log_transaction[\"binder_status\"] = _log_status;\n";
+
   for (const auto& a : method.GetOutArguments()) {
     string varName = isServer ? BuildVarName(*a) : a->GetName();
     bool isPointer = !isServer;
@@ -311,7 +324,7 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
   (*writer) << "_log_transaction[\"output_args\"] = _log_output_args;\n";
 
   if (method.GetType().GetName() != "void") {
-    WriteLogFor({*(writer.get()), types.typenames_, method.GetType(), kReturnVarName, !isServer,
+    WriteLogFor({*(writer.get()), types.typenames_, method.GetType(), returnVarName, !isServer,
                  "_log_transaction"});
   }
 
@@ -484,7 +497,8 @@ unique_ptr<Declaration> DefineClientTransaction(const TypeNamespace& types,
                    kAndroidStatusVarName));
 
   if (options.GenLog()) {
-    b->AddLiteral(GenLogAfterExecute(bp_name, interface, method, types, kReturnVarName, false),
+    b->AddLiteral(GenLogAfterExecute(bp_name, interface, method, types, kStatusVarName,
+                                     kReturnVarName, false),
                   false /* no semicolon */);
   }
 
@@ -657,6 +671,12 @@ bool HandleServerTransaction(const TypeNamespace& types, const AidlInterface& in
                                                  "ATRACE_TAG_AIDL")));
   }
 
+  if (options.GenLog()) {
+    b->AddLiteral(
+        GenLogAfterExecute(bn_name, interface, method, types, kStatusVarName, kReturnVarName, true),
+        false);
+  }
+
   // Write exceptions during transaction handling to parcel.
   if (!method.IsOneway()) {
     b->AddStatement(new Assignment(
@@ -678,10 +698,6 @@ bool HandleServerTransaction(const TypeNamespace& types, const AidlInterface& in
         kAndroidStatusVarName, new MethodCall{writeMethod,
         ArgList{return_type->WriteCast(kReturnVarName)}}});
     b->AddStatement(BreakOnStatusNotOk());
-  }
-  if (options.GenLog()) {
-    b->AddLiteral(GenLogAfterExecute(bn_name, interface, method, types, kReturnVarName, true),
-                  false);
   }
   // Write each out parameter to the reply parcel.
   for (const AidlArgument* a : method.GetOutArguments()) {
