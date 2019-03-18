@@ -480,6 +480,9 @@ type aidlInterfaceProperties struct {
 			// Whether to generate Java code using Java binder APIs
 			// Default: true
 			Enabled *bool
+			// Set to the version of the sdk to compile against
+			// Default: system_current
+			Sdk_version *string
 		}
 		Cpp struct {
 			// Whether to generate C++ code using C++ binder APIs
@@ -764,6 +767,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 	}
 
 	var javaGeneratedSources []string
+	sdkVersion := proptools.StringDefault(i.properties.Backend.Java.Sdk_version, "system_current")
 
 	for idx, source := range srcs {
 		javaSourceGenName := javaSourceGen + "-" + strconv.Itoa(idx)
@@ -786,7 +790,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		Installable:       proptools.BoolPtr(true),
 		Defaults:          []string{"aidl-java-module-defaults"},
 		No_framework_libs: proptools.BoolPtr(true),
-		Sdk_version:       proptools.StringPtr("28"),
+		Sdk_version:       proptools.StringPtr(sdkVersion),
 		Static_libs:       wrap("", i.properties.Imports, "-java"),
 		Srcs:              wrap(":", javaGeneratedSources, ""),
 	})
