@@ -273,7 +273,7 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
   // would be:
   //
   // {
-  //   duration_ms: 100,
+  //   duration_ms: 100.42,
   //   interface_name: "foo.bar.IFoo",
   //   method_name: "TestMethod",
   //   (proxy|stub)_address: "0x12345678",
@@ -286,11 +286,17 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
   //     arg3: "10.5",
   //   },
   //   _aidl_return: "ok",
+  //   binder_status: {
+  //     exception_code: -8,
+  //     exception_message: "Something wrong",
+  //     transaction_error: 0,
+  //     service_specific_error_code: -42,
+  //   },
   // }
   (*writer) << "auto _log_end = std::chrono::steady_clock::now();\n";
   (*writer) << "Json::Value _log_transaction(Json::objectValue);\n";
   (*writer) << "_log_transaction[\"duration_ms\"] = "
-            << "std::chrono::duration_cast<std::chrono::milliseconds>(_log_end - "
+            << "std::chrono::duration<double, std::milli>(_log_end - "
                "_log_start).count();\n";
   (*writer) << "_log_transaction[\"interface_name\"] = "
             << "Json::Value(\"" << interface.GetCanonicalName() << "\");\n";
