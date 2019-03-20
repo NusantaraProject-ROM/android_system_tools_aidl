@@ -163,7 +163,12 @@ class LanguageTypeNamespace : public TypeNamespace {
                           const std::string& value_type_name) = 0;
 
  protected:
-  bool Add(const T* type);
+  bool Add(std::unique_ptr<const T> type);
+  void AddAndSetMember(const T** member, std::unique_ptr<const T> type) {
+    const T* ptr_value = type.get();
+    CHECK(Add(std::move(type)));
+    *member = ptr_value;
+  }
 
  private:
   // Returns true iff the name can be canonicalized to a container type.
@@ -182,11 +187,11 @@ class LanguageTypeNamespace : public TypeNamespace {
   DISALLOW_COPY_AND_ASSIGN(LanguageTypeNamespace);
 };  // class LanguageTypeNamespace
 
-template<typename T>
-bool LanguageTypeNamespace<T>::Add(const T* type) {
+template <typename T>
+bool LanguageTypeNamespace<T>::Add(std::unique_ptr<const T> type) {
   const T* existing = FindTypeByCanonicalName(type->CanonicalName());
   if (!existing) {
-    types_.emplace_back(type);
+    types_.push_back(std::move(type));
     return true;
   }
 
