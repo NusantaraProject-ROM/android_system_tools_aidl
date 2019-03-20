@@ -17,6 +17,7 @@
 #include "type_java.h"
 
 #include <sys/types.h>
+#include <memory>
 
 #include <android-base/strings.h>
 
@@ -245,80 +246,69 @@ ClassLoaderType::ClassLoaderType(const JavaTypeNamespace* types)
 // ================================================================
 
 void JavaTypeNamespace::Init() {
-  Add(new BasicType(this, "void", "XXX", "XXX", "XXX", "XXX", "XXX"));
+  Add(std::make_unique<BasicType>(this, "void", "XXX", "XXX", "XXX", "XXX", "XXX"));
 
-  m_bool_type = new BooleanType(this);
-  Add(m_bool_type);
+  AddAndSetMember(&m_bool_type, std::make_unique<BooleanType>(this));
 
-  Add(new BasicType(this, "byte", "writeByte", "readByte", "writeByteArray", "createByteArray",
-                    "readByteArray"));
+  Add(std::make_unique<BasicType>(this, "byte", "writeByte", "readByte", "writeByteArray",
+                                  "createByteArray", "readByteArray"));
 
-  Add(new CharType(this));
+  Add(std::make_unique<CharType>(this));
 
-  m_int_type = new BasicType(this, "int", "writeInt", "readInt", "writeIntArray", "createIntArray",
-                             "readIntArray");
-  Add(m_int_type);
+  AddAndSetMember(&m_int_type,
+                  std::make_unique<BasicType>(this, "int", "writeInt", "readInt", "writeIntArray",
+                                              "createIntArray", "readIntArray"));
 
-  Add(new BasicType(this, "long", "writeLong", "readLong", "writeLongArray", "createLongArray",
-                    "readLongArray"));
+  Add(std::make_unique<BasicType>(this, "long", "writeLong", "readLong", "writeLongArray",
+                                  "createLongArray", "readLongArray"));
 
-  Add(new BasicType(this, "float", "writeFloat", "readFloat", "writeFloatArray", "createFloatArray",
-                    "readFloatArray"));
+  Add(std::make_unique<BasicType>(this, "float", "writeFloat", "readFloat", "writeFloatArray",
+                                  "createFloatArray", "readFloatArray"));
 
-  Add(new BasicType(this, "double", "writeDouble", "readDouble", "writeDoubleArray",
-                    "createDoubleArray", "readDoubleArray"));
+  Add(std::make_unique<BasicType>(this, "double", "writeDouble", "readDouble", "writeDoubleArray",
+                                  "createDoubleArray", "readDoubleArray"));
 
-  m_string_type = new class StringType(this, "java.lang", "String");
-  Add(m_string_type);
-  Add(new class StringType(this, ::android::aidl::kAidlReservedTypePackage,
-                           ::android::aidl::kUtf8InCppStringClass));
+  AddAndSetMember(&m_string_type, std::make_unique<class StringType>(this, "java.lang", "String"));
+  Add(std::make_unique<class StringType>(this, ::android::aidl::kAidlReservedTypePackage,
+                                         ::android::aidl::kUtf8InCppStringClass));
 
-  Add(new Type(this, "java.lang", "Object", ValidatableType::KIND_BUILT_IN, false));
+  Add(std::make_unique<Type>(this, "java.lang", "Object", ValidatableType::KIND_BUILT_IN, false));
 
-  Add(new FileDescriptorType(this));
+  Add(std::make_unique<FileDescriptorType>(this));
 
-  Add(new ParcelFileDescriptorType(this));
+  Add(std::make_unique<ParcelFileDescriptorType>(this));
 
-  Add(new CharSequenceType(this));
+  Add(std::make_unique<CharSequenceType>(this));
 
-  Add(new MapType(this));
+  Add(std::make_unique<MapType>(this));
 
-  Add(new ListType(this));
+  Add(std::make_unique<ListType>(this));
 
-  m_text_utils_type =
-      new Type(this, "android.text", "TextUtils", ValidatableType::KIND_BUILT_IN, false);
-  Add(m_text_utils_type);
+  AddAndSetMember(&m_text_utils_type,
+                  std::make_unique<Type>(this, "android.text", "TextUtils",
+                                         ValidatableType::KIND_BUILT_IN, false));
 
-  m_remote_exception_type = new class RemoteExceptionType(this);
-  Add(m_remote_exception_type);
+  AddAndSetMember(&m_remote_exception_type, std::make_unique<class RemoteExceptionType>(this));
 
-  m_runtime_exception_type = new class RuntimeExceptionType(this);
-  Add(m_runtime_exception_type);
+  AddAndSetMember(&m_runtime_exception_type, std::make_unique<class RuntimeExceptionType>(this));
 
-  m_ibinder_type = new class IBinderType(this);
-  Add(m_ibinder_type);
+  AddAndSetMember(&m_ibinder_type, std::make_unique<class IBinderType>(this));
 
-  m_iinterface_type = new class IInterfaceType(this);
-  Add(m_iinterface_type);
+  AddAndSetMember(&m_iinterface_type, std::make_unique<class IInterfaceType>(this));
 
-  m_binder_native_type = new class BinderType(this);
-  Add(m_binder_native_type);
+  AddAndSetMember(&m_binder_native_type, std::make_unique<BinderType>(this));
 
-  m_binder_proxy_type = new class BinderProxyType(this);
-  Add(m_binder_proxy_type);
+  AddAndSetMember(&m_binder_proxy_type, std::make_unique<class BinderProxyType>(this));
 
-  m_parcel_type = new class ParcelType(this);
-  Add(m_parcel_type);
+  AddAndSetMember(&m_parcel_type, std::make_unique<class ParcelType>(this));
 
-  m_parcelable_interface_type = new class ParcelableInterfaceType(this);
-  Add(m_parcelable_interface_type);
+  AddAndSetMember(&m_parcelable_interface_type,
+                  std::make_unique<class ParcelableInterfaceType>(this));
 
-  m_context_type =
-      new class Type(this, "android.content", "Context", ValidatableType::KIND_BUILT_IN, false);
-  Add(m_context_type);
+  AddAndSetMember(&m_context_type, std::make_unique<Type>(this, "android.content", "Context",
+                                                          ValidatableType::KIND_BUILT_IN, false));
 
-  m_classloader_type = new class ClassLoaderType(this);
-  Add(m_classloader_type);
+  AddAndSetMember(&m_classloader_type, std::make_unique<class ClassLoaderType>(this));
 
   NULL_VALUE = new LiteralExpression("null");
   THIS_VALUE = new LiteralExpression("this");
@@ -329,27 +319,27 @@ void JavaTypeNamespace::Init() {
 
 bool JavaTypeNamespace::AddParcelableType(const AidlParcelable& p,
                                           const std::string& filename) {
-  Type* type = new UserDataType(this, p.GetPackage(), p.GetName(), false, true, filename);
-  return Add(type);
+  return Add(
+      std::make_unique<UserDataType>(this, p.GetPackage(), p.GetName(), false, true, filename));
 }
 
 bool JavaTypeNamespace::AddBinderType(const AidlInterface& b,
                                       const std::string& filename) {
   // for interfaces, add the stub, proxy, and interface types.
-  Type* stub = new Type(this, b.GetPackage(), b.GetName() + ".Stub",
-                        ValidatableType::KIND_GENERATED, false, filename);
-  Type* proxy = new Type(this, b.GetPackage(), b.GetName() + ".Stub.Proxy",
-                         ValidatableType::KIND_GENERATED, false, filename);
-  Type* defaultImpl = new Type(this, b.GetPackage(), b.GetName() + ".Default",
-                               ValidatableType::KIND_GENERATED, false, filename);
-  Type* type = new InterfaceType(this, b.GetPackage(), b.GetName(), false, filename, -1, stub,
-                                 proxy, defaultImpl);
+  auto stub = std::make_unique<Type>(this, b.GetPackage(), b.GetName() + ".Stub",
+                                     ValidatableType::KIND_GENERATED, false, filename);
+  auto proxy = std::make_unique<Type>(this, b.GetPackage(), b.GetName() + ".Stub.Proxy",
+                                      ValidatableType::KIND_GENERATED, false, filename);
+  auto defaultImpl = std::make_unique<Type>(this, b.GetPackage(), b.GetName() + ".Default",
+                                            ValidatableType::KIND_GENERATED, false, filename);
+  auto type = std::make_unique<InterfaceType>(this, b.GetPackage(), b.GetName(), false, filename,
+                                              -1, stub.get(), proxy.get(), defaultImpl.get());
 
   bool success = true;
-  success &= Add(type);
-  success &= Add(stub);
-  success &= Add(proxy);
-  success &= Add(defaultImpl);
+  success &= Add(std::move(type));
+  success &= Add(std::move(stub));
+  success &= Add(std::move(proxy));
+  success &= Add(std::move(defaultImpl));
   return success;
 }
 
@@ -358,7 +348,7 @@ bool JavaTypeNamespace::AddListType(const std::string& contained_type_name) {
   if (!contained_type) {
     return false;
   }
-  Add(new GenericListType(this, contained_type));
+  Add(std::make_unique<GenericListType>(this, contained_type));
   return true;
 }
 
