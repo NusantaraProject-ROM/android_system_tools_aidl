@@ -154,7 +154,8 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	// input = <module_root>/some_dir/pkg/to/IFoo.aidl
 	// outDir = out/soong/.intermediate/..../gen/
 	// outFile = out/soong/.intermediates/..../gen/pkg/to/IFoo.{java|cpp}
-	input := android.PathForModuleSrc(ctx, g.properties.Input).WithSubDir(ctx, g.properties.AidlRoot)
+	input := android.PathForModuleSrc(ctx, g.properties.Input)
+	input = android.PathWithModuleSrcSubDir(ctx, input, g.properties.AidlRoot)
 	outDir := android.PathForModuleGen(ctx)
 	var outFile android.WritablePath
 	if g.properties.Lang == langJava {
@@ -333,8 +334,9 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 
 	var srcs android.Paths
 	for _, input := range m.properties.Inputs {
-		srcs = append(srcs, android.PathForModuleSrc(ctx, input).WithSubDir(
-			ctx, m.properties.AidlRoot))
+		path := android.PathForModuleSrc(ctx, input)
+		path = android.PathWithModuleSrcSubDir(ctx, path, m.properties.AidlRoot)
+		srcs = append(srcs, path)
 	}
 
 	apiDir = android.PathForModuleOut(ctx, "dump")
@@ -408,7 +410,7 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	for _, ver := range m.properties.Versions {
 		apiDir := android.PathForModuleSrc(ctx, m.apiDir(), ver)
 		apiDirs[ver] = apiDir
-		apiFiles[ver] = ctx.Glob(apiDir.Join(ctx, "**/*.aidl").String(), nil)
+		apiFiles[ver] = ctx.Glob(filepath.Join(apiDir.String(), "**/*.aidl"), nil)
 	}
 	apiDirs[currentVersion] = currentDumpDir
 	apiFiles[currentVersion] = currentApiFiles.Paths()
