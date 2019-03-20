@@ -168,7 +168,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	var checkApiTimestamps android.Paths
 	ctx.VisitDirectDeps(func(dep android.Module) {
 		if importedAidl, ok := dep.(*aidlInterface); ok {
-			importPaths = append(importPaths, importedAidl.properties.Full_import_path)
+			importPaths = append(importPaths, importedAidl.properties.Full_import_paths...)
 		} else if api, ok := dep.(*aidlApi); ok {
 			// When compiling an AIDL interface, also make sure that each
 			// version of the interface is compatible with its previous version
@@ -327,7 +327,7 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 	var importPaths []string
 	ctx.VisitDirectDeps(func(dep android.Module) {
 		if importedAidl, ok := dep.(*aidlInterface); ok {
-			importPaths = append(importPaths, importedAidl.properties.Full_import_path)
+			importPaths = append(importPaths, importedAidl.properties.Full_import_paths...)
 		}
 	})
 
@@ -452,7 +452,9 @@ type aidlInterfaceProperties struct {
 
 	// Whether the library can be installed on the vendor image.
 	Vendor_available *bool
-
+	// Top level directories for includes.
+	// TODO(b/128940869): remove it if aidl_interface can depend on framework.aidl
+	Include_dirs []string
 	// Relative path for includes. By default assumes AIDL path is relative to current directory.
 	// TODO(b/111117220): automatically compute by letting AIDL parse multiple files simultaneously
 	Local_include_dir string
@@ -466,7 +468,7 @@ type aidlInterfaceProperties struct {
 	Imports []string
 
 	// Used by gen dependency to fill out aidl include path
-	Full_import_path string `blueprint:"mutated"`
+	Full_import_paths []string `blueprint:"mutated"`
 
 	// Directory where API dumps are. Default is "api".
 	Api_dir *string
@@ -618,8 +620,11 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	if !isRelativePath(i.properties.Local_include_dir) {
 		mctx.PropertyErrorf("local_include_dir", "must be relative path: "+i.properties.Local_include_dir)
 	}
+	var importPaths []string
+	importPaths = append(importPaths, filepath.Join(mctx.ModuleDir(), i.properties.Local_include_dir))
+	importPaths = append(importPaths, i.properties.Include_dirs...)
 
-	i.properties.Full_import_path = filepath.Join(mctx.ModuleDir(), i.properties.Local_include_dir)
+	i.properties.Full_import_paths = importPaths
 
 	i.checkAndUpdateSources(mctx)
 	i.checkImports(mctx)
