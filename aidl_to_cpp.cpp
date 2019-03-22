@@ -128,10 +128,11 @@ void WriteLogFor(const CodeGeneratorContext& c) {
 
   const string var_object_expr = ((c.isPointer ? "*" : "")) + c.name;
   if (c.type.IsArray()) {
+    c.writer << c.log << "[\"" << c.name << "\"] = Json::Value(Json::arrayValue);\n";
     c.writer << "for (const auto& v: " << var_object_expr << ") " << c.log << "[\"" << c.name
-             << "\"] = ";
+             << "\"].append(";
     info.toJsonValueExpr(c, "v");
-    c.writer << ";";
+    c.writer << ");";
   } else {
     c.writer << c.log << "[\"" << c.name << "\"] = ";
     info.toJsonValueExpr(c, var_object_expr);
