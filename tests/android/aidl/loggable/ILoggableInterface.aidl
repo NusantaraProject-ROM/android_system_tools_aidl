@@ -1,6 +1,6 @@
 package android.aidl.loggable;
 
-interface LoggableInterface {
+interface ILoggableInterface {
     String[] LogThis(boolean boolValue, inout boolean[] boolArray,
                    byte byteValue, inout byte[] byteArray,
                    char charValue, inout char[] charArray,
