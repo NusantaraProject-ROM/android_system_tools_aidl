@@ -72,7 +72,7 @@ class StubClass : public Class {
  public:
   StubClass(const Type* type, const InterfaceType* interfaceType, JavaTypeNamespace* types,
             const Options& options);
-  virtual ~StubClass() = default;
+  ~StubClass() override = default;
 
   Variable* transact_code;
   Variable* transact_data;
@@ -307,7 +307,7 @@ class ProxyClass : public Class {
  public:
   ProxyClass(const JavaTypeNamespace* types, const Type* type, const InterfaceType* interfaceType,
              const Options& options);
-  virtual ~ProxyClass();
+  ~ProxyClass() override;
 
   Variable* mRemote;
 };
