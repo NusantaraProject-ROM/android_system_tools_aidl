@@ -47,7 +47,7 @@ class VoidType : public Type {
  public:
   VoidType() : Type(ValidatableType::KIND_BUILT_IN, kNoPackage, "void",
                     {}, "void", kNoValidMethod, kNoValidMethod) {}
-  virtual ~VoidType() = default;
+  ~VoidType() override = default;
   bool CanWriteToParcel() const override { return false; }
 };  // class VoidType
 
@@ -117,7 +117,7 @@ class PrimitiveType : public Type {
                               read_array_method, write_array_method,
                               false)) {}
 
-  virtual ~PrimitiveType() = default;
+  ~PrimitiveType() override = default;
   bool IsCppPrimitive() const override { return true; }
 
  private:
@@ -137,7 +137,7 @@ class ByteType : public Type {
                               "readByteVector", "writeByteVector",
                               false)) {}
 
-  virtual ~ByteType() = default;
+  ~ByteType() override = default;
   bool IsCppPrimitive() const override { return true; }
 
  private:
@@ -157,7 +157,7 @@ class BinderType : public Type {
                    new BinderType(interface, src_file_name, kNoNullableType,
                                   "readNullableStrongBinder"),
                    "readStrongBinder") {}
-  virtual ~BinderType() = default;
+  ~BinderType() override = default;
 
   string WriteCast(const string& val) const override {
     return write_cast_ + "(" + val + ")";
@@ -198,7 +198,7 @@ class NullableParcelableType : public Type {
       : Type(ValidatableType::KIND_PARCELABLE, parcelable.GetPackage(), parcelable.GetName(),
              {cpp_header}, GetCppName(parcelable), "readParcelable", "writeNullableParcelable",
              kNoArrayType, kNoNullableType, src_file_name) {}
-  virtual ~NullableParcelableType() = default;
+  ~NullableParcelableType() override = default;
 
  private:
   static string GetCppName(const AidlParcelable& parcelable) {
@@ -218,7 +218,7 @@ class ParcelableType : public Type {
                               GetCppName(parcelable), "readParcelableVector",
                               "writeParcelableVector", false, src_file_name),
              new NullableParcelableType(parcelable, cpp_header, src_file_name), src_file_name) {}
-  virtual ~ParcelableType() = default;
+  ~ParcelableType() override = default;
 
  private:
   static string GetCppName(const AidlParcelable& parcelable) {
@@ -235,7 +235,7 @@ class NullableMap : public Type {
              {"binder/Map.h", "binder/Value.h"},
              "::std::unique_ptr<::android::binder::Map>",
              "readNullableMap", "writeNullableMap") {}
-  virtual ~NullableMap() = default;
+  ~NullableMap() override = default;
 };
 
 
@@ -249,7 +249,7 @@ class MapType : public Type {
              "readMap", "writeMap",
              kNoArrayType,
              new NullableMap() ) {}
-  virtual ~MapType() = default;
+  ~MapType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(MapType);
@@ -263,7 +263,7 @@ class NullableStringListType : public Type {
              {"utils/String16.h", "memory", "vector"},
              "::std::unique_ptr<::std::vector<std::unique_ptr<::android::String16>>>",
              "readString16Vector", "writeString16Vector") {}
-  virtual ~NullableStringListType() = default;
+  ~NullableStringListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableStringListType);
@@ -278,7 +278,7 @@ class StringListType : public Type {
              "::std::vector<::android::String16>",
              "readString16Vector", "writeString16Vector",
              kNoArrayType, new NullableStringListType()) {}
-  virtual ~StringListType() = default;
+  ~StringListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(StringListType);
@@ -292,7 +292,7 @@ class NullableUtf8InCppStringListType : public Type {
              {"memory", "string", "vector"},
              "::std::unique_ptr<::std::vector<std::unique_ptr<::std::string>>>",
              "readUtf8VectorFromUtf16Vector", "writeUtf8VectorAsUtf16Vector") {}
-  virtual ~NullableUtf8InCppStringListType() = default;
+  ~NullableUtf8InCppStringListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableUtf8InCppStringListType);
@@ -307,7 +307,7 @@ class Utf8InCppStringListType : public Type {
              "::std::vector<::std::string>",
              "readUtf8VectorFromUtf16Vector", "writeUtf8VectorAsUtf16Vector",
              kNoArrayType, new NullableUtf8InCppStringListType()) {}
-  virtual ~Utf8InCppStringListType() = default;
+  ~Utf8InCppStringListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Utf8InCppStringListType);
@@ -320,7 +320,7 @@ class NullableBinderListType : public Type {
              "List<android.os.IBinder>", {"binder/IBinder.h", "vector"},
              "::std::unique_ptr<::std::vector<::android::sp<::android::IBinder>>>",
              "readStrongBinderVector", "writeStrongBinderVector") {}
-  virtual ~NullableBinderListType() = default;
+  ~NullableBinderListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(NullableBinderListType);
@@ -334,7 +334,7 @@ class BinderListType : public Type {
              "::std::vector<::android::sp<::android::IBinder>>",
              "readStrongBinderVector", "writeStrongBinderVector",
              kNoArrayType, new NullableBinderListType()) {}
-  virtual ~BinderListType() = default;
+  ~BinderListType() override = default;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(BinderListType);

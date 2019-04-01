@@ -38,7 +38,7 @@ namespace aidl {
 
 class EndToEndTest : public ::testing::Test {
  protected:
-  virtual void SetUp() {
+  void SetUp() override {
   }
 
   void AddStubAidls(const char** parcelables, const char** interfaces,

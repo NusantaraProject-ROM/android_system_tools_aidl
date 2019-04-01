@@ -37,7 +37,7 @@ namespace test {
 class BrokenCodeWriter : public CodeWriter {
   bool Write(const char* /* format */, ...) override {  return true; }
   bool Close() override { return false; }
-  virtual ~BrokenCodeWriter() = default;
+  ~BrokenCodeWriter() override = default;
 };  // class BrokenCodeWriter
 
 unique_ptr<string> FakeIoDelegate::GetFileContents(
