@@ -117,7 +117,7 @@ CodeWriterPtr CodeWriter::ForString(std::string* buf) {
    public:
     StringCodeWriter(std::string* buf)
         : CodeWriter(std::unique_ptr<std::ostream>(new std::stringstream())), buf_(buf) {}
-    ~StringCodeWriter() { Close(); }
+    ~StringCodeWriter() override { Close(); }
     bool Close() override {
       // extract whats written to the stringstream to the external buffer.
       // we are sure that ostream_ is indeed stringstream.
