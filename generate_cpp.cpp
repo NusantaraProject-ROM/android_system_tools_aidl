@@ -830,7 +830,7 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInt
 unique_ptr<Document> BuildInterfaceSource(const TypeNamespace& types,
                                           const AidlInterface& interface, const Options& options) {
   vector<string> include_list{
-      HeaderFile(interface, ClassNames::INTERFACE, false),
+      HeaderFile(interface, ClassNames::RAW, false),
       HeaderFile(interface, ClassNames::CLIENT, false),
   };
 
@@ -907,7 +907,7 @@ unique_ptr<Document> BuildClientHeader(const TypeNamespace& types, const AidlInt
   const string bp_name = ClassName(interface, ClassNames::CLIENT);
 
   vector<string> includes = {kIBinderHeader, kIInterfaceHeader, "utils/Errors.h",
-                          HeaderFile(interface, ClassNames::INTERFACE, false)};
+                             HeaderFile(interface, ClassNames::RAW, false)};
 
   unique_ptr<ConstructorDecl> constructor{new ConstructorDecl{
       bp_name,
@@ -972,8 +972,7 @@ unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
                StringPrintf("uint32_t %s", kFlagsVarName)}},
       MethodDecl::IS_OVERRIDE
   }};
-  vector<string> includes = {"binder/IInterface.h",
-                             HeaderFile(interface, ClassNames::INTERFACE, false)};
+  vector<string> includes = {"binder/IInterface.h", HeaderFile(interface, ClassNames::RAW, false)};
 
   vector<unique_ptr<Declaration>> publics;
   publics.push_back(std::move(on_transact));
@@ -1219,6 +1218,7 @@ bool WriteHeader(const Options& options, const TypeNamespace& types, const AidlI
   switch (header_type) {
     case ClassNames::INTERFACE:
       header = BuildInterfaceHeader(types, interface, options);
+      header_type = ClassNames::RAW;
       break;
     case ClassNames::CLIENT:
       header = BuildClientHeader(types, interface, options);
@@ -1293,7 +1293,7 @@ bool GenerateCppParcel(const string& output_file, const Options& options,
     return false;
   }
 
-  const string header_path = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::BASE);
+  const string header_path = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::RAW);
   unique_ptr<CodeWriter> header_writer(io_delegate.GetCodeWriter(header_path));
   header->Write(header_writer.get());
   CHECK(header_writer->Close());
