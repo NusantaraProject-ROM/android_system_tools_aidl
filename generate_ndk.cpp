@@ -38,8 +38,7 @@ using cpp::ClassNames;
 void GenerateNdkInterface(const string& output_file, const Options& options,
                           const AidlTypenames& types, const AidlInterface& defined_type,
                           const IoDelegate& io_delegate) {
-  const string i_header =
-      options.OutputHeaderDir() + NdkHeaderFile(defined_type, ClassNames::INTERFACE);
+  const string i_header = options.OutputHeaderDir() + NdkHeaderFile(defined_type, ClassNames::RAW);
   unique_ptr<CodeWriter> i_writer(io_delegate.GetCodeWriter(i_header));
   GenerateInterfaceHeader(*i_writer, types, defined_type, options);
   CHECK(i_writer->Close());
@@ -65,7 +64,7 @@ void GenerateNdkParcel(const string& output_file, const Options& options,
                        const AidlTypenames& types, const AidlStructuredParcelable& defined_type,
                        const IoDelegate& io_delegate) {
   const string header_path =
-      options.OutputHeaderDir() + NdkHeaderFile(defined_type, ClassNames::BASE);
+      options.OutputHeaderDir() + NdkHeaderFile(defined_type, ClassNames::RAW);
   unique_ptr<CodeWriter> header_writer(io_delegate.GetCodeWriter(header_path));
   GenerateParcelHeader(*header_writer, types, defined_type, options);
   CHECK(header_writer->Close());
@@ -146,8 +145,7 @@ static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
 
     if (other_defined_type.AsInterface() != nullptr) {
       out << "#include <"
-          << NdkHeaderFile(other_defined_type, ClassNames::INTERFACE, false /*use_os_sep*/)
-          << ">\n";
+          << NdkHeaderFile(other_defined_type, ClassNames::RAW, false /*use_os_sep*/) << ">\n";
     } else if (other_defined_type.AsStructuredParcelable() != nullptr) {
       out << "#include <"
           << NdkHeaderFile(other_defined_type, ClassNames::BASE, false /*use_os_sep*/) << ">\n";
@@ -166,8 +164,8 @@ static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
           << ">\n";
       out << "#include <" << NdkHeaderFile(a_defined_type, ClassNames::SERVER, false /*use_os_sep*/)
           << ">\n";
-      out << "#include <"
-          << NdkHeaderFile(a_defined_type, ClassNames::INTERFACE, false /*use_os_sep*/) << ">\n";
+      out << "#include <" << NdkHeaderFile(a_defined_type, ClassNames::RAW, false /*use_os_sep*/)
+          << ">\n";
     }
   });
 }
@@ -583,7 +581,7 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
 
   out << "#pragma once\n\n";
-  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::INTERFACE, false /*use_os_sep*/)
+  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::RAW, false /*use_os_sep*/)
       << "\"\n";
   out << "\n";
   out << "#include <android/binder_ibinder.h>\n";
@@ -614,7 +612,7 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& types,
   const std::string iface = ClassName(defined_type, ClassNames::INTERFACE);
 
   out << "#pragma once\n\n";
-  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::INTERFACE, false /*use_os_sep*/)
+  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::RAW, false /*use_os_sep*/)
       << "\"\n";
   out << "\n";
   out << "#include <android/binder_ibinder.h>\n";
@@ -750,7 +748,7 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
                           const Options& /*options*/) {
   const std::string clazz = ClassName(defined_type, ClassNames::BASE);
 
-  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::BASE, false /*use_os_sep*/)
+  out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::RAW, false /*use_os_sep*/)
       << "\"\n";
   out << "\n";
   GenerateSourceIncludes(out, types, defined_type);

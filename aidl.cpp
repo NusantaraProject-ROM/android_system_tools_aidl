@@ -250,7 +250,7 @@ bool write_dep_file(const Options& options, const AidlDefinedType& defined_type,
       using ::android::aidl::cpp::ClassNames;
       using ::android::aidl::cpp::HeaderFile;
       vector<string> headers;
-      for (ClassNames c : {ClassNames::CLIENT, ClassNames::SERVER, ClassNames::INTERFACE}) {
+      for (ClassNames c : {ClassNames::CLIENT, ClassNames::SERVER, ClassNames::RAW}) {
         headers.push_back(options.OutputHeaderDir() +
                           HeaderFile(defined_type, c, false /* use_os_sep */));
       }
