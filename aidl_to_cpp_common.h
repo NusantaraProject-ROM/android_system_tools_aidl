@@ -34,7 +34,6 @@ enum class ClassNames {
   SERVER,        // BnFoo
   INTERFACE,     // IFoo
   DEFAULT_IMPL,  // IFooDefault
-  RAW,           // (as shown in the file)
 };
 
 string ClassName(const AidlDefinedType& defined_type, ClassNames type);

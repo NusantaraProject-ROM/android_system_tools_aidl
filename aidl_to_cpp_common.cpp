@@ -23,27 +23,27 @@ namespace aidl {
 namespace cpp {
 
 string ClassName(const AidlDefinedType& defined_type, ClassNames type) {
-  string base_name = defined_type.GetName();
-  if (base_name.length() >= 2 && base_name[0] == 'I' && isupper(base_name[1])) {
-    base_name = base_name.substr(1);
-  }
+  string c_name = defined_type.GetName();
+
+  if (c_name.length() >= 2 && c_name[0] == 'I' && isupper(c_name[1])) c_name = c_name.substr(1);
 
   switch (type) {
     case ClassNames::CLIENT:
-      return "Bp" + base_name;
+      c_name = "Bp" + c_name;
+      break;
     case ClassNames::SERVER:
-      return "Bn" + base_name;
+      c_name = "Bn" + c_name;
+      break;
     case ClassNames::INTERFACE:
-      return "I" + base_name;
+      c_name = "I" + c_name;
+      break;
     case ClassNames::DEFAULT_IMPL:
-      return "I" + base_name + "Default";
+      c_name = "I" + c_name + "Default";
+      break;
     case ClassNames::BASE:
-      return base_name;
-    case ClassNames::RAW:
-      [[fallthrough]];
-    default:
-      return defined_type.GetName();
+      break;
   }
+  return c_name;
 }
 
 std::string HeaderFile(const AidlDefinedType& defined_type, ClassNames class_type,
