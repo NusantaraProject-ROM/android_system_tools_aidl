@@ -105,7 +105,7 @@ const static std::unordered_map<std::string, TypeInfo> kTypeInfoMap = {
     // missing List, Map, ParcelFileDescriptor, IBinder
 };
 
-TypeInfo GetTypeInfo(const AidlTypenames&, const AidlTypeSpecifier& aidl) {
+TypeInfo GetTypeInfo(const AidlTypeSpecifier& aidl) {
   CHECK(aidl.IsResolved()) << aidl.ToString();
   const string& aidl_name = aidl.GetName();
 
@@ -120,21 +120,28 @@ TypeInfo GetTypeInfo(const AidlTypenames&, const AidlTypeSpecifier& aidl) {
   return info;
 }
 
+inline bool CanWriteLog(const TypeInfo& t) {
+  return t.cpp_name != "";
+}
+
+bool CanWriteLog(const AidlTypeSpecifier& aidl) {
+  return CanWriteLog(GetTypeInfo(aidl));
+}
+
 void WriteLogFor(const CodeGeneratorContext& c) {
-  const TypeInfo info = GetTypeInfo(c.types, c.type);
-  if (info.cpp_name == "") {
+  const TypeInfo info = GetTypeInfo(c.type);
+  if (!CanWriteLog(info)) {
     return;
   }
 
   const string var_object_expr = ((c.isPointer ? "*" : "")) + c.name;
   if (c.type.IsArray()) {
-    c.writer << c.log << "[\"" << c.name << "\"] = Json::Value(Json::arrayValue);\n";
-    c.writer << "for (const auto& v: " << var_object_expr << ") " << c.log << "[\"" << c.name
-             << "\"].append(";
+    c.writer << c.log << " = Json::Value(Json::arrayValue);\n";
+    c.writer << "for (const auto& v: " << var_object_expr << ") " << c.log << ".append(";
     info.toJsonValueExpr(c, "v");
     c.writer << ");";
   } else {
-    c.writer << c.log << "[\"" << c.name << "\"] = ";
+    c.writer << c.log << " = ";
     info.toJsonValueExpr(c, var_object_expr);
     c.writer << ";";
   }
