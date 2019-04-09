@@ -154,6 +154,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
   if (options_.GenTransactionNames()) {
     // getDefaultTransactionName
     Method* getDefaultTransactionName = new Method;
+    getDefaultTransactionName->comment = "/** @hide */";
     getDefaultTransactionName->modifiers = PUBLIC | STATIC;
     getDefaultTransactionName->returnType = types->StringType()->JavaType();
     getDefaultTransactionName->name = "getDefaultTransactionName";
@@ -166,6 +167,7 @@ StubClass::StubClass(const Type* type, const InterfaceType* interfaceType, JavaT
 
     // getTransactionName
     Method* getTransactionName = new Method;
+    getTransactionName->comment = "/** @hide */";
     getTransactionName->modifiers = PUBLIC;
     getTransactionName->returnType = types->StringType()->JavaType();
     getTransactionName->name = "getTransactionName";
