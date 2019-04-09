@@ -828,6 +828,14 @@ unique_ptr<Document> BuildServerSource(const TypeNamespace& types, const AidlInt
   vector<unique_ptr<Declaration>> decls;
   decls.push_back(std::move(on_transact));
 
+  if (options.Version() > 0) {
+    std::ostringstream code;
+    code << "int32_t " << bn_name << "::" << kGetInterfaceVersion << "() {\n"
+         << "  return " << ClassName(interface, ClassNames::INTERFACE) << "::VERSION;\n"
+         << "}\n";
+    decls.emplace_back(new LiteralDecl(code.str()));
+  }
+
   if (options.GenLog()) {
     string code;
     ClassName(interface, ClassNames::SERVER);
@@ -990,6 +998,12 @@ unique_ptr<Document> BuildServerHeader(const TypeNamespace& /* types */,
 
   vector<unique_ptr<Declaration>> publics;
   publics.push_back(std::move(on_transact));
+
+  if (options.Version() > 0) {
+    std::ostringstream code;
+    code << "int32_t " << kGetInterfaceVersion << "() final override;\n";
+    publics.emplace_back(new LiteralDecl(code.str()));
+  }
 
   if (options.GenLog()) {
     includes.emplace_back("chrono");      // for std::chrono::steady_clock
