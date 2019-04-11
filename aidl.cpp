@@ -312,7 +312,10 @@ bool check_and_assign_method_ids(const std::vector<std::unique_ptr<AidlMethod>>&
     // transactions must be stable during the entire lifetime of an interface.
     // In other words, their IDs must be the same even when new user-defined
     // methods are added.
-    if (item->HasId() && item->IsUserDefined()) {
+    if (!item->IsUserDefined()) {
+      continue;
+    }
+    if (item->HasId()) {
       hasAssignedIds = true;
       // Ensure that the user set id is not duplicated.
       if (usedIds.find(item->GetId()) != usedIds.end()) {
