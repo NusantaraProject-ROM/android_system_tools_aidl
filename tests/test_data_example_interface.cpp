@@ -664,6 +664,7 @@ public interface IExampleInterface extends android.os.IInterface
     {
       return this;
     }
+    /** @hide */
     public static java.lang.String getDefaultTransactionName(int transactionCode)
     {
       switch (transactionCode)
@@ -710,6 +711,7 @@ public interface IExampleInterface extends android.os.IInterface
         }
       }
     }
+    /** @hide */
     public java.lang.String getTransactionName(int transactionCode)
     {
       return this.getDefaultTransactionName(transactionCode);
