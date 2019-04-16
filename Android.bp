@@ -66,6 +66,10 @@ cc_library_static {
         "type_java.cpp",
         "type_namespace.cpp",
     ],
+    yacc: {
+        gen_location_hh: true,
+        gen_position_hh: true,
+    },
 }
 
 // aidl executable
