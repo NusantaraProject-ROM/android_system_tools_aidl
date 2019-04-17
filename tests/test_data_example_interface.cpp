@@ -122,7 +122,7 @@ const char kExpectedJavaOutput[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.annotation.UnsupportedAppUsage
+@dalvik.annotation.compat.UnsupportedAppUsage
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -564,7 +564,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.annotation.UnsupportedAppUsage
+  @dalvik.annotation.compat.UnsupportedAppUsage
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
@@ -584,7 +584,7 @@ const char kExpectedJavaOutputWithTransactionNames[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.annotation.UnsupportedAppUsage
+@dalvik.annotation.compat.UnsupportedAppUsage
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -1078,7 +1078,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.annotation.UnsupportedAppUsage
+  @dalvik.annotation.compat.UnsupportedAppUsage
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
@@ -1098,7 +1098,7 @@ const char kExpectedJavaOutputWithTrace[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.annotation.UnsupportedAppUsage
+@dalvik.annotation.compat.UnsupportedAppUsage
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -1620,7 +1620,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.annotation.UnsupportedAppUsage
+  @dalvik.annotation.compat.UnsupportedAppUsage
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
