@@ -243,7 +243,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a) {
   std::vector<std::string> result;
   if (a.IsUnsupportedAppUsage()) {
-    result.emplace_back("@android.annotation.UnsupportedAppUsage");
+    result.emplace_back("@dalvik.annotation.compat.UnsupportedAppUsage");
   }
   if (a.IsSystemApi()) {
     result.emplace_back("@android.annotation.SystemApi");
