@@ -74,7 +74,7 @@ public class Rect implements android.os.Parcelable
   @android.annotation.SystemApi
   public int x = 5;
 
-  @android.annotation.UnsupportedAppUsage
+  @dalvik.annotation.compat.UnsupportedAppUsage
   @android.annotation.SystemApi
   public int y;
   public static final android.os.Parcelable.Creator<Rect> CREATOR = new android.os.Parcelable.Creator<Rect>() {
