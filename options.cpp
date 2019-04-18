@@ -408,8 +408,8 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
                      << "file." << endl;
       return;
     }
-    if (gen_log_ && language_ != Options::Language::CPP) {
-      error_message_ << "--log is currently supported only for --lang=cpp" << endl;
+    if (gen_log_ && (language_ != Options::Language::CPP && language_ != Options::Language::NDK)) {
+      error_message_ << "--log is currently supported for either --lang=cpp or --lang=ndk" << endl;
       return;
     }
   }

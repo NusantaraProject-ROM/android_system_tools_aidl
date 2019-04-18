@@ -34,6 +34,7 @@ type ccProperties struct {
 	Generated_headers         []string
 	Shared                    sharedLib
 	Static                    staticLib
+	Static_libs               []string
 	Shared_libs               []string
 	Export_shared_lib_headers []string
 	Export_generated_headers  []string

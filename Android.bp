@@ -251,3 +251,16 @@ aidl_interface {
         },
     },
 }
+
+aidl_interface {
+    name: "aidl_test_loggable_interface_ndk",
+    local_include_dir: "tests",
+    srcs: [
+        "tests/android/aidl/loggable/ILoggableInterfaceNdk.aidl",
+    ],
+    backend: {
+        ndk: {
+            gen_log: true,
+        },
+    },
+}
