@@ -49,7 +49,11 @@ void EnterNamespace(CodeWriter& out, const AidlDefinedType& defined_type);
 void LeaveNamespace(CodeWriter& out, const AidlDefinedType& defined_type);
 
 string BuildVarName(const AidlArgument& a);
-
+const string GenLogBeforeExecute(const string className, const AidlMethod& method, bool isServer,
+                                 bool isNdk);
+const string GenLogAfterExecute(const string className, const AidlInterface& interface,
+                                const AidlMethod& method, const string& statusVarName,
+                                const string& returnVarName, bool isServer, bool isNdk);
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android

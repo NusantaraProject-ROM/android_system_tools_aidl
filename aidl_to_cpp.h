@@ -35,10 +35,6 @@ struct CodeGeneratorContext {
   const string log;               // name of the variable of type Json::Value to write the log into
 };
 
-// Emits code that writes name and value of an argument or the return value to
-// the Json object
-void WriteLogFor(const CodeGeneratorContext& c);
-bool CanWriteLog(const AidlTypeSpecifier& aidl);
 std::string GetTransactionIdFor(const AidlMethod& method);
 }  // namespace cpp
 }  // namespace aidl
