@@ -94,6 +94,11 @@ var (
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL CHECK API: ${new} against ${old}",
 	}, "old", "new")
+
+	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
+		Command:     `diff -r ${old} ${new} && touch ${out}`,
+		Description: "Check equality of ${new} and ${old}",
+	}, "old", "new")
 )
 
 func init() {
@@ -416,6 +421,24 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 	return timestampFile
 }
 
+func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Path, oldApiFiles android.Paths, newApiDir android.Path, newApiFiles android.Paths) android.WritablePath {
+	newVersion := newApiDir.Base()
+	timestampFile := android.PathForModuleOut(ctx, "checkapi_"+newVersion+".timestamp")
+	var allApiFiles android.Paths
+	allApiFiles = append(allApiFiles, oldApiFiles...)
+	allApiFiles = append(allApiFiles, newApiFiles...)
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:      aidlDiffApiRule,
+		Implicits: allApiFiles,
+		Output:    timestampFile,
+		Args: map[string]string{
+			"old": oldApiDir.String(),
+			"new": newApiDir.String(),
+		},
+	})
+	return timestampFile
+}
+
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	currentVersion := m.validateCurrentVersion(ctx)
 
@@ -436,14 +459,28 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	apiDirs[currentVersion] = currentDumpDir
 	apiFiles[currentVersion] = currentApiFiles.Paths()
 
-	// Check that version X is backward compatible with version X-1, and that the currentVersion (ToT)
-	// is backwards compatible with latest frozen version.
-	for i, newVersion := range append(m.properties.Versions, currentVersion) {
+	// Check that version X is backward compatible with version X-1
+	for i, newVersion := range m.properties.Versions {
 		if i != 0 {
 			oldVersion := m.properties.Versions[i-1]
 			checkApiTimestamp := m.checkCompatibility(ctx, apiDirs[oldVersion], apiFiles[oldVersion], apiDirs[newVersion], apiFiles[newVersion])
 			m.checkApiTimestamps = append(m.checkApiTimestamps, checkApiTimestamp)
 		}
+	}
+
+	// ... and that the currentVersion (ToT) is backwards compatible with or
+	// equal to the latest frozen version
+	if len(m.properties.Versions) >= 1 {
+		latestVersion := m.properties.Versions[len(m.properties.Versions)-1]
+		var checkApiTimestamp android.WritablePath
+		if ctx.Config().DefaultAppTargetSdkInt() != android.FutureApiLevel {
+			// If API is frozen, don't allow any change to the API
+			checkApiTimestamp = m.checkEquality(ctx, apiDirs[latestVersion], apiFiles[latestVersion], apiDirs[currentVersion], apiFiles[currentVersion])
+		} else {
+			// If not, allow backwards compatible changes to the API
+			checkApiTimestamp = m.checkCompatibility(ctx, apiDirs[latestVersion], apiFiles[latestVersion], apiDirs[currentVersion], apiFiles[currentVersion])
+		}
+		m.checkApiTimestamps = append(m.checkApiTimestamps, checkApiTimestamp)
 	}
 }
 
