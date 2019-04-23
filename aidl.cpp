@@ -433,6 +433,12 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
     AidlLocation location = AidlLocation(filename, point, point);
 
     if (decl == "parcelable") {
+      // ParcelFileDescriptor is treated as a built-in type, but it's also in the framework.aidl.
+      // So aidl should ignore built-in types in framework.aidl to prevent duplication.
+      // (b/130899491)
+      if (AidlTypenames::IsBuiltinTypename(class_name)) {
+        continue;
+      }
       AidlParcelable* doc = new AidlParcelable(
           location, new AidlQualifiedName(location, class_name, ""), package, "" /* comments */);
       types->AddParcelableType(*doc, filename);
