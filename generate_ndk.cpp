@@ -370,6 +370,11 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& t
   out << "::ndk::ScopedAStatus _aidl_status = _aidl_impl->" << method.GetName() << "("
       << NdkArgList(types, method, FormatArgForCall) << ");\n";
 
+  if (options.GenLog()) {
+    out << cpp::GenLogAfterExecute(ClassName(defined_type, ClassNames::SERVER), defined_type,
+                                   method, "_aidl_status", "_aidl_return", true /* isServer */,
+                                   true /* isNdk */);
+  }
   if (method.IsOneway()) {
     // For a oneway transaction, the kernel will have already returned a result. This is for the
     // in-process case when a oneway transaction is parceled/unparceled in the same process.
@@ -392,11 +397,6 @@ static void GenerateServerCaseDefinition(CodeWriter& out, const AidlTypenames& t
       out << ";\n";
       StatusCheckBreak(out);
     }
-  }
-  if (options.GenLog()) {
-    out << cpp::GenLogAfterExecute(ClassName(defined_type, ClassNames::SERVER), defined_type,
-                                   method, "_aidl_status", "_aidl_return", true /* isServer */,
-                                   true /* isNdk */);
   }
   out << "break;\n";
   out.Dedent();
