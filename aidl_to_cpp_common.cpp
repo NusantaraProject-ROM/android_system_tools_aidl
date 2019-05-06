@@ -314,7 +314,8 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
               << statusVarName << ".get()));\n";
     (*writer) << "_log_status[\"transaction_error\"] = Json::Value(AStatus_getStatus("
               << statusVarName << ".get()));\n";
-    (*writer) << "_log_status[\"service_specific_error_code\"] = Json::Value(AStatus_getMessage("
+    (*writer) << "_log_status[\"service_specific_error_code\"] = "
+                 "Json::Value(AStatus_getServiceSpecificError("
               << statusVarName << ".get()));\n";
   } else {
     (*writer) << "_log_status[\"exception_code\"] = Json::Value(" << statusVarName
