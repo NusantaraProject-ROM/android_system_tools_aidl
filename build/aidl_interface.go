@@ -559,6 +559,10 @@ type aidlInterfaceProperties struct {
 			// Whether to generate C++ code using NDK binder APIs
 			// Default: true
 			Enabled *bool
+			// Whether to generate additional code for gathering information
+			// about the transactions
+			// Default: false
+			Gen_log *bool
 		}
 	}
 }
@@ -751,6 +755,8 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 	genLog := false
 	if lang == langCpp {
 		genLog = proptools.Bool(i.properties.Backend.Cpp.Gen_log)
+	} else if lang == langNdk || lang == langNdkPlatform {
+		genLog = proptools.Bool(i.properties.Backend.Ndk.Gen_log)
 	}
 
 	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
@@ -767,25 +773,30 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 
 	importExportDependencies := wrap("", i.properties.Imports, "-"+lang)
 	var libJSONCppDependency []string
+	var staticLibDependency []string
 	var sdkVersion *string
 	var stl *string
 	var cpp_std *string
-
 	if lang == langCpp {
 		importExportDependencies = append(importExportDependencies, "libbinder", "libutils")
 		if genLog {
 			libJSONCppDependency = []string{"libjsoncpp"}
-			importExportDependencies = append(importExportDependencies, "libbase")
 		}
 		sdkVersion = nil
 		stl = nil
 		cpp_std = nil
 	} else if lang == langNdk {
 		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
+		if genLog {
+			staticLibDependency = []string{"libjsoncpp_ndk"}
+		}
 		sdkVersion = proptools.StringPtr("current")
 		stl = proptools.StringPtr("c++_shared")
 	} else if lang == langNdkPlatform {
 		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
+		if genLog {
+			libJSONCppDependency = []string{"libjsoncpp"}
+		}
 	} else {
 		panic("Unrecognized language: " + lang)
 	}
@@ -800,6 +811,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Export_generated_headers:  []string{cppSourceGen},
 		Static:                    staticLib{Whole_static_libs: libJSONCppDependency},
 		Shared:                    sharedLib{Shared_libs: libJSONCppDependency, Export_shared_lib_headers: libJSONCppDependency},
+		Static_libs:               staticLibDependency,
 		Shared_libs:               importExportDependencies,
 		Export_shared_lib_headers: importExportDependencies,
 		Sdk_version:               sdkVersion,
