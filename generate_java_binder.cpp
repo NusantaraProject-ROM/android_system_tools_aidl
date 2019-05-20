@@ -828,6 +828,7 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
            << "      data.writeInterfaceToken(DESCRIPTOR);\n"
            << "      mRemote.transact(Stub." << transactCodeName << ", "
            << "data, reply, 0);\n"
+           << "      reply.readException();\n"
            << "      mCachedVersion = reply.readInt();\n"
            << "    } finally {\n"
            << "      reply.recycle();\n"
