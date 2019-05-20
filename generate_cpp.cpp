@@ -415,7 +415,11 @@ unique_ptr<Declaration> DefineClientMetaTransaction(const TypeNamespace&,
          << "    ::android::status_t err = remote()->transact(" << GetTransactionIdFor(method)
          << ", data, &reply);\n"
          << "    if (err == ::android::OK) {\n"
-         << "      cached_version_ = reply.readInt32();\n"
+         << "      ::android::binder::Status _aidl_status;\n"
+         << "      err = _aidl_status.readFromParcel(reply);\n"
+         << "      if (err == ::android::OK && _aidl_status.isOk()) {\n"
+         << "        cached_version_ = reply.readInt32();\n"
+         << "      }\n"
          << "    }\n"
          << "  }\n"
          << "  return cached_version_;\n"
@@ -612,6 +616,7 @@ bool HandleServerMetaTransaction(const TypeNamespace&, const AidlInterface& inte
   if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
     std::ostringstream code;
     code << "_aidl_data.checkInterface(this);\n"
+         << "_aidl_reply->writeNoException();\n"
          << "_aidl_reply->writeInt32(" << ClassName(interface, ClassNames::INTERFACE)
          << "::VERSION)";
     b->AddLiteral(code.str());
