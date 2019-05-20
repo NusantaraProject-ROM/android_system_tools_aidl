@@ -323,6 +323,7 @@ public interface IStringConstants extends android.os.IInterface
           try {
             data.writeInterfaceToken(DESCRIPTOR);
             mRemote.transact(Stub.TRANSACTION_getInterfaceVersion, data, reply, 0);
+            reply.readException();
             mCachedVersion = reply.readInt();
           } finally {
             reply.recycle();
@@ -429,9 +430,13 @@ int32_t BpStringConstants::getInterfaceVersion() {
     ::android::Parcel data;
     ::android::Parcel reply;
     data.writeInterfaceToken(getInterfaceDescriptor());
-    ::android::status_t err = remote()->transact(16777214 /* getInterfaceVersion */, data, &reply);
+    ::android::status_t err = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 16777214 /* getInterfaceVersion */, data, &reply);
     if (err == ::android::OK) {
-      cached_version_ = reply.readInt32();
+      ::android::binder::Status _aidl_status;
+      err = _aidl_status.readFromParcel(reply);
+      if (err == ::android::OK && _aidl_status.isOk()) {
+        cached_version_ = reply.readInt32();
+      }
     }
   }
   return cached_version_;
@@ -450,9 +455,10 @@ namespace os {
 ::android::status_t BnStringConstants::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
-  case 16777214 /* getInterfaceVersion */:
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 16777214 /* getInterfaceVersion */:
   {
     _aidl_data.checkInterface(this);
+    _aidl_reply->writeNoException();
     _aidl_reply->writeInt32(IStringConstants::VERSION);
   }
   break;
