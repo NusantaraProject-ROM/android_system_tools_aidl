@@ -2518,6 +2518,7 @@ public interface IExampleInterface extends android.os.IInterface
           try {
             data.writeInterfaceToken(DESCRIPTOR);
             mRemote.transact(Stub.TRANSACTION_getInterfaceVersion, data, reply, 0);
+            reply.readException();
             mCachedVersion = reply.readInt();
           } finally {
             reply.recycle();
