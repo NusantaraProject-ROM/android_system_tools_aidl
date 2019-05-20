@@ -38,9 +38,7 @@ std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::str
 std::string GetTransactionIdFor(const AidlMethod& method) {
   ostringstream output;
 
-  if (method.IsUserDefined()) {
-    output << "::android::IBinder::FIRST_CALL_TRANSACTION + ";
-  }
+  output << "::android::IBinder::FIRST_CALL_TRANSACTION + ";
   output << method.GetId() << " /* " << method.GetName() << " */";
   return output.str();
 }
