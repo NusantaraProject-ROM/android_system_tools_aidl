@@ -69,10 +69,10 @@ var (
 	}, "imports", "outDir", "optionalFlags")
 
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
-		Command: `rm -rf "${out}" && mkdir -p "${out}" && ` +
-			`${aidlCmd} --dumpapi --structured ${imports} --out ${out} ${in}`,
+		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
+			`${aidlCmd} --dumpapi --structured ${imports} --out ${outDir} ${in}`,
 		CommandDeps: []string{"${aidlCmd}"},
-	}, "imports")
+	}, "imports", "outDir")
 
 	aidlDumpMappingsRule = pctx.StaticRule("aidlDumpMappingsRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
@@ -85,9 +85,9 @@ var (
 		blueprint.RuleParams{
 			Command: `mkdir -p ${to} && rm -rf ${to}/* && ` +
 				`${bpmodifyCmd} -w -m ${name} -parameter versions -a ${version} ${bp} && ` +
-				`cp -rf ${in}/* ${to} && touch ${out}`,
+				`cp -rf ${apiDir}/* ${to} && touch ${out}`,
 			CommandDeps: []string{"${bpmodifyCmd}"},
-		}, "to", "name", "version", "bp")
+		}, "to", "name", "version", "bp", "apiDir")
 
 	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
 		Command:     `${aidlCmd} --checkapi ${old} ${new} && touch ${out}`,
@@ -371,12 +371,12 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 	}
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
-		Rule:            aidlDumpApiRule,
-		Inputs:          srcs,
-		Output:          apiDir,
-		ImplicitOutputs: apiFiles,
+		Rule:    aidlDumpApiRule,
+		Outputs: apiFiles,
+		Inputs:  srcs,
 		Args: map[string]string{
 			"imports": imports,
+			"outDir":  apiDir.String(),
 		},
 	})
 	return apiDir, apiFiles
@@ -390,11 +390,11 @@ func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir a
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:        aidlFreezeApiRule,
 		Description: "Freezing AIDL API of " + m.properties.BaseName + " as version " + version,
-		Input:       apiDumpDir,
 		Implicits:   apiFiles,
 		Output:      timestampFile,
 		Args: map[string]string{
 			"to":      filepath.Join(modulePath, m.apiDir(), version),
+			"apiDir":  apiDumpDir.String(),
 			"name":    m.properties.BaseName,
 			"version": version,
 			"bp":      android.PathForModuleSrc(ctx, "Android.bp").String(),
