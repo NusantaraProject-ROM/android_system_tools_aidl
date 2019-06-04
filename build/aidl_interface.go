@@ -926,15 +926,19 @@ func (s *aidlMapping) DepsMutator(ctx android.BottomUpMutatorContext) {
 	android.ExtractSourcesDeps(ctx, s.properties.Srcs)
 }
 
-func addItemsToMap(dest map[string]bool, src []string) {
-	for _, item := range src {
-		dest[item] = true
-	}
-}
-
 func (s *aidlMapping) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	var srcs android.Paths
-	var all_import_dirs map[string]bool = make(map[string]bool)
+	var allImportDirs []string
+	seenImportDirs := make(map[string]bool)
+
+	addImportDirs := func(dirs ...string) {
+		for _, dir := range dirs {
+			if !seenImportDirs[dir] {
+				allImportDirs = append(allImportDirs, dir)
+				seenImportDirs[dir] = true
+			}
+		}
+	}
 
 	ctx.VisitDirectDeps(func(module android.Module) {
 		for _, property := range module.GetProperties() {
@@ -943,36 +947,32 @@ func (s *aidlMapping) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 					if strings.HasSuffix(src, ".aidl") {
 						full_path := android.PathForModuleSrc(ctx, src)
 						srcs = append(srcs, full_path)
-						all_import_dirs[filepath.Dir(full_path.String())] = true
+						addImportDirs(filepath.Dir(full_path.String()))
 					} else if pathtools.IsGlob(src) {
 						globbedSrcFiles, err := ctx.GlobWithDeps(src, nil)
 						if err == nil {
 							for _, globbedSrc := range globbedSrcFiles {
 								full_path := android.PathForModuleSrc(ctx, globbedSrc)
-								all_import_dirs[full_path.String()] = true
+								addImportDirs(full_path.String())
 							}
 						}
 					}
 				}
 			} else if jproperty, ok := property.(*java.CompilerDeviceProperties); ok {
-				addItemsToMap(all_import_dirs, jproperty.Aidl.Include_dirs)
+				addImportDirs(jproperty.Aidl.Include_dirs...)
 				for _, include_dir := range jproperty.Aidl.Export_include_dirs {
 					var full_path = filepath.Join(ctx.ModuleDir(), include_dir)
-					all_import_dirs[full_path] = true
+					addImportDirs(full_path)
 				}
 				for _, include_dir := range jproperty.Aidl.Local_include_dirs {
 					var full_path = filepath.Join(ctx.ModuleSubDir(), include_dir)
-					all_import_dirs[full_path] = true
+					addImportDirs(full_path)
 				}
 			}
 		}
 	})
 
-	var import_dirs []string
-	for dir := range all_import_dirs {
-		import_dirs = append(import_dirs, dir)
-	}
-	imports := strings.Join(wrap("-I", import_dirs, ""), " ")
+	imports := strings.Join(wrap("-I", allImportDirs, ""), " ")
 	s.outputFilePath = android.PathForModuleOut(ctx, s.properties.Output)
 	outDir := android.PathForModuleGen(ctx)
 	ctx.Build(pctx, android.BuildParams{
