@@ -107,6 +107,7 @@ func init() {
 	pctx.SourcePathVariable("aidlToJniCmd", "system/tools/aidl/build/aidl_to_jni.py")
 	android.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
 	android.RegisterModuleType("aidl_mapping", aidlMappingFactory)
+	android.RegisterMakeVarsProvider(pctx, allAidlInterfacesMakeVars)
 }
 
 // wrap(p, a, s) = [p + v + s for v in a]
@@ -1006,4 +1007,14 @@ func (m *aidlMapping) AndroidMk() android.AndroidMkData {
 			fmt.Fprintln(w, targetName+":", m.outputFilePath.String())
 		},
 	}
+}
+
+func allAidlInterfacesMakeVars(ctx android.MakeVarsContext) {
+	names := []string{}
+	ctx.VisitAllModules(func(module android.Module) {
+		if ai, ok := module.(*aidlInterface); ok {
+			names = append(names, ai.Name())
+		}
+	})
+	ctx.Strict("ALL_AIDL_INTERFACES", strings.Join(names, " "))
 }
