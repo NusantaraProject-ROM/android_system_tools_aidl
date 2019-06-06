@@ -1214,10 +1214,26 @@ bool GenerateCppParcel(const string& output_file, const Options& options,
   return true;
 }
 
-bool GenerateCppParcelDeclaration(const std::string& filename, const IoDelegate& io_delegate) {
-  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
-  *code_writer
+bool GenerateCppParcelDeclaration(const std::string& filename, const Options& options,
+                                  const AidlParcelable& parcelable, const IoDelegate& io_delegate) {
+  CodeWriterPtr source_writer = io_delegate.GetCodeWriter(filename);
+  *source_writer
       << "// This file is intentionally left blank as placeholder for parcel declaration.\n";
+  CHECK(source_writer->Close());
+
+  // TODO(b/111362593): no unecessary files just to have consistent output with interfaces
+  const string header_path = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::RAW);
+  unique_ptr<CodeWriter> header_writer(io_delegate.GetCodeWriter(header_path));
+  header_writer->Write("#error TODO(b/111362593) parcelables do not have headers");
+  CHECK(header_writer->Close());
+  const string bp_header = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::CLIENT);
+  unique_ptr<CodeWriter> bp_writer(io_delegate.GetCodeWriter(bp_header));
+  bp_writer->Write("#error TODO(b/111362593) parcelables do not have bp classes");
+  CHECK(bp_writer->Close());
+  const string bn_header = options.OutputHeaderDir() + HeaderFile(parcelable, ClassNames::SERVER);
+  unique_ptr<CodeWriter> bn_writer(io_delegate.GetCodeWriter(bn_header));
+  bn_writer->Write("#error TODO(b/111362593) parcelables do not have bn classes");
+  CHECK(bn_writer->Close());
 
   return true;
 }
@@ -1231,7 +1247,7 @@ bool GenerateCpp(const string& output_file, const Options& options, const TypeNa
 
   const AidlParcelable* parcelable_decl = defined_type.AsParcelable();
   if (parcelable_decl != nullptr) {
-    return GenerateCppParcelDeclaration(output_file, io_delegate);
+    return GenerateCppParcelDeclaration(output_file, options, *parcelable_decl, io_delegate);
   }
 
   const AidlInterface* interface = defined_type.AsInterface();
