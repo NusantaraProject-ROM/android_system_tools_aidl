@@ -100,7 +100,7 @@ var (
 	}, "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
-		Command: `(diff -r ${old} ${new} && touch ${out}) || ` +
+		Command: `(diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
 			`(cat ${messageFile} && exit 1)`,
 		Description: "Check equality of ${new} and ${old}",
 	}, "old", "new", "messageFile")
