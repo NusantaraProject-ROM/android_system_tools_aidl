@@ -85,20 +85,25 @@ var (
 		blueprint.RuleParams{
 			Command: `mkdir -p ${to} && rm -rf ${to}/* && ` +
 				`${bpmodifyCmd} -w -m ${name} -parameter versions -a ${version} ${bp} && ` +
-				`cp -rf ${in}/* ${to} && touch ${out}`,
+				`cp -rf ${in}/* ${to} && ` +
+				`find ${to} -type f -exec bash -c ` +
+				`"cat ${apiPreamble} {} > {}.temp; mv {}.temp {}" \; && ` +
+				`touch ${out}`,
 			CommandDeps: []string{"${bpmodifyCmd}"},
-		}, "to", "name", "version", "bp")
+		}, "to", "name", "version", "bp", "apiPreamble")
 
 	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
-		Command:     `${aidlCmd} --checkapi ${old} ${new} && touch ${out}`,
+		Command: `(${aidlCmd} --checkapi ${old} ${new} && touch ${out}) || ` +
+			`(cat ${messageFile} && exit 1)`,
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL CHECK API: ${new} against ${old}",
-	}, "old", "new")
+	}, "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
-		Command:     `diff -r ${old} ${new} && touch ${out}`,
+		Command: `(diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
+			`(cat ${messageFile} && exit 1)`,
 		Description: "Check equality of ${new} and ${old}",
-	}, "old", "new")
+	}, "old", "new", "messageFile")
 )
 
 func init() {
@@ -387,17 +392,23 @@ func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir a
 
 	modulePath := android.PathForModuleSrc(ctx).String()
 
+	var implicits android.Paths
+	implicits = append(implicits, apiFiles...)
+
+	apiPreamble := android.PathForSource(ctx, "system/tools/aidl/build/api_preamble.txt")
+	implicits = append(implicits, apiPreamble)
+
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:        aidlFreezeApiRule,
 		Description: "Freezing AIDL API of " + m.properties.BaseName + " as version " + version,
-		Input:       apiDumpDir,
-		Implicits:   apiFiles,
+		Implicits:   implicits,
 		Output:      timestampFile,
 		Args: map[string]string{
-			"to":      filepath.Join(modulePath, m.apiDir(), version),
-			"name":    m.properties.BaseName,
-			"version": version,
-			"bp":      android.PathForModuleSrc(ctx, "Android.bp").String(),
+			"to":          filepath.Join(modulePath, m.apiDir(), version),
+			"name":        m.properties.BaseName,
+			"version":     version,
+			"bp":          android.PathForModuleSrc(ctx, "Android.bp").String(),
+			"apiPreamble": apiPreamble.String(),
 		},
 	})
 	return timestampFile
@@ -406,16 +417,19 @@ func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir a
 func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir android.Path, oldApiFiles android.Paths, newApiDir android.Path, newApiFiles android.Paths) android.WritablePath {
 	newVersion := newApiDir.Base()
 	timestampFile := android.PathForModuleOut(ctx, "checkapi_"+newVersion+".timestamp")
-	var allApiFiles android.Paths
-	allApiFiles = append(allApiFiles, oldApiFiles...)
-	allApiFiles = append(allApiFiles, newApiFiles...)
+	messageFile := android.PathForSource(ctx, "system/tools/aidl/build/message_check_compatibility.txt")
+	var implicits android.Paths
+	implicits = append(implicits, oldApiFiles...)
+	implicits = append(implicits, newApiFiles...)
+	implicits = append(implicits, messageFile)
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:      aidlCheckApiRule,
-		Implicits: allApiFiles,
+		Implicits: implicits,
 		Output:    timestampFile,
 		Args: map[string]string{
-			"old": oldApiDir.String(),
-			"new": newApiDir.String(),
+			"old":         oldApiDir.String(),
+			"new":         newApiDir.String(),
+			"messageFile": messageFile.String(),
 		},
 	})
 	return timestampFile
@@ -424,16 +438,19 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Path, oldApiFiles android.Paths, newApiDir android.Path, newApiFiles android.Paths) android.WritablePath {
 	newVersion := newApiDir.Base()
 	timestampFile := android.PathForModuleOut(ctx, "checkapi_"+newVersion+".timestamp")
-	var allApiFiles android.Paths
-	allApiFiles = append(allApiFiles, oldApiFiles...)
-	allApiFiles = append(allApiFiles, newApiFiles...)
+	messageFile := android.PathForSource(ctx, "system/tools/aidl/build/message_check_equality.txt")
+	var implicits android.Paths
+	implicits = append(implicits, oldApiFiles...)
+	implicits = append(implicits, newApiFiles...)
+	implicits = append(implicits, messageFile)
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:      aidlDiffApiRule,
-		Implicits: allApiFiles,
+		Implicits: implicits,
 		Output:    timestampFile,
 		Args: map[string]string{
-			"old": oldApiDir.String(),
-			"new": newApiDir.String(),
+			"old":         oldApiDir.String(),
+			"new":         newApiDir.String(),
+			"messageFile": messageFile.String(),
 		},
 	})
 	return timestampFile
