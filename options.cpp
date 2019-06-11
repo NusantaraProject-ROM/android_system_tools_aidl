@@ -309,18 +309,17 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       input_files_.emplace_back(argv[optind++]);
       if (argc - optind >= 1) {
         output_file_ = argv[optind++];
-      } else {
-        // when output is omitted, output is by default set to the input
-        // file path with .aidl is replaced to .java.
+      } else if (output_dir_.empty()) {
+        // when output is omitted and -o option isn't set, the output is by
+        // default set to the input file path with .aidl is replaced to .java.
+        // If -o option is set, the output path is calculated by
+        // generate_outputFileName which returns "<output_dir>/<package/name>/
+        // <typename>.java"
         output_file_ = input_files_.front();
         if (android::base::EndsWith(output_file_, ".aidl")) {
           output_file_ = output_file_.substr(0, output_file_.length() - strlen(".aidl"));
         }
         output_file_ += ".java";
-
-        if (!output_dir_.empty()) {
-          output_file_ = output_dir_ + output_file_;
-        }
       }
     } else if (IsCppOutput()) {
       input_files_.emplace_back(argv[optind++]);

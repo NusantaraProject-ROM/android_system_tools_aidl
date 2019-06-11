@@ -1323,5 +1323,39 @@ TEST_F(AidlTest, FailOnPartiallyAssignedIds) {
   EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
 
+class AidlOutputPathTest : public AidlTest {
+ protected:
+  void SetUp() override {
+    AidlTest::SetUp();
+    io_delegate_.SetFileContents("sub/dir/foo/bar/IFoo.aidl", "package foo.bar; interface IFoo {}");
+  }
+
+  void Test(const Options& options, const std::string expected_output_path) {
+    EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+    // check the existence
+    EXPECT_TRUE(io_delegate_.GetWrittenContents(expected_output_path, nullptr));
+  }
+};
+
+TEST_F(AidlOutputPathTest, OutDirWithNoOutputFile) {
+  // <out_dir> / <package_name> / <type_name>.java
+  Test(Options::From("aidl -o out sub/dir/foo/bar/IFoo.aidl"), "out/foo/bar/IFoo.java");
+}
+
+TEST_F(AidlOutputPathTest, OutDirWithOutputFile) {
+  // when output file is explicitly set, it is always respected. -o option is
+  // ignored.
+  Test(Options::From("aidl -o out sub/dir/foo/bar/IFoo.aidl output/IFoo.java"), "output/IFoo.java");
+}
+
+TEST_F(AidlOutputPathTest, NoOutDirWithOutputFile) {
+  Test(Options::From("aidl -o out sub/dir/foo/bar/IFoo.aidl output/IFoo.java"), "output/IFoo.java");
+}
+
+TEST_F(AidlOutputPathTest, NoOutDirWithNoOutputFile) {
+  // output is the same as the input file except for the suffix
+  Test(Options::From("aidl sub/dir/foo/bar/IFoo.aidl"), "sub/dir/foo/bar/IFoo.java");
+}
+
 }  // namespace aidl
 }  // namespace android
