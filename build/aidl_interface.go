@@ -177,9 +177,10 @@ type aidlGenRule struct {
 	implicitInputs android.Paths
 	importFlags    string
 
-	genOutDir    android.ModuleGenPath
-	genHeaderDir android.ModuleGenPath
-	genOutputs   android.WritablePaths
+	genOutDir     android.ModuleGenPath
+	genHeaderDir  android.ModuleGenPath
+	genHeaderDeps android.Paths
+	genOutputs    android.WritablePaths
 }
 
 var _ android.SourceFileProducer = (*aidlGenRule)(nil)
@@ -212,7 +213,9 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	g.genOutDir = android.PathForModuleGen(ctx)
 	g.genHeaderDir = android.PathForModuleGen(ctx, "include")
 	for _, src := range srcs {
-		g.genOutputs = append(g.genOutputs, g.generateBuildActionsForSingleAidl(ctx, src))
+		outFile, headers := g.generateBuildActionsForSingleAidl(ctx, src)
+		g.genOutputs = append(g.genOutputs, outFile)
+		g.genHeaderDeps = append(g.genHeaderDeps, headers...)
 	}
 
 	// This is to clean genOutDir before generating any file
@@ -226,7 +229,7 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	})
 }
 
-func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContext, src android.Path) android.WritablePath {
+func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContext, src android.Path) (android.WritablePath, android.Paths) {
 	var outFile android.WritablePath
 	if g.properties.Lang == langJava {
 		outFile = android.PathForModuleGen(ctx, pathtools.ReplaceExtension(src.Rel(), "java"))
@@ -239,6 +242,7 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 		optionalFlags = append(optionalFlags, "--version "+g.properties.Version)
 	}
 
+	var headers android.WritablePaths
 	if g.properties.Lang == langJava {
 		ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 			Rule:      aidlJavaRule,
@@ -268,7 +272,6 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 			prefix = "aidl"
 		}
 
-		var headers android.WritablePaths
 		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
 			typeName+".h"))
 		headers = append(headers, g.genHeaderDir.Join(ctx, prefix, packagePath,
@@ -301,7 +304,7 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 		})
 	}
 
-	return outFile
+	return outFile, headers.Paths()
 }
 
 func (g *aidlGenRule) GeneratedSourceFiles() android.Paths {
@@ -313,7 +316,7 @@ func (g *aidlGenRule) Srcs() android.Paths {
 }
 
 func (g *aidlGenRule) GeneratedDeps() android.Paths {
-	return g.genOutputs.Paths()
+	return g.genHeaderDeps
 }
 
 func (g *aidlGenRule) GeneratedHeaderDirs() android.Paths {
