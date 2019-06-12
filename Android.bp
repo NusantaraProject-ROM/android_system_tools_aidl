@@ -174,6 +174,12 @@ cc_defaults {
     ],
 }
 
+filegroup {
+    name: "libaidl-integration-test-files",
+    srcs: ["tests/android/aidl/tests/*.aidl"],
+    path: "tests",
+}
+
 cc_library_shared {
     name: "libaidl-integration-test",
     defaults: ["aidl_test_defaults"],
@@ -183,7 +189,7 @@ cc_library_shared {
         include_dirs: ["frameworks/native/aidl/binder"],
     },
     srcs: [
-        "tests/android/aidl/tests/*.aidl",
+        ":libaidl-integration-test-files",
         "tests/simple_parcelable.cpp",
     ],
 }
