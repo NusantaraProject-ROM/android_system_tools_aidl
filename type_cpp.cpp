@@ -469,7 +469,10 @@ void TypeNamespace::Init() {
 
 bool TypeNamespace::AddParcelableType(const AidlParcelable& p, const std::string& filename) {
   const std::string cpp_header = p.AsStructuredParcelable() ? GetCppHeader(p) : p.GetCppHeader();
-
+  if (p.IsStableParcelable()) {
+    AIDL_ERROR(p) << "@JavaOnlyStableParcelable supports only Java target.";
+    return false;
+  }
   if (cpp_header.empty()) {
     AIDL_ERROR(p) << "Parcelable " << p.GetCanonicalName() << " has no C++ header defined.";
     return false;
