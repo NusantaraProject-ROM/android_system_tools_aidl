@@ -255,6 +255,17 @@ TEST_F(AidlTest, ParsesUtf8Annotations) {
   }
 }
 
+TEST_F(AidlTest, ParsesJavaOnlyStableParcelable) {
+  Options java_options = Options::From("aidl -o out --structured a/Foo.aidl");
+  Options cpp_options =
+      Options::From("aidl --lang=cpp --structured -o out -h out/include a/Foo.aidl");
+  io_delegate_.SetFileContents(
+      "a/Foo.aidl", StringPrintf("package a; @JavaOnlyStableParcelable parcelable Foo;"));
+
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(java_options, io_delegate_));
+  EXPECT_NE(0, ::android::aidl::compile_aidl(cpp_options, io_delegate_));
+}
+
 TEST_F(AidlTest, AcceptsOneway) {
   string oneway_method = "package a; interface IFoo { oneway void f(int a); }";
   string oneway_interface =
