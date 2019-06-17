@@ -850,14 +850,13 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 	})
 
 	mctx.CreateModule(android.ModuleFactoryAdaptor(java.LibraryFactory), &javaProperties{
-		Name:              proptools.StringPtr(javaModuleGen),
-		Owner:             i.properties.Owner,
-		Installable:       proptools.BoolPtr(true),
-		Defaults:          []string{"aidl-java-module-defaults"},
-		No_framework_libs: proptools.BoolPtr(true),
-		Sdk_version:       proptools.StringPtr(sdkVersion),
-		Static_libs:       wrap("", i.properties.Imports, "-java"),
-		Srcs:              []string{":" + javaSourceGen},
+		Name:        proptools.StringPtr(javaModuleGen),
+		Owner:       i.properties.Owner,
+		Installable: proptools.BoolPtr(true),
+		Defaults:    []string{"aidl-java-module-defaults"},
+		Sdk_version: proptools.StringPtr(sdkVersion),
+		Static_libs: wrap("", i.properties.Imports, "-java"),
+		Srcs:        []string{":" + javaSourceGen},
 	})
 
 	return javaModuleGen
