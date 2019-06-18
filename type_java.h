@@ -331,13 +331,6 @@ class JavaTypeNamespace : public LanguageTypeNamespace<Type> {
 
   DISALLOW_COPY_AND_ASSIGN(JavaTypeNamespace);
 };
-
-extern Expression* NULL_VALUE;
-extern Expression* THIS_VALUE;
-extern Expression* SUPER_VALUE;
-extern Expression* TRUE_VALUE;
-extern Expression* FALSE_VALUE;
-
 }  // namespace java
 }  // namespace aidl
 }  // namespace android

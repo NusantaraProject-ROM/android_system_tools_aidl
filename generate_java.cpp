@@ -26,7 +26,7 @@
 
 #include "aidl_to_java.h"
 #include "code_writer.h"
-#include "type_java.h"
+#include "logging.h"
 
 using std::unique_ptr;
 using ::android::aidl::java::Variable;
@@ -37,9 +37,9 @@ namespace aidl {
 namespace java {
 
 bool generate_java_interface(const string& filename, const AidlInterface* iface,
-                             JavaTypeNamespace* types, const IoDelegate& io_delegate,
+                             const AidlTypenames& typenames, const IoDelegate& io_delegate,
                              const Options& options) {
-  Class* cl = generate_binder_interface_class(iface, types, options);
+  Class* cl = generate_binder_interface_class(iface, typenames, options);
 
   Document* document =
       new Document("" /* no comment */, iface->GetPackage(), unique_ptr<Class>(cl));
@@ -51,7 +51,7 @@ bool generate_java_interface(const string& filename, const AidlInterface* iface,
 }
 
 bool generate_java_parcel(const std::string& filename, const AidlStructuredParcelable* parcel,
-                          AidlTypenames& typenames, const IoDelegate& io_delegate) {
+                          const AidlTypenames& typenames, const IoDelegate& io_delegate) {
   Class* cl = generate_parcel_class(parcel, typenames);
 
   Document* document =
@@ -72,11 +72,11 @@ bool generate_java_parcel_declaration(const std::string& filename, const IoDeleg
 }
 
 bool generate_java(const std::string& filename, const AidlDefinedType* defined_type,
-                   JavaTypeNamespace* types, const IoDelegate& io_delegate,
+                   const AidlTypenames& typenames, const IoDelegate& io_delegate,
                    const Options& options) {
   const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
   if (parcelable != nullptr) {
-    return generate_java_parcel(filename, parcelable, types->typenames_, io_delegate);
+    return generate_java_parcel(filename, parcelable, typenames, io_delegate);
   }
 
   const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
@@ -86,7 +86,7 @@ bool generate_java(const std::string& filename, const AidlDefinedType* defined_t
 
   const AidlInterface* interface = defined_type->AsInterface();
   if (interface != nullptr) {
-    return generate_java_interface(filename, interface, types, io_delegate, options);
+    return generate_java_interface(filename, interface, typenames, io_delegate, options);
   }
 
   CHECK(false) << "Unrecognized type sent for cpp generation.";
@@ -94,7 +94,7 @@ bool generate_java(const std::string& filename, const AidlDefinedType* defined_t
 }
 
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
-                                                  AidlTypenames& typenames) {
+                                                  const AidlTypenames& typenames) {
   Class* parcel_class = new Class;
   parcel_class->comment = parcel->GetComments();
   parcel_class->modifiers = PUBLIC;
@@ -104,14 +104,14 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   parcel_class->annotations = generate_java_annotations(*parcel);
 
   for (const auto& variable : parcel->GetFields()) {
-    const Type* type = variable->GetType().GetLanguageType<Type>();
+    const AidlTypeSpecifier& type = variable->GetType();
 
     std::ostringstream out;
     out << variable->GetType().GetComments() << "\n";
     for (const auto& a : generate_java_annotations(variable->GetType())) {
       out << a << "\n";
     }
-    out << "public " << type->JavaType() << (variable->GetType().IsArray() ? "[]" : "") << " "
+    out << "public " << type.GetName() << (variable->GetType().IsArray() ? "[]" : "") << " "
         << variable->GetName();
     if (variable->GetDefaultValue()) {
       out << " = " << variable->ValueString(AidlConstantValueDecorator);
