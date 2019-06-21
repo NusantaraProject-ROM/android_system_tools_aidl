@@ -30,12 +30,6 @@ namespace android {
 namespace aidl {
 namespace java {
 
-Expression* NULL_VALUE;
-Expression* THIS_VALUE;
-Expression* SUPER_VALUE;
-Expression* TRUE_VALUE;
-Expression* FALSE_VALUE;
-
 // ================================================================
 
 Type::Type(const JavaTypeNamespace* types, const string& name, int kind, bool canWriteToParcel)
@@ -309,12 +303,6 @@ void JavaTypeNamespace::Init() {
                                                           ValidatableType::KIND_BUILT_IN, false));
 
   AddAndSetMember(&m_classloader_type, std::make_unique<class ClassLoaderType>(this));
-
-  NULL_VALUE = new LiteralExpression("null");
-  THIS_VALUE = new LiteralExpression("this");
-  SUPER_VALUE = new LiteralExpression("super");
-  TRUE_VALUE = new LiteralExpression("true");
-  FALSE_VALUE = new LiteralExpression("false");
 }
 
 bool JavaTypeNamespace::AddParcelableType(const AidlParcelable& p,
