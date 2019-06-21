@@ -351,6 +351,11 @@ class Document : public AstNode {
   std::unique_ptr<Class> clazz_;
 };
 
+extern Expression* NULL_VALUE;
+extern Expression* THIS_VALUE;
+extern Expression* SUPER_VALUE;
+extern Expression* TRUE_VALUE;
+extern Expression* FALSE_VALUE;
 }  // namespace java
 }  // namespace aidl
 }  // namespace android
