@@ -487,6 +487,11 @@ void Document::Write(CodeWriter* to) const {
   }
 }
 
+Expression* NULL_VALUE = new LiteralExpression("null");
+Expression* THIS_VALUE = new LiteralExpression("this");
+Expression* SUPER_VALUE = new LiteralExpression("super");
+Expression* TRUE_VALUE = new LiteralExpression("true");
+Expression* FALSE_VALUE = new LiteralExpression("false");
 }  // namespace java
 }  // namespace aidl
 }  // namespace android

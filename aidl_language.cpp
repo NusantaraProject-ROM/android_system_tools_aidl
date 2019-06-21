@@ -18,7 +18,6 @@
 
 #include "aidl_language_y.h"
 #include "logging.h"
-#include "type_java.h"
 #include "type_namespace.h"
 
 #ifdef _WIN32

@@ -20,7 +20,6 @@
 #include "ast_java.h"
 #include "io_delegate.h"
 #include "options.h"
-#include "type_java.h"
 
 #include <string>
 
@@ -29,15 +28,15 @@ namespace aidl {
 namespace java {
 
 bool generate_java(const std::string& filename, const AidlDefinedType* iface,
-                   java::JavaTypeNamespace* types, const IoDelegate& io_delegate,
+                   const AidlTypenames& typenames, const IoDelegate& io_delegate,
                    const Options& options);
 
 android::aidl::java::Class* generate_binder_interface_class(const AidlInterface* iface,
-                                                            java::JavaTypeNamespace* types,
+                                                            const AidlTypenames& typenames,
                                                             const Options& options);
 
 android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
-                                                  AidlTypenames& typenames);
+                                                  const AidlTypenames& typenames);
 
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a);
 
