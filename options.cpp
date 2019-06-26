@@ -110,6 +110,9 @@ string Options::GetUsage() const {
        << "  --log" << endl
        << "          Information about the transaction, e.g., method name, argument" << endl
        << "          values, execution time, etc., is provided via callback." << endl
+       << "  --parcelable-to-string" << endl
+       << "          Generates an implementation of toString() for Java parcelables," << endl
+       << "          and ostream& operator << for C++ parcelables." << endl
        << "  --help" << endl
        << "          Show this help." << endl
        << endl
@@ -173,6 +176,7 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
         {"transaction_names", no_argument, 0, 'c'},
         {"version", required_argument, 0, 'v'},
         {"log", no_argument, 0, 'L'},
+        {"parcelable-to-string", no_argument, 0, 'P'},
         {"help", no_argument, 0, 'e'},
         {0, 0, 0, 0},
     };
@@ -291,6 +295,9 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
       case 'i':
         output_file_ = Trim(optarg);
         task_ = Task::DUMP_MAPPINGS;
+        break;
+      case 'P':
+        gen_parcelable_to_string_ = true;
         break;
       default:
         std::cerr << GetUsage();
