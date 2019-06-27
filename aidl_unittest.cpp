@@ -74,7 +74,7 @@ public class Rect implements android.os.Parcelable
   @android.annotation.SystemApi
   public int x = 5;
 
-  @dalvik.annotation.compat.UnsupportedAppUsage
+  @dalvik.annotation.compat.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42)
   @android.annotation.SystemApi
   public int y;
   public static final android.os.Parcelable.Creator<Rect> CREATOR = new android.os.Parcelable.Creator<Rect>() {
@@ -233,6 +233,12 @@ TEST_F(AidlTest, RejectsDuplicatedArgumentNames) {
   EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", method, &java_types_));
 }
 
+TEST_F(AidlTest, RejectsDuplicatedAnnotationParams) {
+  string method = "package a; interface IFoo { @UnsupportedAppUsage(foo=1, foo=2)void f(); }";
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", method, &cpp_types_));
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", method, &java_types_));
+}
+
 TEST_F(AidlTest, ParsesNullableAnnotation) {
   for (auto is_nullable: {true, false}) {
     auto parse_result = Parse(
@@ -345,16 +351,18 @@ TEST_F(AidlTest, WritePreprocessedFile) {
 }
 
 TEST_F(AidlTest, JavaParcelableOutput) {
-  io_delegate_.SetFileContents("Rect.aidl",
-                               "@SystemApi\n"
-                               "parcelable Rect {\n"
-                               "  // Comment\n"
-                               "  @SystemApi\n"
-                               "  int x=5;\n"
-                               "  @SystemApi\n"
-                               "  @UnsupportedAppUsage\n"
-                               "  int y;\n"
-                               "}");
+  io_delegate_.SetFileContents(
+      "Rect.aidl",
+      "@SystemApi\n"
+      "parcelable Rect {\n"
+      "  // Comment\n"
+      "  @SystemApi\n"
+      "  int x=5;\n"
+      "  @SystemApi\n"
+      "  @UnsupportedAppUsage(maxTargetSdk = 28, trackingBug = 42, implicitMember = \"dummy\", "
+      "expectedSignature = \"dummy\", publicAlternatives = \"dummy\")\n"
+      "  int y;\n"
+      "}");
 
   vector<string> args{"aidl", "Rect.aidl"};
   Options options = Options::From(args);
