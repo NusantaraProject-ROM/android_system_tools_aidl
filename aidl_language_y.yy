@@ -117,6 +117,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<constant_value> constant_value
 %type<constant_value_list> constant_value_list
 %type<constant_value_list> constant_value_non_empty_list
+%type<str> possibly_multiline_string
 
 %type<token> identifier error
 %%
@@ -278,8 +279,8 @@ constant_value
     $$ = AidlConstantValue::Hex(loc(@1), $1->GetText());
     delete $1;
   }
- | C_STR {
-    $$ = AidlConstantValue::String(loc(@1), $1->GetText());
+ | possibly_multiline_string {
+    $$ = AidlConstantValue::String(loc(@1), *$1);
     delete $1;
   }
  | '{' constant_value_list '}' {
@@ -307,6 +308,26 @@ constant_value_non_empty_list
     $$->push_back(std::unique_ptr<AidlConstantValue>($3));
  }
  ;
+
+ possibly_multiline_string
+ : C_STR {
+    $$ = new string($1->GetText());
+ }
+ | possibly_multiline_string '+' C_STR {
+   $$ = $1;
+   // Remove trailing " from lhs
+   if ($1->back() != '"') {
+    AIDL_ERROR(loc(@1)) << "'" << (*$1) << "' is missing a trailing quote.";
+   }
+   $1->pop_back();
+   const std::string& rhs = $3->GetText();
+   // Remove starting " from rhs
+   if (rhs.front() != '"') {
+    AIDL_ERROR(loc(@3)) << "'" << $3->GetText() << "' is missing a leading quote.";
+   }
+   $$->append(rhs.begin() + 1, rhs.end());
+   delete $3;
+ };
 
 constant_decl
  : CONST type identifier '=' constant_value ';' {
