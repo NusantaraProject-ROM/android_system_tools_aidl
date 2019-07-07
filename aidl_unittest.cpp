@@ -1347,6 +1347,21 @@ TEST_F(AidlTest, FailOnPartiallyAssignedIds) {
   EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
 
+TEST_F(AidlTest, AllowDuplicatedImportPaths) {
+  Options options = Options::From("aidl --lang=java -I dir -I dir IFoo.aidl");
+  io_delegate_.SetFileContents("dir/IBar.aidl", "interface IBar{}");
+  io_delegate_.SetFileContents("IFoo.aidl", "import IBar; interface IFoo{}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
+TEST_F(AidlTest, FailOnAmbiguousImports) {
+  Options options = Options::From("aidl --lang=java -I dir -I dir2 IFoo.aidl");
+  io_delegate_.SetFileContents("dir/IBar.aidl", "interface IBar{}");
+  io_delegate_.SetFileContents("dir2/IBar.aidl", "interface IBar{}");
+  io_delegate_.SetFileContents("IFoo.aidl", "import IBar; interface IFoo{}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
 class AidlOutputPathTest : public AidlTest {
  protected:
   void SetUp() override {
