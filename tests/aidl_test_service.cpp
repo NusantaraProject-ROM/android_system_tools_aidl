@@ -27,7 +27,6 @@
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
 #include <binder/Status.h>
-#include <binder/Value.h>
 #include <utils/Errors.h>
 #include <utils/Log.h>
 #include <utils/Looper.h>
@@ -67,7 +66,6 @@ using android::aidl::tests::BnNamedCallback;
 using android::aidl::tests::BnTestService;
 using android::aidl::tests::INamedCallback;
 using android::aidl::tests::SimpleParcelable;
-using android::binder::Map;
 using android::os::ParcelFileDescriptor;
 using android::os::PersistableBundle;
 
@@ -120,10 +118,6 @@ class NativeService : public BnTestService {
     ALOGI("Repeating token %s", token_str.str().c_str());
   }
 
-  void LogRepeatedMapToken(const Map& token) {
-    ALOGI("Repeating Map with %d elements", (int)token.size());
-  }
-
   Status RepeatBoolean(bool token, bool* _aidl_return) override {
     LogRepeatedToken(token ? 1 : 0);
     *_aidl_return = token;
@@ -161,11 +155,6 @@ class NativeService : public BnTestService {
   }
   Status RepeatString(const String16& token, String16* _aidl_return) override {
     LogRepeatedStringToken(token);
-    *_aidl_return = token;
-    return Status::ok();
-  }
-  Status RepeatMap(const Map& token, Map* _aidl_return) override {
-    LogRepeatedMapToken(token);
     *_aidl_return = token;
     return Status::ok();
   }
