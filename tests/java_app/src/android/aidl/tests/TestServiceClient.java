@@ -158,17 +158,6 @@ public class TestServiceClient extends Activity {
                                      " responded " + response);
                 }
             }
-            {
-                Map<String, Object> query = new HashMap<String, Object>();
-                query.put("first_val", new Byte((byte)-128));
-                query.put("second_val", new Integer(1<<30));
-                query.put("third_val", "OHAI");
-                Object response = service.RepeatMap(query);
-                if (!query.equals(response)) {
-                    mLog.logAndThrow("Repeat with " + query +
-                                     " responded " + response);
-                }
-            }
 
             List<String> queries = Arrays.asList(
                 "not empty", "", "\0",
