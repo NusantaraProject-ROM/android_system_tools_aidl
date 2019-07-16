@@ -21,8 +21,6 @@
 
 #include <utils/String16.h>
 #include <utils/String8.h>
-#include <binder/Value.h>
-#include <binder/Map.h>
 
 #include "android/aidl/tests/INamedCallback.h"
 
@@ -35,8 +33,6 @@ using android::String8;
 
 // libbinder:
 using android::binder::Status;
-using android::binder::Value;
-using android::binder::Map;
 
 // generated
 using android::aidl::tests::ITestService;
@@ -55,11 +51,6 @@ namespace client {
 bool ConfirmPrimitiveRepeat(const sp<ITestService>& s) {
   cout << "Confirming passing and returning primitives works." << endl;
 
-  Map test_map;
-  test_map["first_val"] = int8_t{-128};
-  test_map["second_val"] = int32_t{1 << 30};
-  test_map["third_val"] = String16("OHAI");
-
   if (!RepeatPrimitive(s, &ITestService::RepeatBoolean, true) ||
       !RepeatPrimitive(s, &ITestService::RepeatByte, int8_t{-128}) ||
       !RepeatPrimitive(s, &ITestService::RepeatChar, char16_t{'A'}) ||
@@ -67,7 +58,6 @@ bool ConfirmPrimitiveRepeat(const sp<ITestService>& s) {
       !RepeatPrimitive(s, &ITestService::RepeatLong, int64_t{1LL << 60}) ||
       !RepeatPrimitive(s, &ITestService::RepeatFloat, float{1.0f/3.0f}) ||
       !RepeatPrimitive(s, &ITestService::RepeatDouble, double{1.0/3.0}) ||
-      !RepeatPrimitive(s, &ITestService::RepeatMap, test_map) ||
       !RepeatPrimitive(
           s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT)  ||
       !RepeatPrimitive(
