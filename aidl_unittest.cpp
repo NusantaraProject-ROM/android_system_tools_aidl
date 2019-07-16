@@ -195,11 +195,8 @@ TEST_F(AidlTest, RejectsArraysOfBinders) {
 }
 
 TEST_F(AidlTest, SupportOnlyOutParameters) {
-  string interface_map = "package a; interface IFoo { void f(out Map bar); }";
   string interface_list = "package a; interface IBar { void f(out List bar); }";
   string interface_ibinder = "package a; interface IBaz { void f(out IBinder bar); }";
-  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", interface_map, &cpp_types_));
-  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", interface_map, &java_types_));
   // List without type isn't supported in cpp.
   EXPECT_EQ(nullptr, Parse("a/IBar.aidl", interface_list, &cpp_types_));
   EXPECT_NE(nullptr, Parse("a/IBar.aidl", interface_list, &java_types_));
