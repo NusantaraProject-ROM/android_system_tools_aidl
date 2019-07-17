@@ -3,6 +3,7 @@
 #include "aidl_language_y.h"
 #include "logging.h"
 #include <set>
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,8 @@ AidlLocation loc(const yy::parser::location_type& l) {
     char character;
     std::string *str;
     AidlAnnotation* annotation;
+    AidlAnnotationParameter* param;
+    std::map<std::string, std::shared_ptr<AidlConstantValue>>* param_list;
     std::vector<AidlAnnotation>* annotation_list;
     AidlTypeSpecifier* type;
     AidlArgument* arg;
@@ -99,6 +102,9 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<parcelable> parcelable_decl
 %type<method> method_decl
 %type<constant> constant_decl
+%type<param> parameter
+%type<param_list> parameter_list
+%type<param_list> parameter_non_empty_list
 %type<annotation> annotation
 %type<annotation_list>annotation_list
 %type<type> type
@@ -402,15 +408,53 @@ annotation_list
     }
   };
 
+parameter
+  : identifier '=' constant_value {
+    $$ = new AidlAnnotationParameter{$1->GetText(), std::unique_ptr<AidlConstantValue>($3)};
+    delete $1;
+  };
+
+parameter_list
+  : /*empty*/{
+    $$ = new std::map<std::string, std::shared_ptr<AidlConstantValue>>();
+  }
+  | parameter_non_empty_list  {
+    $$ = $1;
+  };
+
+parameter_non_empty_list
+  : parameter {
+    $$ = new std::map<std::string, std::shared_ptr<AidlConstantValue>>();
+    $$->emplace(std::move($1->name), $1->value.release());
+    delete $1;
+  }
+  | parameter_non_empty_list ',' parameter {
+    $$ = $1;
+    if ($$->find($3->name) != $$->end()) {
+      AIDL_ERROR(loc(@3)) << "Trying to redefine parameter " << $3->name << ".";
+      ps->AddError();
+    }
+    $$->emplace(std::move($3->name), std::move($3->value));
+    delete $3;
+  };
+
 annotation
  : ANNOTATION
   {
-    $$ = AidlAnnotation::Parse(loc(@1), $1->GetText());
+    $$ = AidlAnnotation::Parse(loc(@1), $1->GetText(), nullptr);
     if ($$ == nullptr) {
       ps->AddError();
     }
     $$->SetComments($1->GetComments());
   };
+ | ANNOTATION '(' parameter_list ')' {
+    $$ = AidlAnnotation::Parse(loc(@1), $1->GetText(), $3);
+    if ($$ == nullptr) {
+      ps->AddError();
+    }
+    $$->SetComments($1->GetComments());
+    delete $3;
+ }
 
 direction
  : IN
