@@ -134,23 +134,39 @@ class AidlTypenames;
 }  // namespace aidl
 }  // namespace android
 
+class AidlConstantValue;
+class AidlConstantDeclaration;
+
+// Transforms a value string into a language specific form. Raw value as produced by
+// AidlConstantValue.
+using ConstantValueDecorator =
+    std::function<std::string(const AidlTypeSpecifier& type, const std::string& raw_value)>;
+
 class AidlAnnotation : public AidlNode {
  public:
-  static AidlAnnotation* Parse(const AidlLocation& location, const string& name);
+  static AidlAnnotation* Parse(
+      const AidlLocation& location, const string& name,
+      std::map<std::string, std::shared_ptr<AidlConstantValue>>* parameter_list);
 
   AidlAnnotation(const AidlAnnotation&) = default;
   AidlAnnotation(AidlAnnotation&&) = default;
   virtual ~AidlAnnotation() = default;
+  bool CheckValid() const;
 
   const string& GetName() const { return name_; }
   string ToString() const { return "@" + name_; }
+  std::map<std::string, std::string> AnnotationParams(
+      const ConstantValueDecorator& decorator) const;
   const string& GetComments() const { return comments_; }
   void SetComments(const string& comments) { comments_ = comments; }
 
  private:
   AidlAnnotation(const AidlLocation& location, const string& name);
+  AidlAnnotation(const AidlLocation& location, const string& name,
+                 std::map<std::string, std::shared_ptr<AidlConstantValue>>&& parameters);
   const string name_;
   string comments_;
+  std::map<std::string, std::shared_ptr<AidlConstantValue>> parameters_;
 };
 
 static inline bool operator<(const AidlAnnotation& lhs, const AidlAnnotation& rhs) {
@@ -171,12 +187,14 @@ class AidlAnnotatable : public AidlNode {
   void Annotate(vector<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
   bool IsNullable() const;
   bool IsUtf8InCpp() const;
-  bool IsUnsupportedAppUsage() const;
   bool IsSystemApi() const;
   bool IsStableParcelable() const;
+
+  const AidlAnnotation* UnsupportedAppUsage() const;
   std::string ToString() const;
 
   const vector<AidlAnnotation>& GetAnnotations() const { return annotations_; }
+  bool CheckValidAnnotations() const;
 
  private:
   vector<AidlAnnotation> annotations_;
@@ -253,10 +271,6 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   const android::aidl::ValidatableType* language_type_ = nullptr;
 };
 
-// Transforms a value string into a language specific form. Raw value as produced by
-// AidlConstantValue.
-using ConstantValueDecorator =
-    std::function<std::string(const AidlTypeSpecifier& type, const std::string& raw_value)>;
 
 // Returns the universal value unaltered.
 std::string AidlConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
@@ -365,6 +379,11 @@ class AidlConstantValue : public AidlNode {
   const std::string value_;                                       // otherwise
 
   DISALLOW_COPY_AND_ASSIGN(AidlConstantValue);
+};
+
+struct AidlAnnotationParameter {
+  std::string name;
+  std::unique_ptr<AidlConstantValue> value;
 };
 
 class AidlConstantDeclaration : public AidlMember {
@@ -509,7 +528,7 @@ class AidlDefinedType : public AidlAnnotatable {
   virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
-  virtual bool CheckValid(const AidlTypenames&) const { return true; }
+  virtual bool CheckValid(const AidlTypenames&) const { return CheckValidAnnotations(); }
 
   AidlStructuredParcelable* AsStructuredParcelable() {
     return const_cast<AidlStructuredParcelable*>(
