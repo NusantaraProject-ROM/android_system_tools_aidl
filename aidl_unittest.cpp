@@ -360,7 +360,8 @@ TEST_F(AidlTest, JavaParcelableOutput) {
       "  int x=5;\n"
       "  @SystemApi\n"
       "  @UnsupportedAppUsage(maxTargetSdk = 28, trackingBug = 42, implicitMember = \"dummy\", "
-      "expectedSignature = \"dummy\", publicAlternatives = \"dummy\")\n"
+      "expectedSignature = \"dummy\", publicAlternatives = \"d\" \n + \"u\" + \n \"m\" \n + \"m\" "
+      "+ \"y\")\n"
       "  int y;\n"
       "}");
 
