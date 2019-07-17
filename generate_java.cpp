@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <map>
 #include <memory>
 #include <sstream>
 
@@ -240,10 +241,26 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   return parcel_class;
 }
 
+std::string generate_java_annotation_parameters(const AidlAnnotation& a) {
+  const std::map<std::string, std::string> params = a.AnnotationParams(AidlConstantValueDecorator);
+  if (params.empty()) {
+    return "";
+  }
+  std::vector<string> parameters_decl;
+  for (const auto& name_and_param : params) {
+    const std::string& param_name = name_and_param.first;
+    const std::string& param_value = name_and_param.second;
+    parameters_decl.push_back(param_name + " = " + param_value);
+  }
+  return "(" + base::Join(parameters_decl, ", ") + ")";
+}
+
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a) {
   std::vector<std::string> result;
-  if (a.IsUnsupportedAppUsage()) {
-    result.emplace_back("@dalvik.annotation.compat.UnsupportedAppUsage");
+  const AidlAnnotation* unsupported_app_usage = a.UnsupportedAppUsage();
+  if (unsupported_app_usage != nullptr) {
+    result.emplace_back("@dalvik.annotation.compat.UnsupportedAppUsage" +
+                        generate_java_annotation_parameters(*unsupported_app_usage));
   }
   if (a.IsSystemApi()) {
     result.emplace_back("@android.annotation.SystemApi");
