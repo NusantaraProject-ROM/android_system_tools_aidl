@@ -46,7 +46,7 @@ floatvalue  [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?f?
 \"[^\"]*\"            { yylval->token = new AidlToken(yytext, extra_text);
                         return yy::parser::token::C_STR; }
 
-\/\/.*\n              { extra_text += yytext; yylloc->lines(1); yylloc->step(); }
+\/\/.*                { extra_text += yytext; extra_text += "\n"; }
 
 \n+                   { yylloc->lines(yyleng); yylloc->step(); }
 {whitespace}          {}

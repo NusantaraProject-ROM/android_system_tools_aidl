@@ -182,6 +182,11 @@ TEST_F(AidlTest, AcceptMissingPackage) {
   EXPECT_NE(nullptr, Parse("IFoo.aidl", "interface IFoo { }", &cpp_types_));
 }
 
+TEST_F(AidlTest, EndsInSingleLineComment) {
+  EXPECT_NE(nullptr, Parse("IFoo.aidl", "interface IFoo { } // foo", &java_types_));
+  EXPECT_NE(nullptr, Parse("IFoo.aidl", "interface IFoo { } // foo", &cpp_types_));
+}
+
 TEST_F(AidlTest, RejectsArraysOfBinders) {
   import_paths_.emplace("");
   io_delegate_.SetFileContents("bar/IBar.aidl",
