@@ -15,7 +15,7 @@
  */
 
 #include "generate_aidl_mappings.h"
-#include "type_java.h"
+#include "aidl_to_java.h"
 
 #include <sstream>
 
@@ -42,7 +42,7 @@ SignatureMap generate_mappings(const AidlDefinedType* defined_type) {
         signature << arg->GetType().ToString() << ",";
       }
       signature << "|";
-      signature << method->GetType().GetLanguageType<java::Type>()->JavaType();
+      signature << java::JavaSignatureOf(method->GetType());
       mappings[signature.str()] = dump_location(*method);
     }
   }
