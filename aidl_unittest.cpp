@@ -62,7 +62,7 @@ const char kExpectedParcelableDepFileContents[] =
 p/Foo.aidl :
 )";
 
-const char kExepectedJavaParcelableOutputContests[] =
+const char kExpectedJavaParcelableOutputContests[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
  */
@@ -77,6 +77,8 @@ public class Rect implements android.os.Parcelable
   @dalvik.annotation.compat.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42)
   @android.annotation.SystemApi
   public int y;
+
+  public android.os.ParcelFileDescriptor fd;
   public static final android.os.Parcelable.Creator<Rect> CREATOR = new android.os.Parcelable.Creator<Rect>() {
     @Override
     public Rect createFromParcel(android.os.Parcel _aidl_source) {
@@ -95,6 +97,13 @@ public class Rect implements android.os.Parcelable
     _aidl_parcel.writeInt(0);
     _aidl_parcel.writeInt(x);
     _aidl_parcel.writeInt(y);
+    if ((fd!=null)) {
+      _aidl_parcel.writeInt(1);
+      fd.writeToParcel(_aidl_parcel, 0);
+    }
+    else {
+      _aidl_parcel.writeInt(0);
+    }
     int _aidl_end_pos = _aidl_parcel.dataPosition();
     _aidl_parcel.setDataPosition(_aidl_start_pos);
     _aidl_parcel.writeInt(_aidl_end_pos - _aidl_start_pos);
@@ -109,6 +118,13 @@ public class Rect implements android.os.Parcelable
       x = _aidl_parcel.readInt();
       if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;
       y = _aidl_parcel.readInt();
+      if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;
+      if ((0!=_aidl_parcel.readInt())) {
+        fd = android.os.ParcelFileDescriptor.CREATOR.createFromParcel(_aidl_parcel);
+      }
+      else {
+        fd = null;
+      }
       if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;
     } finally {
       _aidl_parcel.setDataPosition(_aidl_start_pos + _aidl_parcelable_size);
@@ -368,6 +384,7 @@ TEST_F(AidlTest, JavaParcelableOutput) {
       "expectedSignature = \"dummy\", publicAlternatives = \"d\" \n + \"u\" + \n \"m\" \n + \"m\" "
       "+ \"y\")\n"
       "  int y;\n"
+      "  ParcelFileDescriptor fd;\n"
       "}");
 
   vector<string> args{"aidl", "Rect.aidl"};
@@ -376,7 +393,7 @@ TEST_F(AidlTest, JavaParcelableOutput) {
 
   string output;
   EXPECT_TRUE(io_delegate_.GetWrittenContents("Rect.java", &output));
-  EXPECT_EQ(kExepectedJavaParcelableOutputContests, output);
+  EXPECT_EQ(kExpectedJavaParcelableOutputContests, output);
 }
 
 TEST_F(AidlTest, RequireOuterClass) {
