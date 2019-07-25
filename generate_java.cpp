@@ -112,7 +112,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     for (const auto& a : generate_java_annotations(variable->GetType())) {
       out << a << "\n";
     }
-    out << "public " << type.GetName() << (variable->GetType().IsArray() ? "[]" : "") << " "
+    out << "public " << JavaSignatureOf(type) << (type.IsArray() ? "[]" : "") << " "
         << variable->GetName();
     if (variable->GetDefaultValue()) {
       out << " = " << variable->ValueString(AidlConstantValueDecorator);
