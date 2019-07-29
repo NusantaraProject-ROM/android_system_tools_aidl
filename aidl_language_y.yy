@@ -341,19 +341,25 @@ method_decl
     $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments());
     delete $2;
   }
- | ONEWAY type identifier '(' arg_list ')' ';' {
-    $$ = new AidlMethod(loc(@3), true, $2, $3->GetText(), $5, $1->GetComments());
+ | annotation_list ONEWAY type identifier '(' arg_list ')' ';' {
+    const std::string& comments = ($1->size() > 0) ? $1->begin()->GetComments() : $2->GetComments();
+    $$ = new AidlMethod(loc(@4), true, $3, $4->GetText(), $6, comments);
+    $3->Annotate(std::move(*$1));
     delete $1;
-    delete $3;
+    delete $2;
+    delete $4;
   }
  | type identifier '(' arg_list ')' '=' INTVALUE ';' {
     $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments(), std::stoi($7->GetText()));
     delete $2;
   }
- | ONEWAY type identifier '(' arg_list ')' '=' INTVALUE ';' {
-    $$ = new AidlMethod(loc(@3), true, $2, $3->GetText(), $5, $1->GetComments(), std::stoi($8->GetText()));
+ | annotation_list ONEWAY type identifier '(' arg_list ')' '=' INTVALUE ';' {
+    const std::string& comments = ($1->size() > 0) ? $1->begin()->GetComments() : $2->GetComments();
+    $$ = new AidlMethod(loc(@4), true, $3, $4->GetText(), $6, comments, std::stoi($9->GetText()));
+    $3->Annotate(std::move(*$1));
     delete $1;
-    delete $3;
+    delete $2;
+    delete $4;
   };
 
 arg_list
