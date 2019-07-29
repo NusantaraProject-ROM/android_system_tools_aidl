@@ -854,6 +854,7 @@ R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 #include <binder/IBinder.h>
 #include <binder/IInterface.h>
 #include <binder/Status.h>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utils/String16.h>
