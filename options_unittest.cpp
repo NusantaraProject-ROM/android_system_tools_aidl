@@ -314,5 +314,5 @@ TEST(OptionsTests, ParsesCompileCppInvalid) {
   EXPECT_EQ(false, GetOptions(arg_with_no_header_dir)->Ok());
 }
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
