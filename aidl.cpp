@@ -859,5 +859,5 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate) {
   return true;
 }
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
