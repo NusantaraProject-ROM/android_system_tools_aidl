@@ -65,5 +65,5 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const std::string& f
 
 } // namespace internals
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
