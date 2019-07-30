@@ -41,5 +41,5 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a);
 
 }  // namespace java
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

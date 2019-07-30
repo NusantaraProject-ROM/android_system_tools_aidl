@@ -1051,5 +1051,5 @@ Class* generate_binder_interface_class(const AidlInterface* iface, const AidlTyp
 }
 
 }  // namespace java
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
