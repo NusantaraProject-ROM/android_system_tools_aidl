@@ -443,5 +443,5 @@ Options::Options(int argc, const char* const argv[], Options::Language default_l
   CHECK(output_header_dir_.empty() || output_header_dir_.back() == OS_PATH_SEPARATOR);
 }
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

@@ -92,5 +92,5 @@ string ImportResolver::FindImportFile(const string& canonical_name) const {
   }
 }
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

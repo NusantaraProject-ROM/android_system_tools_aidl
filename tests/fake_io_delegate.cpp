@@ -169,5 +169,5 @@ string FakeIoDelegate::CleanPath(const string& path) const {
 }
 
 }  // namespace test
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

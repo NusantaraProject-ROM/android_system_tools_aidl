@@ -63,5 +63,5 @@ TEST_F(JavaTypeNamespaceTest, ContainerTypeCreation) {
 }
 
 }  // namespace java
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

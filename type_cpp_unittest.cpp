@@ -67,5 +67,5 @@ TEST_F(CppTypeNamespaceTest, SupportsNestedParcelableClass) {
 }
 
 }  // namespace cpp
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

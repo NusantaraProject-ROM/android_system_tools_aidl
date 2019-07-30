@@ -325,5 +325,5 @@ TEST_F(EndToEndTest, StringConstantsInJava_WithVersion) {
   CheckFileContents(kJavaOutputPath, kExpectedJavaOutputWithVersion);
 }
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
