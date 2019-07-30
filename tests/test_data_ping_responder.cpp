@@ -273,6 +273,10 @@ namespace android {
 
 namespace os {
 
+BnPingResponder::BnPingResponder()
+{
+}
+
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
@@ -470,7 +474,7 @@ public:
 )";
 
 const char kExpectedBnHeaderOutput[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 
 #include <binder/IInterface.h>
@@ -482,6 +486,7 @@ namespace os {
 
 class BnPingResponder : public ::android::BnInterface<IPingResponder> {
 public:
+  explicit BnPingResponder();
   ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnPingResponder
 
@@ -712,6 +717,10 @@ namespace android {
 
 namespace os {
 
+BnPingResponder::BnPingResponder()
+{
+}
+
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
@@ -927,7 +936,7 @@ private:
 )";
 
 const char kExpectedBnHeaderOutputWithVersion[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 
 #include <binder/IInterface.h>
@@ -939,6 +948,7 @@ namespace os {
 
 class BnPingResponder : public ::android::BnInterface<IPingResponder> {
 public:
+  explicit BnPingResponder();
   ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
   int32_t getInterfaceVersion() final override;
 };  // class BnPingResponder

@@ -619,6 +619,10 @@ unique_ptr<Document> BuildServerSource(const AidlTypenames& typenames,
     include_list.emplace_back("functional");
     include_list.emplace_back("json/value.h");
   }
+
+  unique_ptr<ConstructorImpl> constructor{
+      new ConstructorImpl{ClassName(interface, ClassNames::SERVER), ArgList{}, {}}};
+
   unique_ptr<MethodImpl> on_transact{new MethodImpl{
       kAndroidStatusLiteral, bn_name, "onTransact",
       ArgList{{StringPrintf("uint32_t %s", kCodeVarName),
@@ -677,6 +681,7 @@ unique_ptr<Document> BuildServerSource(const AidlTypenames& typenames,
   on_transact->GetStatementBlock()->AddLiteral(
       StringPrintf("return %s", kAndroidStatusVarName));
   vector<unique_ptr<Declaration>> decls;
+  decls.push_back(std::move(constructor));
   decls.push_back(std::move(on_transact));
 
   if (options.Version() > 0) {
@@ -835,6 +840,9 @@ unique_ptr<Document> BuildServerHeader(const AidlTypenames& /* typenames */,
   const string i_name = ClassName(interface, ClassNames::INTERFACE);
   const string bn_name = ClassName(interface, ClassNames::SERVER);
 
+  unique_ptr<ConstructorDecl> constructor{
+      new ConstructorDecl{bn_name, ArgList{}, ConstructorDecl::IS_EXPLICIT}};
+
   unique_ptr<Declaration> on_transact{new MethodDecl{
       kAndroidStatusLiteral, "onTransact",
       ArgList{{StringPrintf("uint32_t %s", kCodeVarName),
@@ -847,6 +855,7 @@ unique_ptr<Document> BuildServerHeader(const AidlTypenames& /* typenames */,
   vector<string> includes = {"binder/IInterface.h", HeaderFile(interface, ClassNames::RAW, false)};
 
   vector<unique_ptr<Declaration>> publics;
+  publics.push_back(std::move(constructor));
   publics.push_back(std::move(on_transact));
 
   if (options.Version() > 0) {
