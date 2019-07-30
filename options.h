@@ -160,5 +160,5 @@ class Options final {
   ErrorMessage error_message_;
 };
 
-}  // namespace android
 }  // namespace aidl
+}  // namespace android

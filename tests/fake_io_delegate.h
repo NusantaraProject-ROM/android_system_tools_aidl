@@ -82,7 +82,7 @@ class FakeIoDelegate : public IoDelegate {
 };  // class FakeIoDelegate
 
 }  // namespace test
-}  // namespace android
 }  // namespace aidl
+}  // namespace android
 
 #endif // AIDL_TESTS_FAKE_IO_DELEGATE_H_
