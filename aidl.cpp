@@ -646,6 +646,13 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
       continue;
     }
 
+    if (defined_type->IsVintfStability() &&
+        (options.GetStability() != Options::Stability::VINTF || !options.IsStructured())) {
+      AIDL_ERROR(defined_type)
+          << "Must compile @VintfStability type w/ aidl_interface 'stability: \"vintf\"'";
+      return AidlError::NOT_STRUCTURED;
+    }
+
     // Ensure that a type is either an interface or a structured parcelable
     AidlInterface* interface = defined_type->AsInterface();
     AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
@@ -683,16 +690,20 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     }
   }
 
-  if (options.IsStructured()) {
-    typenames.IterateTypes([&](const AidlDefinedType& type) {
-      if (type.AsUnstructuredParcelable() != nullptr &&
-          !type.AsUnstructuredParcelable()->IsStableParcelable()) {
-        err = AidlError::NOT_STRUCTURED;
-        LOG(ERROR) << type.GetCanonicalName()
-                   << " is not structured, but this is a structured interface.";
-      }
-    });
-  }
+  typenames.IterateTypes([&](const AidlDefinedType& type) {
+    if (options.IsStructured() && type.AsUnstructuredParcelable() != nullptr &&
+        !type.AsUnstructuredParcelable()->IsStableParcelable()) {
+      err = AidlError::NOT_STRUCTURED;
+      LOG(ERROR) << type.GetCanonicalName()
+                 << " is not structured, but this is a structured interface.";
+    }
+    if (options.GetStability() == Options::Stability::VINTF && !type.IsVintfStability()) {
+      err = AidlError::NOT_STRUCTURED;
+      LOG(ERROR) << type.GetCanonicalName()
+                 << " does not have VINTF level stability, but this interface requires it.";
+    }
+  });
+
   if (err != AidlError::OK) {
     return err;
   }
