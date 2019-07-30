@@ -568,6 +568,8 @@ type aidlInterfaceProperties struct {
 	// List of .aidl files which compose this interface.
 	Srcs []string `android:"path"`
 
+	// List of aidl_interface modules that this uses. If one of your AIDL interfaces uses an
+	// interface or parcelable from another aidl_interface, you should put its name here.
 	Imports []string
 
 	// Used by gen dependency to fill out aidl include path
