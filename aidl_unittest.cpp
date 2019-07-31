@@ -313,6 +313,29 @@ TEST_F(AidlTest, AcceptsOneway) {
   EXPECT_NE(nullptr, Parse("a/IBar.aidl", oneway_interface, &java_types_));
 }
 
+TEST_F(AidlTest, AcceptsAnnotatedOnewayMethod) {
+  string oneway_method = "package a; interface IFoo { @UnsupportedAppUsage oneway void f(int a); }";
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", oneway_method, &cpp_types_));
+  EXPECT_NE(nullptr, Parse("a/IFoo.aidl", oneway_method, &java_types_));
+}
+
+TEST_F(AidlTest, WritesComments) {
+  string foo_interface =
+      "package a; /* foo */ interface IFoo {"
+      "  /* i */ int i();"
+      "  /* j */ @nullable String j();"
+      "  /* k */ @UnsupportedAppUsage oneway void k(int a); }";
+
+  auto parse_result = Parse("a/IFoo.aidl", foo_interface, &java_types_);
+  EXPECT_NE(nullptr, parse_result);
+  EXPECT_EQ("/* foo */", parse_result->GetComments());
+
+  const AidlInterface* interface = parse_result->AsInterface();
+  EXPECT_EQ("/* i */", interface->GetMethods()[0]->GetComments());
+  EXPECT_EQ("/* j */", interface->GetMethods()[1]->GetComments());
+  EXPECT_EQ("/* k */", interface->GetMethods()[2]->GetComments());
+}
+
 TEST_F(AidlTest, ParsesPreprocessedFile) {
   string simple_content = "parcelable a.Foo;\ninterface b.IBar;";
   io_delegate_.SetFileContents("path", simple_content);
