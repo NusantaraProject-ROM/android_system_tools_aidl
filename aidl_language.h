@@ -236,6 +236,8 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
 
   const string& GetComments() const { return comments_; }
 
+  const std::vector<std::string> GetSplitName() const { return split_name_; }
+
   void SetComments(const string& comment) { comments_ = comment; }
 
   bool IsResolved() const { return fully_qualified_name_ != ""; }
@@ -269,6 +271,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   const shared_ptr<vector<unique_ptr<AidlTypeSpecifier>>> type_params_;
   string comments_;
   const android::aidl::ValidatableType* language_type_ = nullptr;
+  vector<string> split_name_;
 };
 
 
