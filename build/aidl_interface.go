@@ -562,9 +562,6 @@ type aidlInterfaceProperties struct {
 	// TODO(b/111117220): automatically compute by letting AIDL parse multiple files simultaneously
 	Local_include_dir string
 
-	// The owner of the module
-	Owner *string
-
 	// List of .aidl files which compose this interface.
 	Srcs []string `android:"path"`
 
@@ -806,7 +803,6 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 
 	mctx.CreateModule(android.ModuleFactoryAdaptor(cc.LibraryFactory), &ccProperties{
 		Name:                      proptools.StringPtr(cppModuleGen),
-		Owner:                     i.properties.Owner,
 		Vendor_available:          i.properties.Vendor_available,
 		Defaults:                  []string{"aidl-cpp-module-defaults"},
 		Generated_sources:         []string{cppSourceGen},
@@ -853,7 +849,6 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 
 	mctx.CreateModule(android.ModuleFactoryAdaptor(java.LibraryFactory), &javaProperties{
 		Name:        proptools.StringPtr(javaModuleGen),
-		Owner:       i.properties.Owner,
 		Installable: proptools.BoolPtr(true),
 		Defaults:    []string{"aidl-java-module-defaults"},
 		Sdk_version: proptools.StringPtr(sdkVersion),
