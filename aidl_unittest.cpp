@@ -436,7 +436,7 @@ TEST_F(AidlTest, FailOnParcelable) {
 
   // Regardless of '-b', a parcelable and an interface should fail.
   Options options3 = Options::From("aidl p/IBar.aidl");
-  EXPECT_EQ(0, ::android::aidl::compile_aidl(options3, io_delegate_));
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options3, io_delegate_));
   Options options4 = Options::From("aidl -b p/IBar.aidl");
   EXPECT_NE(0, ::android::aidl::compile_aidl(options4, io_delegate_));
 }
@@ -469,11 +469,14 @@ TEST_F(AidlTest, FailOnDuplicateConstantNames) {
 }
 
 TEST_F(AidlTest, FailOnManyDefinedTypes) {
+  using namespace testing::internal;
   AidlError reported_error;
+
+  CaptureStderr();
+
   EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
                            R"(package p;
                       interface IFoo {}
-                      parcelable Bar;
                       parcelable IBar {}
                       parcelable StructuredParcelable {}
                       interface IBaz {}
@@ -482,6 +485,9 @@ TEST_F(AidlTest, FailOnManyDefinedTypes) {
   // Parse success is important for clear error handling even if the cases aren't
   // actually supported in code generation.
   EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+
+  EXPECT_EQ("ERROR: p/IFoo.aidl: You must declare only one type per a file.\n",
+            GetCapturedStderr());
 }
 
 TEST_F(AidlTest, FailOnNoDefinedTypes) {
@@ -776,44 +782,33 @@ TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
   EXPECT_NE(0, ::android::aidl::compile_aidl(options2, io_delegate_));
 }
 
-TEST_F(AidlTest, MultipleTypesInSingleFile) {
-  Options options = Options::From("aidl --lang=java -o out foo/bar/Foo.aidl");
-  io_delegate_.SetFileContents(options.InputFiles().front(),
-      "package foo.bar;\n"
-      "interface IFoo1 { int foo(); }\n"
-      "interface IFoo2 { int foo(); }\n"
-      "parcelable Data { int a; int b;}\n");
+TEST_F(AidlTest, FailOnMultipleTypesInSingleFile) {
+  std::vector<std::string> rawOptions{"aidl --lang=java -o out foo/bar/Foo.aidl",
+                                      "aidl --lang=cpp -o out -h out/include foo/bar/Foo.aidl"};
+  for (auto& rawOption : rawOptions) {
+    Options options = Options::From(rawOption);
+    io_delegate_.SetFileContents(options.InputFiles().front(),
+                                 "package foo.bar;\n"
+                                 "interface IFoo1 { int foo(); }\n"
+                                 "interface IFoo2 { int foo(); }\n"
+                                 "parcelable Data1 { int a; int b;}\n"
+                                 "parcelable Data2 { int a; int b;}\n");
 
-  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+    EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 
-  string content;
-  for (const auto file :
-    {"out/foo/bar/IFoo1.java", "out/foo/bar/IFoo2.java", "out/foo/bar/Data.java"}) {
-    content.clear();
-    EXPECT_TRUE(io_delegate_.GetWrittenContents(file, &content));
-    EXPECT_FALSE(content.empty());
-  }
-}
+    io_delegate_.SetFileContents(options.InputFiles().front(),
+                                 "package foo.bar;\n"
+                                 "interface IFoo1 { int foo(); }\n"
+                                 "interface IFoo2 { int foo(); }\n");
 
-TEST_F(AidlTest, MultipleTypesInSingleFileCpp) {
-  Options options = Options::From("aidl --lang=cpp -o out -h out/include foo/bar/Foo.aidl");
-  io_delegate_.SetFileContents(options.InputFiles().front(),
-      "package foo.bar;\n"
-      "interface IFoo1 { int foo(); }\n"
-      "interface IFoo2 { int foo(); }\n"
-      "parcelable Data { int a; int b;}\n");
+    EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
 
-  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+    io_delegate_.SetFileContents(options.InputFiles().front(),
+                                 "package foo.bar;\n"
+                                 "parcelable Data1 { int a; int b;}\n"
+                                 "parcelable Data2 { int a; int b;}\n");
 
-  string content;
-  for (const auto file : {
-    "out/foo/bar/IFoo1.cpp", "out/foo/bar/IFoo2.cpp", "out/foo/bar/Data.cpp",
-    "out/include/foo/bar/IFoo1.h", "out/include/foo/bar/IFoo2.h", "out/include/foo/bar/Data.h",
-    "out/include/foo/bar/BpFoo1.h", "out/include/foo/bar/BpFoo2.h", "out/include/foo/bar/BpData.h",
-    "out/include/foo/bar/BnFoo1.h", "out/include/foo/bar/BnFoo2.h", "out/include/foo/bar/BnData.h"}) {
-    content.clear();
-    EXPECT_TRUE(io_delegate_.GetWrittenContents(file, &content));
-    EXPECT_FALSE(content.empty());
+    EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
   }
 }
 
