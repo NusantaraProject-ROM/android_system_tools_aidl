@@ -237,7 +237,8 @@ AidlTypeSpecifier::AidlTypeSpecifier(const AidlLocation& location, const string&
       unresolved_name_(unresolved_name),
       is_array_(is_array),
       type_params_(type_params),
-      comments_(comments) {}
+      comments_(comments),
+      split_name_(Split(unresolved_name, ".")) {}
 
 AidlTypeSpecifier AidlTypeSpecifier::ArrayBase() const {
   AIDL_FATAL_IF(!is_array_, this);
@@ -276,6 +277,7 @@ bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
   pair<string, bool> result = typenames.ResolveTypename(unresolved_name_);
   if (result.second) {
     fully_qualified_name_ = result.first;
+    split_name_ = Split(fully_qualified_name_, ".");
   }
   return result.second;
 }

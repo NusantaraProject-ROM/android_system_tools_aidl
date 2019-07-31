@@ -36,6 +36,20 @@ struct CodeGeneratorContext {
 };
 
 std::string GetTransactionIdFor(const AidlMethod& method);
+
+std::string CppNameOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
+
+std::string ParcelReadMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
+
+std::string ParcelWriteMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
+
+void AddHeaders(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
+                std::set<std::string>& headers);
+
+void AddHeaders(const AidlDefinedType& parcelable, std::set<std::string>& headers);
+
+std::string CastOf(const AidlTypeSpecifier& raw_type, const AidlTypenames& typenames,
+                   const std::string var);
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
