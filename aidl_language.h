@@ -184,7 +184,11 @@ class AidlAnnotatable : public AidlNode {
   AidlAnnotatable(AidlAnnotatable&&) = default;
   virtual ~AidlAnnotatable() = default;
 
-  void Annotate(vector<AidlAnnotation>&& annotations) { annotations_ = std::move(annotations); }
+  void Annotate(vector<AidlAnnotation>&& annotations) {
+    for (auto& annotation : annotations) {
+      annotations_.emplace_back(std::move(annotation));
+    }
+  }
   bool IsNullable() const;
   bool IsUtf8InCpp() const;
   bool IsSystemApi() const;
@@ -227,7 +231,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   }
 
   // Returns string representation of this type specifier.
-  // This is GetBaseTypeName() + array modifieir or generic type parameters
+  // This is GetBaseTypeName() + array modifier or generic type parameters
   string ToString() const;
 
   std::string Signature() const;
