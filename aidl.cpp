@@ -762,8 +762,8 @@ int compile_aidl(const Options& options, const IoDelegate& io_delegate) {
 
       bool success = false;
       if (lang == Options::Language::CPP) {
-        success =
-            cpp::GenerateCpp(output_file_name, options, cpp_types, *defined_type, io_delegate);
+        success = cpp::GenerateCpp(output_file_name, options, cpp_types.typenames_, *defined_type,
+                                   io_delegate);
       } else if (lang == Options::Language::NDK) {
         ndk::GenerateNdk(output_file_name, options, cpp_types.typenames_, *defined_type,
                          io_delegate);
