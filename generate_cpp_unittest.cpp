@@ -727,7 +727,7 @@ BpComplexTypeInterface::BpComplexTypeInterface(const ::android::sp<::android::IB
 )";
 
 const char kExpectedComplexTypeServerHeaderOutput[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_COMPLEX_TYPE_INTERFACE_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_COMPLEX_TYPE_INTERFACE_H_
 #define AIDL_GENERATED_ANDROID_OS_BN_COMPLEX_TYPE_INTERFACE_H_
 
 #include <binder/IInterface.h>
@@ -739,6 +739,7 @@ namespace os {
 
 class BnComplexTypeInterface : public ::android::BnInterface<IComplexTypeInterface> {
 public:
+  explicit BnComplexTypeInterface();
   ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnComplexTypeInterface
 
@@ -756,6 +757,10 @@ const char kExpectedComplexTypeServerSourceOutput[] =
 namespace android {
 
 namespace os {
+
+BnComplexTypeInterface::BnComplexTypeInterface()
+{
+}
 
 ::android::status_t BnComplexTypeInterface::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
@@ -1003,6 +1008,10 @@ const char kExpectedComplexTypeServerWithTraceSourceOutput[] =
 namespace android {
 
 namespace os {
+
+BnComplexTypeInterface::BnComplexTypeInterface()
+{
+}
 
 ::android::status_t BnComplexTypeInterface::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
