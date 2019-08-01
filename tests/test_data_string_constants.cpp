@@ -202,6 +202,10 @@ namespace android {
 
 namespace os {
 
+BnStringConstants::BnStringConstants()
+{
+}
+
 ::android::status_t BnStringConstants::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
   switch (_aidl_code) {
@@ -452,6 +456,10 @@ int32_t BpStringConstants::getInterfaceVersion() {
 namespace android {
 
 namespace os {
+
+BnStringConstants::BnStringConstants()
+{
+}
 
 ::android::status_t BnStringConstants::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
   ::android::status_t _aidl_ret_status = ::android::OK;
