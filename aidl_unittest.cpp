@@ -31,13 +31,15 @@
 #include "type_java.h"
 #include "type_namespace.h"
 
+using android::aidl::internals::parse_preprocessed_file;
 using android::aidl::test::FakeIoDelegate;
 using android::base::StringPrintf;
 using std::set;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using android::aidl::internals::parse_preprocessed_file;
+using testing::internal::CaptureStderr;
+using testing::internal::GetCapturedStderr;
 
 namespace android {
 namespace aidl {
@@ -144,7 +146,17 @@ class AidlTest : public ::testing::Test {
   void SetUp() override {
     java_types_.Init();
     cpp_types_.Init();
+    CaptureStderr();
   }
+
+  void TearDown() override {
+    auto actual_stderr = GetCapturedStderr();
+    if (expected_stderr_.size() > 0) {
+      EXPECT_EQ(android::base::Join(expected_stderr_, ""), actual_stderr);
+    }
+  }
+
+  void AddExpectedStderr(string expected) { expected_stderr_.push_back(expected); }
 
   AidlDefinedType* Parse(const string& path, const string& contents, TypeNamespace* types,
                          AidlError* error = nullptr,
@@ -189,6 +201,7 @@ class AidlTest : public ::testing::Test {
   FakeIoDelegate io_delegate_;
   vector<string> preprocessed_files_;
   set<string> import_paths_;
+  vector<string> expected_stderr_;
   java::JavaTypeNamespace java_types_;
   cpp::TypeNamespace cpp_types_;
 };
@@ -492,25 +505,19 @@ TEST_F(AidlTest, FailOnDuplicateConstantNames) {
 }
 
 TEST_F(AidlTest, FailOnManyDefinedTypes) {
-  using namespace testing::internal;
   AidlError reported_error;
-
-  CaptureStderr();
-
+  AddExpectedStderr("ERROR: p/IFoo.aidl: You must declare only one type per a file.\n");
   EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
                            R"(package p;
                       interface IFoo {}
                       parcelable IBar {}
                       parcelable StructuredParcelable {}
                       interface IBaz {}
-                   )",
+                  )",
                            &cpp_types_, &reported_error));
   // Parse success is important for clear error handling even if the cases aren't
   // actually supported in code generation.
   EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
-
-  EXPECT_EQ("ERROR: p/IFoo.aidl: You must declare only one type per a file.\n",
-            GetCapturedStderr());
 }
 
 TEST_F(AidlTest, FailOnNoDefinedTypes) {
