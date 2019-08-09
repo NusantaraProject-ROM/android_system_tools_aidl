@@ -753,6 +753,7 @@ public:
 const char kExpectedComplexTypeServerSourceOutput[] =
     R"(#include <android/os/BnComplexTypeInterface.h>
 #include <binder/Parcel.h>
+#include <binder/Stability.h>
 
 namespace android {
 
@@ -760,6 +761,7 @@ namespace os {
 
 BnComplexTypeInterface::BnComplexTypeInterface()
 {
+  ::android::internal::Stability::markCompilationUnit(this);
 }
 
 ::android::status_t BnComplexTypeInterface::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
@@ -1004,6 +1006,7 @@ BnComplexTypeInterface::BnComplexTypeInterface()
 const char kExpectedComplexTypeServerWithTraceSourceOutput[] =
     R"(#include <android/os/BnComplexTypeInterface.h>
 #include <binder/Parcel.h>
+#include <binder/Stability.h>
 
 namespace android {
 
@@ -1011,6 +1014,7 @@ namespace os {
 
 BnComplexTypeInterface::BnComplexTypeInterface()
 {
+  ::android::internal::Stability::markCompilationUnit(this);
 }
 
 ::android::status_t BnComplexTypeInterface::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {

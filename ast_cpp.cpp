@@ -261,6 +261,10 @@ ConstructorImpl::ConstructorImpl(const string& class_name,
         arguments_(std::move(arg_list)),
         initializer_list_(initializer_list) {}
 
+StatementBlock* ConstructorImpl::GetStatementBlock() {
+  return &body_;
+}
+
 void ConstructorImpl::Write(CodeWriter* to) const {
   to->Write("%s::%s", class_name_.c_str(), class_name_.c_str());
   arguments_.Write(to);
