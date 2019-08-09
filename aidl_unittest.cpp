@@ -305,6 +305,41 @@ TEST_F(AidlTest, ParsesUtf8Annotations) {
   }
 }
 
+TEST_F(AidlTest, VintfRequiresStructuredAndStability) {
+  AidlError error;
+  auto parse_result = Parse("IFoo.aidl", "@VintfStability interface IFoo {}", &cpp_types_, &error);
+  ASSERT_EQ(AidlError::NOT_STRUCTURED, error);
+  ASSERT_EQ(nullptr, parse_result);
+}
+
+TEST_F(AidlTest, VintfRequiresStructured) {
+  AidlError error;
+  auto parse_result = Parse("IFoo.aidl", "@VintfStability interface IFoo {}", &cpp_types_, &error,
+                            {"--stability", "vintf"});
+  ASSERT_EQ(AidlError::NOT_STRUCTURED, error);
+  ASSERT_EQ(nullptr, parse_result);
+}
+
+TEST_F(AidlTest, VintfRequiresSpecifiedStability) {
+  AidlError error;
+  auto parse_result = Parse("IFoo.aidl", "@VintfStability interface IFoo {}", &cpp_types_, &error,
+                            {"--structured"});
+  ASSERT_EQ(AidlError::NOT_STRUCTURED, error);
+  ASSERT_EQ(nullptr, parse_result);
+}
+
+TEST_F(AidlTest, ParsesStabilityAnnotations) {
+  AidlError error;
+  auto parse_result = Parse("IFoo.aidl", "@VintfStability interface IFoo {}", &cpp_types_, &error,
+                            {"--structured", "--stability", "vintf"});
+  ASSERT_EQ(AidlError::OK, error);
+  ASSERT_NE(nullptr, parse_result);
+  const AidlInterface* interface = parse_result->AsInterface();
+  ASSERT_NE(nullptr, interface);
+  ASSERT_TRUE(interface->IsVintfStability());
+  cpp_types_.typenames_.Reset();
+}
+
 TEST_F(AidlTest, ParsesJavaOnlyStableParcelable) {
   Options java_options = Options::From("aidl -o out --structured a/Foo.aidl");
   Options cpp_options =

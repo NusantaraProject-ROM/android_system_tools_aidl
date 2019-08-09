@@ -228,6 +228,9 @@ class ConstructorImpl : public Declaration {
                   const std::vector<std::string>& initializer_list);
   virtual ~ConstructorImpl() = default;
 
+  // ConstructorImpl retains ownership of the statement block.
+  StatementBlock* GetStatementBlock();
+
   void Write(CodeWriter* to) const override;
 
  private:
