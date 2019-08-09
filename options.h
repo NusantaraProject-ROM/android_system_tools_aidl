@@ -63,6 +63,9 @@ class Options final {
 
   enum class Task { UNSPECIFIED, COMPILE, PREPROCESS, DUMP_API, CHECK_API, DUMP_MAPPINGS };
 
+  enum class Stability { UNSPECIFIED, VINTF };
+  bool StabilityFromString(const std::string& stability, Stability* out_stability);
+
   Options(int argc, const char* const argv[], Language default_lang = Language::UNSPECIFIED);
 
   static Options From(const string& cmdline);
@@ -73,6 +76,8 @@ class Options final {
   // implemented in Java). These interfaces aren't inherently stable but they have the
   // capacity to be stabilized.
   bool IsStructured() const { return structured_; }
+
+  Stability GetStability() const { return stability_; }
 
   Language TargetLanguage() const { return language_; }
   bool IsCppOutput() const { return language_ == Language::CPP || language_ == Language::NDK; }
@@ -138,7 +143,6 @@ class Options final {
   Options() = default;
 
   const string myname_;
-  bool structured_ = false;
   Language language_ = Language::UNSPECIFIED;
   Task task_ = Task::COMPILE;
   set<string> import_dirs_;
@@ -148,6 +152,8 @@ class Options final {
   bool gen_traces_ = false;
   bool gen_transaction_names_ = false;
   bool dependency_file_ninja_ = false;
+  bool structured_ = false;
+  Stability stability_ = Stability::UNSPECIFIED;
   string output_dir_;
   string output_header_dir_;
   bool fail_on_parcelable_ = false;

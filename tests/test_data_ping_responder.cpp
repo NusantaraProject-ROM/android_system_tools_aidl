@@ -268,6 +268,7 @@ BpPingResponder::BpPingResponder(const ::android::sp<::android::IBinder>& _aidl_
 }  // namespace android
 #include <android/os/BnPingResponder.h>
 #include <binder/Parcel.h>
+#include <binder/Stability.h>
 
 namespace android {
 
@@ -275,6 +276,7 @@ namespace os {
 
 BnPingResponder::BnPingResponder()
 {
+  ::android::internal::Stability::markCompilationUnit(this);
 }
 
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {
@@ -712,6 +714,7 @@ int32_t BpPingResponder::getInterfaceVersion() {
 }  // namespace android
 #include <android/os/BnPingResponder.h>
 #include <binder/Parcel.h>
+#include <binder/Stability.h>
 
 namespace android {
 
@@ -719,6 +722,7 @@ namespace os {
 
 BnPingResponder::BnPingResponder()
 {
+  ::android::internal::Stability::markCompilationUnit(this);
 }
 
 ::android::status_t BnPingResponder::onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) {

@@ -63,6 +63,7 @@ const char kBinderStatusLiteral[] = "::android::binder::Status";
 const char kIBinderHeader[] = "binder/IBinder.h";
 const char kIInterfaceHeader[] = "binder/IInterface.h";
 const char kParcelHeader[] = "binder/Parcel.h";
+const char kStabilityHeader[] = "binder/Stability.h";
 const char kStatusHeader[] = "binder/Status.h";
 const char kString16Header[] = "utils/String16.h";
 const char kTraceHeader[] = "utils/Trace.h";
@@ -612,7 +613,8 @@ unique_ptr<Document> BuildServerSource(const AidlTypenames& typenames,
   const string bn_name = ClassName(interface, ClassNames::SERVER);
   vector<string> include_list{
       HeaderFile(interface, ClassNames::SERVER, false),
-      kParcelHeader
+      kParcelHeader,
+      kStabilityHeader,
   };
   if (options.GenLog()) {
     include_list.emplace_back("chrono");
@@ -622,6 +624,13 @@ unique_ptr<Document> BuildServerSource(const AidlTypenames& typenames,
 
   unique_ptr<ConstructorImpl> constructor{
       new ConstructorImpl{ClassName(interface, ClassNames::SERVER), ArgList{}, {}}};
+
+  if (interface.IsVintfStability()) {
+    constructor->GetStatementBlock()->AddLiteral("::android::internal::Stability::markVintf(this)");
+  } else {
+    constructor->GetStatementBlock()->AddLiteral(
+        "::android::internal::Stability::markCompilationUnit(this)");
+  }
 
   unique_ptr<MethodImpl> on_transact{new MethodImpl{
       kAndroidStatusLiteral, bn_name, "onTransact",
