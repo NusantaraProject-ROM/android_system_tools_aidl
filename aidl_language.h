@@ -191,6 +191,7 @@ class AidlAnnotatable : public AidlNode {
   }
   bool IsNullable() const;
   bool IsUtf8InCpp() const;
+  bool IsVintfStability() const;
   bool IsSystemApi() const;
   bool IsStableParcelable() const;
 

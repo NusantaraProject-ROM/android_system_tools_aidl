@@ -75,6 +75,7 @@ AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
 
 static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
+static const string kVintfStability("VintfStability");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 static const string kSystemApi("SystemApi");
 static const string kStableParcelable("JavaOnlyStableParcelable");
@@ -82,6 +83,7 @@ static const string kStableParcelable("JavaOnlyStableParcelable");
 static const std::map<string, std::map<std::string, std::string>> kAnnotationParameters{
     {kNullable, {}},
     {kUtf8InCpp, {}},
+    {kVintfStability, {}},
     {kUnsupportedAppUsage,
      {{"expectedSignature", "String"},
       {"implicitMember", "String"},
@@ -196,6 +198,10 @@ bool AidlAnnotatable::IsUtf8InCpp() const {
   return HasAnnotation(annotations_, kUtf8InCpp);
 }
 
+bool AidlAnnotatable::IsVintfStability() const {
+  return HasAnnotation(annotations_, kVintfStability);
+}
+
 const AidlAnnotation* AidlAnnotatable::UnsupportedAppUsage() const {
   return GetAnnotation(annotations_, kUnsupportedAppUsage);
 }
@@ -214,6 +220,7 @@ bool AidlAnnotatable::CheckValidAnnotations() const {
       return false;
     }
   }
+
   return true;
 }
 
