@@ -663,6 +663,25 @@ func (i *aidlInterface) checkImports(mctx android.LoadHookContext) {
 	}
 }
 
+func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
+	if i.properties.Stability == nil {
+		return
+	}
+
+	// TODO(b/136027762): should we allow more types of stability (e.g. for APEX) or
+	// should we switch this flag to be something like "vintf { enabled: true }"
+	if *i.properties.Stability != "vintf" {
+		mctx.PropertyErrorf("stability", "must be empty or \"vintf\"")
+	}
+
+	// TODO(b/136027762): need some global way to understand AOSP interfaces. Also,
+	// need the implementation for vendor extensions to be merged. For now, restrict
+	// where this can be defined
+	if !filepath.HasPrefix(mctx.ModuleDir(), "hardware/interfaces/") {
+		mctx.PropertyErrorf("stability", "can only be set in hardware/interfaces")
+	}
+}
+
 func (i *aidlInterface) versionedName(version string) string {
 	name := i.ModuleBase.Name()
 	if version != futureVersion && version != "" {
@@ -705,6 +724,7 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	i.properties.Full_import_paths = importPaths
 
 	i.checkImports(mctx)
+	i.checkStability(mctx)
 
 	if mctx.Failed() {
 		return
