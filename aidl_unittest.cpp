@@ -505,9 +505,9 @@ TEST_F(AidlTest, FailOnParcelable) {
 
   io_delegate_.SetFileContents("p/IBar.aidl", "package p; parcelable Foo; interface IBar{}");
 
-  // Regardless of '-b', a parcelable and an interface should fail.
+  // With '-b' option, a parcelable and an interface should fail.
   Options options3 = Options::From("aidl p/IBar.aidl");
-  EXPECT_NE(0, ::android::aidl::compile_aidl(options3, io_delegate_));
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options3, io_delegate_));
   Options options4 = Options::From("aidl -b p/IBar.aidl");
   EXPECT_NE(0, ::android::aidl::compile_aidl(options4, io_delegate_));
 }
