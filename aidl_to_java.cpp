@@ -21,7 +21,6 @@
 
 #include <android-base/strings.h>
 
-#include <cassert>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -127,7 +126,7 @@ string DefaultJavaValueOf(const AidlTypeSpecifier& aidl) {
       {"long", "0L"},       {"float", "0.0f"}, {"double", "0.0d"},
   };
   const string& name = aidl.GetName();
-  assert(name != "void");
+  CHECK(name != "void");
 
   if (!aidl.IsArray() && m.find(name) != m.end()) {
     CHECK(AidlTypenames::IsBuiltinTypename(name));
