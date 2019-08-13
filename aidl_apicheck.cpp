@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include <android-base/strings.h>
+
 namespace android {
 namespace aidl {
 
@@ -190,6 +192,8 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
     return false;
   }
   for (const auto& file : old_files) {
+    if (!android::base::EndsWith(file, ".aidl")) continue;
+
     vector<AidlDefinedType*> types;
     if (internals::load_and_validate_aidl(file, options, io_delegate, &old_ns, &types,
                                           nullptr /* imported_files */) != AidlError::OK) {
@@ -209,6 +213,8 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
     return false;
   }
   for (const auto& file : new_files) {
+    if (!android::base::EndsWith(file, ".aidl")) continue;
+
     vector<AidlDefinedType*> types;
     if (internals::load_and_validate_aidl(file, options, io_delegate, &new_ns, &types,
                                           nullptr /* imported_files */) != AidlError::OK) {
