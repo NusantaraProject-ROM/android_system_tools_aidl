@@ -479,7 +479,13 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
   if (main_parser == nullptr) {
     return AidlError::PARSE_ERROR;
   }
-  if (main_parser->GetDefinedTypes().size() != 1) {
+  int num_interfaces_or_structured_parcelables = 0;
+  for (AidlDefinedType* type : main_parser->GetDefinedTypes()) {
+    if (type->AsInterface() != nullptr || type->AsStructuredParcelable() != nullptr) {
+      num_interfaces_or_structured_parcelables++;
+    }
+  }
+  if (num_interfaces_or_structured_parcelables > 1) {
     AIDL_ERROR(input_file_name) << "You must declare only one type per a file.";
     return AidlError::BAD_TYPE;
   }
