@@ -305,6 +305,7 @@ bool check_and_assign_method_ids(const std::vector<std::unique_ptr<AidlMethod>>&
   set<int> usedIds;
   bool hasUnassignedIds = false;
   bool hasAssignedIds = false;
+  int newId = kMinUserSetMethodId;
   for (const auto& item : items) {
     // However, meta transactions that are added by the AIDL compiler are
     // exceptions. They have fixed IDs but allowed to be with user-defined
@@ -317,40 +318,34 @@ bool check_and_assign_method_ids(const std::vector<std::unique_ptr<AidlMethod>>&
     }
     if (item->HasId()) {
       hasAssignedIds = true;
-      // Ensure that the user set id is not duplicated.
-      if (usedIds.find(item->GetId()) != usedIds.end()) {
-        // We found a duplicate id, so throw an error.
-        AIDL_ERROR(item) << "Found duplicate method id (" << item->GetId() << ") for method "
-                         << item->GetName();
-        return false;
-      }
-      // Ensure that the user set id is within the appropriate limits
-      if (item->GetId() < kMinUserSetMethodId || item->GetId() > kMaxUserSetMethodId) {
-        AIDL_ERROR(item) << "Found out of bounds id (" << item->GetId() << ") for method "
-                         << item->GetName() << ". Value for id must be between "
-                         << kMinUserSetMethodId << " and " << kMaxUserSetMethodId << " inclusive.";
-        return false;
-      }
-      usedIds.insert(item->GetId());
     } else {
+      item->SetId(newId++);
       hasUnassignedIds = true;
     }
+
     if (hasAssignedIds && hasUnassignedIds) {
       AIDL_ERROR(item) << "You must either assign id's to all methods or to none of them.";
       return false;
     }
-  }
 
-  // In the case that all methods have unassigned id's, set a unique id for them.
-  if (hasUnassignedIds) {
-    int newId = kMinUserSetMethodId;
-    for (const auto& item : items) {
-      assert(newId <= kMaxUserSetMethoId);
-      if (item->IsUserDefined()) {
-        item->SetId(newId++);
-      }
+    // Ensure that the user set id is not duplicated.
+    if (usedIds.find(item->GetId()) != usedIds.end()) {
+      // We found a duplicate id, so throw an error.
+      AIDL_ERROR(item) << "Found duplicate method id (" << item->GetId() << ") for method "
+                       << item->GetName();
+      return false;
+    }
+    usedIds.insert(item->GetId());
+
+    // Ensure that the user set id is within the appropriate limits
+    if (item->GetId() < kMinUserSetMethodId || item->GetId() > kMaxUserSetMethodId) {
+      AIDL_ERROR(item) << "Found out of bounds id (" << item->GetId() << ") for method "
+                       << item->GetName() << ". Value for id must be between "
+                       << kMinUserSetMethodId << " and " << kMaxUserSetMethodId << " inclusive.";
+      return false;
     }
   }
+
   return true;
 }
 
