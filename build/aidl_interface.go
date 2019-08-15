@@ -673,6 +673,10 @@ func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 		return
 	}
 
+	if i.shouldGenerateJavaBackend() {
+		mctx.PropertyErrorf("stability", "Java backend does not yet support stability.")
+	}
+
 	// TODO(b/136027762): should we allow more types of stability (e.g. for APEX) or
 	// should we switch this flag to be something like "vintf { enabled: true }"
 	if *i.properties.Stability != "vintf" {
