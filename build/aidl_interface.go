@@ -20,11 +20,9 @@ import (
 	"android/soong/genrule"
 	"android/soong/java"
 	"android/soong/phony"
-
 	"fmt"
 	"io"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -72,10 +70,9 @@ var (
 
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
-			`${aidlCmd} --dumpapi --structured ${imports} --out ${outDir} ${in} && ` +
-			`(cd ${outDir} && find ./ -name "*.aidl" -exec ${sha1sum} {} ';' && echo ${latestVersion}) | ${sha1sum} > ${hashFile} `,
+			`${aidlCmd} --dumpapi --structured ${imports} --out ${outDir} ${in}`,
 		CommandDeps: []string{"${aidlCmd}"},
-	}, "imports", "outDir", "hashFile", "latestVersion", "sha1sum")
+	}, "imports", "outDir")
 
 	aidlDumpMappingsRule = pctx.StaticRule("aidlDumpMappingsRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
@@ -103,10 +100,10 @@ var (
 	}, "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
-		Command: `(diff -N --line-format="" ${oldHashFile} ${newHashFile} && diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
+		Command: `(diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
 			`(cat ${messageFile} && exit 1)`,
 		Description: "Check equality of ${new} and ${old}",
-	}, "old", "new", "messageFile", "oldHashFile", "newHashFile")
+	}, "old", "new", "messageFile")
 )
 
 func init() {
@@ -389,7 +386,7 @@ func (m *aidlApi) validateCurrentVersion(ctx android.ModuleContext) string {
 	}
 }
 
-func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir android.WritablePath, apiFiles android.WritablePaths, hashFile android.WritablePath) {
+func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir android.WritablePath, apiFiles android.WritablePaths) {
 	srcs := checkAndUpdateSources(ctx, m.properties.Srcs, m.properties.AidlRoot)
 
 	if ctx.Failed() {
@@ -407,29 +404,17 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 	for _, src := range srcs {
 		apiFiles = append(apiFiles, android.PathForModuleOut(ctx, "dump", src.Rel()))
 	}
-	hashFile = android.PathForModuleOut(ctx, "dump", ".hash")
-	latestVersion := "latest-version"
-	if len(m.properties.Versions) >= 1 {
-		latestVersion = m.properties.Versions[len(m.properties.Versions)-1]
-	}
 	imports := strings.Join(wrap("-I", importPaths, ""), " ")
-	sha1sum := "sha1sum"
-	if runtime.GOOS == "darwin" {
-		sha1sum = "shasum" // on Mac, we have shasum
-	}
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:    aidlDumpApiRule,
-		Outputs: append(apiFiles, hashFile),
+		Outputs: apiFiles,
 		Inputs:  srcs,
 		Args: map[string]string{
-			"imports":       imports,
-			"outDir":        apiDir.String(),
-			"hashFile":      hashFile.String(),
-			"latestVersion": latestVersion,
-			"sha1sum":       sha1sum,
+			"imports": imports,
+			"outDir":  apiDir.String(),
 		},
 	})
-	return apiDir, apiFiles, hashFile
+	return apiDir, apiFiles
 }
 
 func (m *aidlApi) freezeApiDumpAsVersion(ctx android.ModuleContext, apiDumpDir android.Path, apiFiles android.Paths, version string) android.WritablePath {
@@ -481,8 +466,7 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 	return timestampFile
 }
 
-func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Path, oldApiFiles android.Paths, oldHashFile android.OptionalPath,
-	newApiDir android.Path, newApiFiles android.Paths, newHashFile android.Path) android.WritablePath {
+func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Path, oldApiFiles android.Paths, newApiDir android.Path, newApiFiles android.Paths) android.WritablePath {
 	newVersion := newApiDir.Base()
 	timestampFile := android.PathForModuleOut(ctx, "checkapi_"+newVersion+".timestamp")
 	messageFile := android.PathForSource(ctx, "system/tools/aidl/build/message_check_equality.txt")
@@ -490,10 +474,6 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Pat
 	implicits = append(implicits, oldApiFiles...)
 	implicits = append(implicits, newApiFiles...)
 	implicits = append(implicits, messageFile)
-	if oldHashFile.Valid() {
-		implicits = append(implicits, oldHashFile.Path())
-	}
-	implicits = append(implicits, newHashFile)
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:      aidlDiffApiRule,
 		Implicits: implicits,
@@ -502,8 +482,6 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Pat
 			"old":         oldApiDir.String(),
 			"new":         newApiDir.String(),
 			"messageFile": messageFile.String(),
-			"oldHashFile": oldHashFile.String(),
-			"newHashFile": newHashFile.String(),
 		},
 	})
 	return timestampFile
@@ -511,7 +489,7 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldApiDir android.Pat
 
 func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	currentVersion := m.validateCurrentVersion(ctx)
-	currentDumpDir, currentApiFiles, currentHashFile := m.createApiDumpFromSource(ctx)
+	currentDumpDir, currentApiFiles := m.createApiDumpFromSource(ctx)
 
 	if ctx.Failed() {
 		return
@@ -545,9 +523,7 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		var checkApiTimestamp android.WritablePath
 		if ctx.Config().DefaultAppTargetSdkInt() != android.FutureApiLevel {
 			// If API is frozen, don't allow any change to the API
-			latestHashFile := android.OptionalPathForModuleSrc(ctx, proptools.StringPtr(filepath.Join(m.apiDir(), latestVersion, ".hash")))
-			checkApiTimestamp = m.checkEquality(ctx, apiDirs[latestVersion], apiFiles[latestVersion], latestHashFile,
-				apiDirs[currentVersion], apiFiles[currentVersion], currentHashFile)
+			checkApiTimestamp = m.checkEquality(ctx, apiDirs[latestVersion], apiFiles[latestVersion], apiDirs[currentVersion], apiFiles[currentVersion])
 		} else {
 			// If not, allow backwards compatible changes to the API
 			checkApiTimestamp = m.checkCompatibility(ctx, apiDirs[latestVersion], apiFiles[latestVersion], apiDirs[currentVersion], apiFiles[currentVersion])
