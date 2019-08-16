@@ -62,9 +62,6 @@ cc_library_static {
         "line_reader.cpp",
         "io_delegate.cpp",
         "options.cpp",
-        "type_cpp.cpp",
-        "type_java.cpp",
-        "type_namespace.cpp",
     ],
     yacc: {
         gen_location_hh: true,
@@ -124,8 +121,6 @@ cc_test {
         "tests/test_data_ping_responder.cpp",
         "tests/test_data_string_constants.cpp",
         "tests/test_util.cpp",
-        "type_cpp_unittest.cpp",
-        "type_java_unittest.cpp",
     ],
 
     static_libs: [
