@@ -17,6 +17,7 @@
 #include "aidl.h"
 #include "aidl_to_java.h"
 #include "generate_java.h"
+#include "logging.h"
 #include "options.h"
 
 #include <stdio.h>

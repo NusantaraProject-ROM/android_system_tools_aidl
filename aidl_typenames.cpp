@@ -81,6 +81,13 @@ static bool IsValidName(const string& name) {
   return true;
 }
 
+bool AidlTypenames::IsIgnorableImport(const string& import) const {
+  static set<string> ignore_import = {"android.os.IInterface",   "android.os.IBinder",
+                                      "android.os.Parcelable",   "android.os.Parcel",
+                                      "android.content.Context", "java.lang.String"};
+  return ResolveTypename(import).second || ignore_import.find(import) != ignore_import.end();
+}
+
 bool AidlTypenames::AddDefinedType(unique_ptr<AidlDefinedType> type) {
   const string name = type->GetCanonicalName();
   if (defined_types_.find(name) != defined_types_.end()) {

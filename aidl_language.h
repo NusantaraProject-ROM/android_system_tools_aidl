@@ -3,6 +3,7 @@
 #include "aidl_typenames.h"
 #include "code_writer.h"
 #include "io_delegate.h"
+#include "options.h"
 
 #include <memory>
 #include <string>
@@ -16,11 +17,11 @@ typedef yy_buffer_state* YY_BUFFER_STATE;
 
 using android::aidl::AidlTypenames;
 using android::aidl::CodeWriter;
+using android::aidl::Options;
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-
 class AidlNode;
 
 namespace android {
@@ -257,6 +258,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   bool Resolve(android::aidl::AidlTypenames& typenames);
 
   bool CheckValid(const AidlTypenames& typenames) const;
+  bool LanguageSpecificCheckValid(Options::Language lang) const;
 
   void SetLanguageType(const android::aidl::ValidatableType* language_type) {
     language_type_ = language_type;
@@ -536,7 +538,7 @@ class AidlDefinedType : public AidlAnnotatable {
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
   virtual bool CheckValid(const AidlTypenames&) const { return CheckValidAnnotations(); }
-
+  virtual bool LanguageSpecificCheckValid(Options::Language lang) const = 0;
   AidlStructuredParcelable* AsStructuredParcelable() {
     return const_cast<AidlStructuredParcelable*>(
         const_cast<const AidlDefinedType*>(this)->AsStructuredParcelable());
@@ -589,7 +591,7 @@ class AidlParcelable : public AidlDefinedType {
   std::string GetCppHeader() const { return cpp_header_; }
 
   bool CheckValid(const AidlTypenames& typenames) const override;
-
+  bool LanguageSpecificCheckValid(Options::Language lang) const override;
   const AidlParcelable* AsParcelable() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
 
@@ -618,6 +620,7 @@ class AidlStructuredParcelable : public AidlParcelable {
   void Write(CodeWriter* writer) const override;
 
   bool CheckValid(const AidlTypenames& typenames) const override;
+  bool LanguageSpecificCheckValid(Options::Language lang) const override;
 
  private:
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
@@ -645,6 +648,7 @@ class AidlInterface final : public AidlDefinedType {
   void Write(CodeWriter* writer) const override;
 
   bool CheckValid(const AidlTypenames& typenames) const override;
+  bool LanguageSpecificCheckValid(Options::Language lang) const override;
 
  private:
   std::vector<std::unique_ptr<AidlMethod>> methods_;
