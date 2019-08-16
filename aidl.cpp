@@ -528,13 +528,8 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     CHECK(defined_type != nullptr);
 
     // Language specific validation
-    AidlError check_result = AidlError::OK;
     if (!defined_type->LanguageSpecificCheckValid(options.TargetLanguage())) {
       return AidlError::BAD_TYPE;
-    }
-
-    if (check_result != AidlError::OK) {
-      return check_result;
     }
 
     AidlParcelable* unstructuredParcelable = defined_type->AsUnstructuredParcelable();
