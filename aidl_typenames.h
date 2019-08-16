@@ -58,7 +58,7 @@ class AidlTypenames final {
   const AidlDefinedType* TryGetDefinedType(const string& type_name) const;
   pair<string, bool> ResolveTypename(const string& type_name) const;
   bool CanBeOutParameter(const AidlTypeSpecifier& type) const;
-
+  bool IsIgnorableImport(const string& import) const;
   // Iterates over all defined and then preprocessed types
   void IterateTypes(const std::function<void(const AidlDefinedType&)>& body) const;
 

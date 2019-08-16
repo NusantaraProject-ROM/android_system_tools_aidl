@@ -27,7 +27,6 @@
 #include "os.h"
 #include "tests/fake_io_delegate.h"
 #include "tests/test_util.h"
-#include "type_cpp.h"
 
 using ::android::aidl::test::FakeIoDelegate;
 using ::android::base::StringPrintf;
@@ -1385,7 +1384,6 @@ class ASTTest : public ::testing::Test {
  protected:
   ASTTest(const string& cmdline, const string& file_contents)
       : options_(Options::From(cmdline)), file_contents_(file_contents) {
-    types_.Init();
   }
 
   AidlInterface* ParseSingleInterface() {
@@ -1395,7 +1393,7 @@ class ASTTest : public ::testing::Test {
     vector<string> imported_files;
     ImportResolver import_resolver{io_delegate_, options_.InputFiles().at(0), {"."}, {}};
     AidlError err = ::android::aidl::internals::load_and_validate_aidl(
-        options_.InputFiles().front(), options_, io_delegate_, &types_, &defined_types,
+        options_.InputFiles().front(), options_, io_delegate_, &typenames_, &defined_types,
         &imported_files);
 
     if (err != AidlError::OK) {
@@ -1423,7 +1421,7 @@ class ASTTest : public ::testing::Test {
   const Options options_;
   const string file_contents_;
   FakeIoDelegate io_delegate_;
-  TypeNamespace types_;
+  AidlTypenames typenames_;
 };
 
 class ComplexTypeInterfaceASTTest : public ASTTest {
@@ -1439,44 +1437,42 @@ class ComplexTypeInterfaceASTTest : public ASTTest {
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesClientHeader) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildClientHeader(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildClientHeader(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeClientHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesClientSource) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildClientSource(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildClientSource(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeClientSourceOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesServerHeader) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildServerHeader(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildServerHeader(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeServerHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesServerSource) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildServerSource(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildServerSource(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeServerSourceOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesInterfaceHeader) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc =
-      internals::BuildInterfaceHeader(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildInterfaceHeader(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeInterfaceHeaderOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTest, GeneratesInterfaceSource) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc =
-      internals::BuildInterfaceSource(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildInterfaceSource(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeInterfaceSourceOutput);
 }
 
@@ -1492,14 +1488,14 @@ class ComplexTypeInterfaceASTTestWithTrace : public ASTTest {
 TEST_F(ComplexTypeInterfaceASTTestWithTrace, GeneratesClientSource) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildClientSource(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildClientSource(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeClientWithTraceSourceOutput);
 }
 
 TEST_F(ComplexTypeInterfaceASTTestWithTrace, GeneratesServerSource) {
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  unique_ptr<Document> doc = internals::BuildServerSource(types_.typenames_, *interface, options_);
+  unique_ptr<Document> doc = internals::BuildServerSource(typenames_, *interface, options_);
   Compare(doc.get(), kExpectedComplexTypeServerWithTraceSourceOutput);
 }
 
@@ -1523,8 +1519,7 @@ TEST_F(IoErrorHandlingTest, GenerateCorrectlyAbsentErrors) {
   // Confirm that this is working correctly without I/O problems.
   AidlInterface* interface = ParseSingleInterface();
   ASSERT_NE(interface, nullptr);
-  ASSERT_TRUE(
-      GenerateCpp(options_.OutputFile(), options_, types_.typenames_, *interface, io_delegate_));
+  ASSERT_TRUE(GenerateCpp(options_.OutputFile(), options_, typenames_, *interface, io_delegate_));
 }
 
 TEST_F(IoErrorHandlingTest, HandlesBadHeaderWrite) {
@@ -1537,8 +1532,7 @@ TEST_F(IoErrorHandlingTest, HandlesBadHeaderWrite) {
       StringPrintf("%s%c%s", kHeaderDir, OS_PATH_SEPARATOR,
                    kInterfaceHeaderRelPath);
   io_delegate_.AddBrokenFilePath(header_path);
-  ASSERT_FALSE(
-      GenerateCpp(options_.OutputFile(), options_, types_.typenames_, *interface, io_delegate_));
+  ASSERT_FALSE(GenerateCpp(options_.OutputFile(), options_, typenames_, *interface, io_delegate_));
   // We should never attempt to write the C++ file if we fail writing headers.
   ASSERT_FALSE(io_delegate_.GetWrittenContents(kOutputPath, nullptr));
   // We should remove partial results.
@@ -1552,8 +1546,7 @@ TEST_F(IoErrorHandlingTest, HandlesBadCppWrite) {
 
   // Simulate issues closing the cpp file.
   io_delegate_.AddBrokenFilePath(kOutputPath);
-  ASSERT_FALSE(
-      GenerateCpp(options_.OutputFile(), options_, types_.typenames_, *interface, io_delegate_));
+  ASSERT_FALSE(GenerateCpp(options_.OutputFile(), options_, typenames_, *interface, io_delegate_));
   // We should remove partial results.
   ASSERT_TRUE(io_delegate_.PathWasRemoved(kOutputPath));
 }

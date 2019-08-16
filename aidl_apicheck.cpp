@@ -16,8 +16,8 @@
 #include "aidl.h"
 #include "aidl_language.h"
 #include "import_resolver.h"
+#include "logging.h"
 #include "options.h"
-#include "type_java.h"
 
 #include <map>
 #include <string>
@@ -179,9 +179,7 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
   CHECK(options.IsStructured());
   CHECK(options.InputFiles().size() == 2) << "--checkapi requires two inputs "
                                           << "but got " << options.InputFiles().size();
-
-  java::JavaTypeNamespace old_ns;
-  old_ns.Init();
+  AidlTypenames old_tns;
   const string old_dir = options.InputFiles().at(0);
   vector<AidlDefinedType*> old_types;
   vector<string> old_files = io_delegate.ListFiles(old_dir);
@@ -191,7 +189,7 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
   }
   for (const auto& file : old_files) {
     vector<AidlDefinedType*> types;
-    if (internals::load_and_validate_aidl(file, options, io_delegate, &old_ns, &types,
+    if (internals::load_and_validate_aidl(file, options, io_delegate, &old_tns, &types,
                                           nullptr /* imported_files */) != AidlError::OK) {
       AIDL_ERROR(file) << "Failed to read.";
       return false;
@@ -199,8 +197,7 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
     old_types.insert(old_types.end(), types.begin(), types.end());
   }
 
-  java::JavaTypeNamespace new_ns;
-  new_ns.Init();
+  AidlTypenames new_tns;
   const string new_dir = options.InputFiles().at(1);
   vector<AidlDefinedType*> new_types;
   vector<string> new_files = io_delegate.ListFiles(new_dir);
@@ -210,7 +207,7 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
   }
   for (const auto& file : new_files) {
     vector<AidlDefinedType*> types;
-    if (internals::load_and_validate_aidl(file, options, io_delegate, &new_ns, &types,
+    if (internals::load_and_validate_aidl(file, options, io_delegate, &new_tns, &types,
                                           nullptr /* imported_files */) != AidlError::OK) {
       AIDL_ERROR(file) << "Failed to read.";
       return false;

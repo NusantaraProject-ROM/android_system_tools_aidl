@@ -17,7 +17,6 @@
 
 #include "aidl_language_y.h"
 #include "logging.h"
-#include "type_namespace.h"
 
 #ifdef _WIN32
 int isatty(int  fd)
@@ -36,6 +35,22 @@ using std::set;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+
+namespace {
+bool is_java_keyword(const char* str) {
+  static const std::vector<std::string> kJavaKeywords{
+      "abstract", "assert", "boolean",    "break",     "byte",       "case",      "catch",
+      "char",     "class",  "const",      "continue",  "default",    "do",        "double",
+      "else",     "enum",   "extends",    "final",     "finally",    "float",     "for",
+      "goto",     "if",     "implements", "import",    "instanceof", "int",       "interface",
+      "long",     "native", "new",        "package",   "private",    "protected", "public",
+      "return",   "short",  "static",     "strictfp",  "super",      "switch",    "synchronized",
+      "this",     "throw",  "throws",     "transient", "try",        "void",      "volatile",
+      "while",    "true",   "false",      "null",
+  };
+  return std::find(kJavaKeywords.begin(), kJavaKeywords.end(), str) != kJavaKeywords.end();
+}
+}  // namespace
 
 void yylex_init(void **);
 void yylex_destroy(void *);
@@ -780,6 +795,88 @@ bool AidlStructuredParcelable::CheckValid(const AidlTypenames& typenames) const 
   return true;
 }
 
+// TODO: we should treat every backend all the same in future.
+bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const {
+  if (lang == Options::Language::CPP) {
+    if (this->GetName() == "List" && !this->IsGeneric()) {
+      AIDL_ERROR(this) << "List without type isn't supported in cpp.";
+      return false;
+    }
+  }
+  if (this->IsGeneric()) {
+    if (this->GetName() == "List") {
+      if (this->GetTypeParameters().size() != 1) {
+        AIDL_ERROR(this) << "List must have only one type parameter.";
+        return false;
+      }
+      if (lang == Options::Language::CPP) {
+        auto& name = this->GetTypeParameters()[0]->GetName();
+        if (!(name == "String" || name == "IBinder")) {
+          AIDL_ERROR(this) << "List in cpp supports only string and IBinder for now.";
+          return false;
+        }
+      } else if (lang == Options::Language::NDK) {
+        AIDL_ERROR(this) << "NDK backend does not support List yet.";
+        return false;
+      }
+
+    } else if (this->GetName() == "Map") {
+      if (lang != Options::Language::JAVA) {
+        AIDL_ERROR(this) << "Currently, only Java backend supports Map.";
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// TODO: we should treat every backend all the same in future.
+bool AidlParcelable::LanguageSpecificCheckValid(Options::Language lang) const {
+  if (lang != Options::Language::JAVA) {
+    if (this->IsStableParcelable()) {
+      AIDL_ERROR(this) << "@JavaOnlyStableParcelable supports only Java target.";
+      return false;
+    }
+    const AidlParcelable* unstructuredParcelable = this->AsUnstructuredParcelable();
+    if (unstructuredParcelable != nullptr) {
+      if (unstructuredParcelable->GetCppHeader().empty()) {
+        AIDL_ERROR(unstructuredParcelable)
+            << "Unstructured parcelable must have C++ header defined.";
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// TODO: we should treat every backend all the same in future.
+bool AidlStructuredParcelable::LanguageSpecificCheckValid(Options::Language lang) const {
+  if (!AidlParcelable::LanguageSpecificCheckValid(lang)) {
+    return false;
+  }
+  for (const auto& v : this->GetFields()) {
+    if (!v->GetType().LanguageSpecificCheckValid(lang)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// TODO: we should treat every backend all the same in future.
+bool AidlInterface::LanguageSpecificCheckValid(Options::Language lang) const {
+  for (const auto& m : this->GetMethods()) {
+    if (!m->GetType().LanguageSpecificCheckValid(lang)) {
+      return false;
+    }
+    for (const auto& arg : m->GetArguments()) {
+      if (!arg->GetType().LanguageSpecificCheckValid(lang)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 AidlInterface::AidlInterface(const AidlLocation& location, const std::string& name,
                              const std::string& comments, bool oneway,
                              std::vector<std::unique_ptr<AidlMember>>* members,
@@ -850,6 +947,29 @@ bool AidlInterface::CheckValid(const AidlTypenames& typenames) const {
 
       if (m->IsOneway() && arg->IsOut()) {
         AIDL_ERROR(m) << "oneway method '" << m->GetName() << "' cannot have out parameters";
+        return false;
+      }
+      const bool can_be_out = typenames.CanBeOutParameter(arg->GetType());
+      if (!arg->DirectionWasSpecified() && can_be_out) {
+        AIDL_ERROR(arg) << "'" << arg->GetType().ToString()
+                        << "' can be an out type, so you must declare it as in, out, or inout.";
+        return false;
+      }
+
+      if (arg->GetDirection() != AidlArgument::IN_DIR && !can_be_out) {
+        AIDL_ERROR(arg) << "'" << arg->ToString() << "' can only be an in parameter.";
+        return false;
+      }
+
+      // check that the name doesn't match a keyword
+      if (is_java_keyword(arg->GetName().c_str())) {
+        AIDL_ERROR(arg) << "Argument name is a Java or aidl keyword";
+        return false;
+      }
+
+      // Reserve a namespace for internal use
+      if (android::base::StartsWith(arg->GetName(), "_aidl")) {
+        AIDL_ERROR(arg) << "Argument name cannot begin with '_aidl'";
         return false;
       }
     }
