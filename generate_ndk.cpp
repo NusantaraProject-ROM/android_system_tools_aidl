@@ -113,7 +113,8 @@ void GenerateNdk(const string& output_file, const Options& options, const AidlTy
     return;
   }
 
-  CHECK(false) << "Unrecognized type sent for cpp generation.";
+  // TODO(b/123321528): Generate enums.
+  CHECK(false) << "Unrecognized type sent for NDK cpp generation.";
 }
 namespace internals {
 

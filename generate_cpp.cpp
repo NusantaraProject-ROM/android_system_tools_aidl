@@ -260,7 +260,7 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
 
   for (const auto& a: method.GetArguments()) {
     string var_name = ((a->IsOut()) ? "*" : "") + a->GetName();
-    var_name = CastOf(a->GetType(), typenames, var_name);
+    var_name = ParcelWriteCastOf(a->GetType(), typenames, var_name);
 
     if (a->IsIn()) {
       // Serialization looks roughly like:
@@ -269,8 +269,7 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
       const string& method = ParcelWriteMethodOf(a->GetType(), typenames);
       b->AddStatement(new Assignment(
           kAndroidStatusVarName,
-          new MethodCall(StringPrintf("%s.%s", kDataVarName, method.c_str()),
-                         ArgList(var_name))));
+          new MethodCall(StringPrintf("%s.%s", kDataVarName, method.c_str()), var_name)));
       b->AddStatement(GotoErrorOnBadStatus());
     } else if (a->IsOut() && a->GetType().IsArray()) {
       // Special case, the length of the out array is written into the parcel.
@@ -278,8 +277,7 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
       //     if (_aidl_ret_status != ::android::OK) { goto error; }
       b->AddStatement(new Assignment(
           kAndroidStatusVarName,
-          new MethodCall(StringPrintf("%s.writeVectorSize", kDataVarName),
-                         ArgList(var_name))));
+          new MethodCall(StringPrintf("%s.writeVectorSize", kDataVarName), var_name)));
       b->AddStatement(GotoErrorOnBadStatus());
     }
   }
@@ -342,9 +340,8 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
     const string& method_call = ParcelReadMethodOf(method.GetType(), typenames);
     b->AddStatement(new Assignment(
         kAndroidStatusVarName,
-        new MethodCall(StringPrintf("%s.%s", kReplyVarName,
-                                    method_call.c_str()),
-                       ArgList(kReturnVarName))));
+        new MethodCall(StringPrintf("%s.%s", kReplyVarName, method_call.c_str()),
+                       ParcelReadCastOf(method.GetType(), typenames, kReturnVarName))));
     b->AddStatement(GotoErrorOnBadStatus());
   }
 
@@ -354,11 +351,10 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
     //     if (_aidl_status != ::android::OK) { goto _aidl_error; }
     string method = ParcelReadMethodOf(a->GetType(), typenames);
 
-    b->AddStatement(new Assignment(
-        kAndroidStatusVarName,
-        new MethodCall(StringPrintf("%s.%s", kReplyVarName,
-                                    method.c_str()),
-                       ArgList(a->GetName()))));
+    b->AddStatement(
+        new Assignment(kAndroidStatusVarName,
+                       new MethodCall(StringPrintf("%s.%s", kReplyVarName, method.c_str()),
+                                      ParcelReadCastOf(a->GetType(), typenames, a->GetName()))));
     b->AddStatement(GotoErrorOnBadStatus());
   }
 
@@ -502,22 +498,20 @@ bool HandleServerTransaction(const AidlTypenames& typenames, const AidlInterface
     // Deserialization looks roughly like:
     //     _aidl_ret_status = _aidl_data.ReadInt32(&in_param_name);
     //     if (_aidl_ret_status != ::android::OK) { break; }
-    const string& readMethod = ParcelReadMethodOf(a->GetType(), typenames);
-
+    const string& var_name = ParcelReadCastOf(a->GetType(), typenames, "&" + BuildVarName(*a));
     if (a->IsIn()) {
-      b->AddStatement(new Assignment{
-          kAndroidStatusVarName,
-          new MethodCall{string(kDataVarName) + "." + readMethod,
-                         "&" + BuildVarName(*a)}});
+      const string& readMethod = ParcelReadMethodOf(a->GetType(), typenames);
+      b->AddStatement(
+          new Assignment{kAndroidStatusVarName,
+                         new MethodCall{string(kDataVarName) + "." + readMethod, var_name}});
       b->AddStatement(BreakOnStatusNotOk());
     } else if (a->IsOut() && a->GetType().IsArray()) {
       // Special case, the length of the out array is written into the parcel.
       //     _aidl_ret_status = _aidl_data.resizeOutVector(&out_param_name);
       //     if (_aidl_ret_status != ::android::OK) { break; }
-      b->AddStatement(new Assignment{
-          kAndroidStatusVarName,
-          new MethodCall{string(kDataVarName) + ".resizeOutVector",
-                         "&" + BuildVarName(*a)}});
+      b->AddStatement(
+          new Assignment{kAndroidStatusVarName,
+                         new MethodCall{string(kDataVarName) + ".resizeOutVector", var_name}});
       b->AddStatement(BreakOnStatusNotOk());
     }
   }
@@ -569,9 +563,10 @@ bool HandleServerTransaction(const AidlTypenames& typenames, const AidlInterface
   if (method.GetType().GetName() != "void") {
     string writeMethod =
         string(kReplyVarName) + "->" + ParcelWriteMethodOf(method.GetType(), typenames);
-    b->AddStatement(new Assignment{
+    b->AddStatement(new Assignment(
         kAndroidStatusVarName,
-        new MethodCall{writeMethod, ArgList{CastOf(method.GetType(), typenames, kReturnVarName)}}});
+        new MethodCall(writeMethod,
+                       ParcelWriteCastOf(method.GetType(), typenames, kReturnVarName))));
     b->AddStatement(BreakOnStatusNotOk());
   }
   // Write each out parameter to the reply parcel.
@@ -580,9 +575,10 @@ bool HandleServerTransaction(const AidlTypenames& typenames, const AidlInterface
     //     _aidl_ret_status = data.WriteInt32(out_param_name);
     //     if (_aidl_ret_status != ::android::OK) { break; }
     const string& writeMethod = ParcelWriteMethodOf(a->GetType(), typenames);
-    b->AddStatement(new Assignment{
-        kAndroidStatusVarName, new MethodCall{string(kReplyVarName) + "->" + writeMethod,
-                                              CastOf(a->GetType(), typenames, BuildVarName(*a))}});
+    b->AddStatement(new Assignment(
+        kAndroidStatusVarName,
+        new MethodCall(string(kReplyVarName) + "->" + writeMethod,
+                       ParcelWriteCastOf(a->GetType(), typenames, BuildVarName(*a)))));
     b->AddStatement(BreakOnStatusNotOk());
   }
 
@@ -918,7 +914,7 @@ unique_ptr<Document> BuildInterfaceHeader(const AidlTypenames& typenames,
   }
 
   std::vector<std::unique_ptr<Declaration>> string_constants;
-  unique_ptr<Enum> int_constant_enum{new Enum{"", "int32_t"}};
+  unique_ptr<Enum> int_constant_enum{new Enum{"", "int32_t", false}};
   for (const auto& constant : interface.GetConstantDeclarations()) {
     const AidlConstantValue& value = constant->GetValue();
 
@@ -1054,7 +1050,8 @@ std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
 
     read_block->AddStatement(new Assignment(
         kAndroidStatusVarName, new MethodCall(StringPrintf("_aidl_parcel->%s", method.c_str()),
-                                              ArgList("&" + variable->GetName()))));
+                                              ParcelReadCastOf(variable->GetType(), typenames,
+                                                               "&" + variable->GetName()))));
     read_block->AddStatement(ReturnOnStatusNotOk());
     read_block->AddLiteral(StringPrintf(
         "if (_aidl_parcel->dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) {\n"
@@ -1079,8 +1076,9 @@ std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
   for (const auto& variable : parcel.GetFields()) {
     string method = ParcelWriteMethodOf(variable->GetType(), typenames);
     write_block->AddStatement(new Assignment(
-        kAndroidStatusVarName, new MethodCall(StringPrintf("_aidl_parcel->%s", method.c_str()),
-                                              ArgList(variable->GetName()))));
+        kAndroidStatusVarName,
+        new MethodCall(StringPrintf("_aidl_parcel->%s", method.c_str()),
+                       ParcelWriteCastOf(variable->GetType(), typenames, variable->GetName()))));
     write_block->AddStatement(ReturnOnStatusNotOk());
   }
 
@@ -1101,6 +1099,25 @@ std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
   return unique_ptr<Document>{
       new CppSource{vector<string>(includes.begin(), includes.end()),
                     NestInNamespaces(std::move(file_decls), parcel.GetSplitPackage())}};
+}
+
+std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
+                                          const AidlEnumDeclaration& enum_decl) {
+  unique_ptr<Enum> generated_enum{
+      new Enum{enum_decl.GetName(), CppNameOf(enum_decl.GetBackingType(), typenames), true}};
+  for (const auto& enumerator : enum_decl.GetEnumerators()) {
+    generated_enum->AddValue(
+        enumerator->GetName(),
+        enumerator->ValueString(enum_decl.GetBackingType(), ConstantValueDecorator));
+  }
+
+  set<string> includes = {};
+  AddHeaders(enum_decl.GetBackingType(), typenames, includes);
+
+  return unique_ptr<Document>{
+      new CppHeader{BuildHeaderGuard(enum_decl, ClassNames::BASE),
+                    vector<string>(includes.begin(), includes.end()),
+                    NestInNamespaces(std::move(generated_enum), enum_decl.GetSplitPackage())}};
 }
 
 bool WriteHeader(const Options& options, const AidlTypenames& typenames,
@@ -1228,6 +1245,35 @@ bool GenerateCppParcelDeclaration(const std::string& filename, const Options& op
   return true;
 }
 
+bool GenerateCppEnumDeclaration(const std::string& filename, const Options& options,
+                                const AidlTypenames& typenames,
+                                const AidlEnumDeclaration& enum_decl,
+                                const IoDelegate& io_delegate) {
+  auto header = BuildEnumHeader(typenames, enum_decl);
+  if (!header) return false;
+
+  const string header_path = options.OutputHeaderDir() + HeaderFile(enum_decl, ClassNames::RAW);
+  unique_ptr<CodeWriter> header_writer(io_delegate.GetCodeWriter(header_path));
+  header->Write(header_writer.get());
+  CHECK(header_writer->Close());
+
+  // TODO(b/111362593): no unnecessary files just to have consistent output with interfaces
+  CodeWriterPtr source_writer = io_delegate.GetCodeWriter(filename);
+  *source_writer
+      << "// This file is intentionally left blank as placeholder for enum declaration.\n";
+  CHECK(source_writer->Close());
+  const string bp_header = options.OutputHeaderDir() + HeaderFile(enum_decl, ClassNames::CLIENT);
+  unique_ptr<CodeWriter> bp_writer(io_delegate.GetCodeWriter(bp_header));
+  bp_writer->Write("#error TODO(b/111362593) enums do not have bp classes");
+  CHECK(bp_writer->Close());
+  const string bn_header = options.OutputHeaderDir() + HeaderFile(enum_decl, ClassNames::SERVER);
+  unique_ptr<CodeWriter> bn_writer(io_delegate.GetCodeWriter(bn_header));
+  bn_writer->Write("#error TODO(b/111362593) enums do not have bn classes");
+  CHECK(bn_writer->Close());
+
+  return true;
+}
+
 bool GenerateCpp(const string& output_file, const Options& options, const AidlTypenames& typenames,
                  const AidlDefinedType& defined_type, const IoDelegate& io_delegate) {
   const AidlStructuredParcelable* parcelable = defined_type.AsStructuredParcelable();
@@ -1238,6 +1284,11 @@ bool GenerateCpp(const string& output_file, const Options& options, const AidlTy
   const AidlParcelable* parcelable_decl = defined_type.AsParcelable();
   if (parcelable_decl != nullptr) {
     return GenerateCppParcelDeclaration(output_file, options, *parcelable_decl, io_delegate);
+  }
+
+  const AidlEnumDeclaration* enum_decl = defined_type.AsEnumDeclaration();
+  if (enum_decl != nullptr) {
+    return GenerateCppEnumDeclaration(output_file, options, typenames, *enum_decl, io_delegate);
   }
 
   const AidlInterface* interface = defined_type.AsInterface();
