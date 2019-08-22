@@ -89,11 +89,9 @@ struct StringLiteralExpression : public Expression {
 struct Variable : public Expression {
   const std::string type;
   std::string name;
-  int dimension = 0;
 
   Variable() = default;
   Variable(const std::string& type, const std::string& name);
-  Variable(const std::string& type, const std::string& name, int dimension);
   virtual ~Variable() = default;
 
   void WriteDeclaration(CodeWriter* to) const;
@@ -298,7 +296,6 @@ struct Method : public ClassElement {
   std::vector<std::string> annotations;
   int modifiers = 0;
   std::optional<std::string> returnType = std::nullopt;  // nullopt means constructor
-  size_t returnTypeDimension = 0;
   std::string name;
   std::vector<Variable*> parameters;
   std::vector<std::string> exceptions;
