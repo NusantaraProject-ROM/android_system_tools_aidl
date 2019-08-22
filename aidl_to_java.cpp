@@ -63,8 +63,6 @@ const string& JavaNameOf(const AidlTypeSpecifier& aidl, bool instantiable = fals
     if (instantiable_m.find(aidl_name) != instantiable_m.end()) {
       return instantiable_m[aidl_name];
     }
-    CHECK(!AidlTypenames::IsBuiltinTypename(aidl_name));
-    return aidl_name;
   }
 
   // map from AIDL built-in type name to the corresponding Java type name
@@ -113,7 +111,7 @@ string JavaSignatureOfInternal(const AidlTypeSpecifier& aidl, bool instantiable,
 }  // namespace
 
 string JavaSignatureOf(const AidlTypeSpecifier& aidl) {
-  return JavaSignatureOfInternal(aidl, false, true);
+  return JavaSignatureOfInternal(aidl, false, false);
 }
 
 string InstantiableJavaSignatureOf(const AidlTypeSpecifier& aidl) {
