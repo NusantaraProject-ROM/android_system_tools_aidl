@@ -105,16 +105,10 @@ void StringLiteralExpression::Write(CodeWriter* to) const {
   to->Write("\"%s\"", this->value.c_str());
 }
 
-Variable::Variable(const string& t, const string& n) : type(t), name(n), dimension(0) {}
-
-Variable::Variable(const string& t, const string& n, int d) : type(t), name(n), dimension(d) {}
+Variable::Variable(const string& t, const string& n) : type(t), name(n) {}
 
 void Variable::WriteDeclaration(CodeWriter* to) const {
-  string dim;
-  for (int i = 0; i < this->dimension; i++) {
-    dim += "[]";
-  }
-  to->Write("%s%s %s", this->type.c_str(), dim.c_str(), this->name.c_str());
+  to->Write("%s %s", this->type.c_str(), this->name.c_str());
 }
 
 void Variable::Write(CodeWriter* to) const { to->Write("%s", name.c_str()); }
@@ -366,11 +360,7 @@ void Method::Write(CodeWriter* to) const {
                  SCOPE_MASK | STATIC | ABSTRACT | FINAL | OVERRIDE);
 
   if (this->returnType) {
-    string dim;
-    for (i = 0; i < this->returnTypeDimension; i++) {
-      dim += "[]";
-    }
-    to->Write("%s%s ", this->returnType->c_str(), dim.c_str());
+    to->Write("%s ", this->returnType->c_str());
   }
 
   to->Write("%s(", this->name.c_str());

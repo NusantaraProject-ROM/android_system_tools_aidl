@@ -39,7 +39,7 @@ SignatureMap generate_mappings(const AidlDefinedType* defined_type) {
       signature << interface->GetCanonicalName() << "|";
       signature << method->GetName() << "|";
       for (const auto& arg : method->GetArguments()) {
-        signature << arg->GetType().ToString() << ",";
+        signature << java::JavaSignatureOf(arg->GetType()) << ",";
       }
       signature << "|";
       signature << java::JavaSignatureOf(method->GetType());
