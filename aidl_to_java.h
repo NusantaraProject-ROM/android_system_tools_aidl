@@ -42,7 +42,7 @@ using std::vector;
 std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
 
 // Returns the Java type signature of the AIDL type spec
-// This includes generic type parameters, but excludes array modifiers.
+// This includes generic type parameters with array modifiers.
 string JavaSignatureOf(const AidlTypeSpecifier& aidl);
 
 // Returns the instantiable Jva type signature of the AIDL type spec

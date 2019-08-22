@@ -352,7 +352,7 @@ static void generate_new_array(const AidlTypeSpecifier& type, StatementBlock* ad
   lencheck->statements->Add(new Assignment(v, NULL_VALUE));
   lencheck->elseif = new IfStatement();
   lencheck->elseif->statements->Add(
-      new Assignment(v, new NewArrayExpression(JavaSignatureOf(type), len)));
+      new Assignment(v, new NewArrayExpression(InstantiableJavaSignatureOf(type), len)));
   addTo->Add(lencheck);
 }
 
@@ -391,13 +391,11 @@ static std::unique_ptr<Method> generate_interface_method(const AidlMethod& metho
   decl->comment = method.GetComments();
   decl->modifiers = PUBLIC;
   decl->returnType = JavaSignatureOf(method.GetType());
-  decl->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   decl->name = method.GetName();
   decl->annotations = generate_java_annotations(method.GetType());
 
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
-    decl->parameters.push_back(new Variable(JavaSignatureOf(arg->GetType()), arg->GetName(),
-                                            arg->GetType().IsArray() ? 1 : 0));
+    decl->parameters.push_back(new Variable(JavaSignatureOf(arg->GetType()), arg->GetName()));
   }
 
   decl->exceptions.push_back("android.os.RemoteException");
@@ -425,7 +423,6 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
     bool is_classloader_created = false;
     for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
       Variable* v = stubArgs.Get(arg->GetType());
-      v->dimension = arg->GetType().IsArray() ? 1 : 0;
 
       statements->Add(new VariableDeclaration(v));
 
@@ -487,8 +484,7 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
       statements->Add(ex);
     }
   } else {
-    Variable* _result = new Variable(JavaSignatureOf(method.GetType()), "_result",
-                                     method.GetType().IsArray() ? 1 : 0);
+    Variable* _result = new Variable(JavaSignatureOf(method.GetType()), "_result");
     if (options.GenTraces()) {
       statements->Add(new VariableDeclaration(_result));
       statements->Add(tryStatement);
@@ -581,12 +577,10 @@ static std::unique_ptr<Method> generate_proxy_method(
   proxy->comment = method.GetComments();
   proxy->modifiers = PUBLIC | OVERRIDE;
   proxy->returnType = JavaSignatureOf(method.GetType());
-  proxy->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   proxy->name = method.GetName();
   proxy->statements = new StatementBlock;
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
-    proxy->parameters.push_back(new Variable(JavaSignatureOf(arg->GetType()), arg->GetName(),
-                                             arg->GetType().IsArray() ? 1 : 0));
+    proxy->parameters.push_back(new Variable(JavaSignatureOf(arg->GetType()), arg->GetName()));
   }
   proxy->exceptions.push_back("android.os.RemoteException");
 
@@ -604,7 +598,7 @@ static std::unique_ptr<Method> generate_proxy_method(
   // the return value
   Variable* _result = nullptr;
   if (method.GetType().GetName() != "void") {
-    _result = new Variable(*proxy->returnType, "_result", method.GetType().IsArray() ? 1 : 0);
+    _result = new Variable(*proxy->returnType, "_result");
     proxy->statements->Add(new VariableDeclaration(_result));
   }
 
@@ -629,8 +623,7 @@ static std::unique_ptr<Method> generate_proxy_method(
 
   // the parameters
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
-    Variable* v = new Variable(JavaSignatureOf(arg->GetType()), arg->GetName(),
-                               arg->GetType().IsArray() ? 1 : 0);
+    Variable* v = new Variable(JavaSignatureOf(arg->GetType()), arg->GetName());
     AidlArgument::Direction dir = arg->GetDirection();
     if (dir == AidlArgument::OUT_DIR && arg->GetType().IsArray()) {
       IfStatement* checklen = new IfStatement();
@@ -841,7 +834,6 @@ static void generate_interface_descriptors(StubClass* stub, ProxyClass* proxy) {
   Method* getDesc = new Method;
   getDesc->modifiers = PUBLIC;
   getDesc->returnType = "java.lang.String";
-  getDesc->returnTypeDimension = 0;
   getDesc->name = "getInterfaceDescriptor";
   getDesc->statements = new StatementBlock;
   getDesc->statements->Add(
@@ -892,12 +884,11 @@ static unique_ptr<ClassElement> generate_default_impl_method(const AidlMethod& m
   default_method->comment = method.GetComments();
   default_method->modifiers = PUBLIC | OVERRIDE;
   default_method->returnType = JavaSignatureOf(method.GetType());
-  default_method->returnTypeDimension = method.GetType().IsArray() ? 1 : 0;
   default_method->name = method.GetName();
   default_method->statements = new StatementBlock;
   for (const auto& arg : method.GetArguments()) {
-    default_method->parameters.push_back(new Variable(
-        JavaSignatureOf(arg->GetType()), arg->GetName(), arg->GetType().IsArray() ? 1 : 0));
+    default_method->parameters.push_back(
+        new Variable(JavaSignatureOf(arg->GetType()), arg->GetName()));
   }
   default_method->exceptions.push_back("android.os.RemoteException");
 
