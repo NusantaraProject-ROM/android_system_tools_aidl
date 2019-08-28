@@ -2517,7 +2517,12 @@ public interface IExampleInterface extends android.os.IInterface
           android.os.Parcel reply = android.os.Parcel.obtain();
           try {
             data.writeInterfaceToken(DESCRIPTOR);
-            mRemote.transact(Stub.TRANSACTION_getInterfaceVersion, data, reply, 0);
+            boolean _status = mRemote.transact(Stub.TRANSACTION_getInterfaceVersion, data, reply, 0);
+            if (!_status) {
+              if (getDefaultImpl() != null) {
+                return getDefaultImpl().getInterfaceVersion();
+              }
+            }
             reply.readException();
             mCachedVersion = reply.readInt();
           } finally {
