@@ -58,6 +58,9 @@ std::unique_ptr<Document> BuildParcelHeader(const AidlTypenames& typenames,
 std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
                                             const AidlStructuredParcelable& parsed_doc,
                                             const Options& options);
+
+std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
+                                          const AidlEnumDeclaration& parsed_doc);
 }
 }  // namespace cpp
 }  // namespace aidl
