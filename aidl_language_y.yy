@@ -55,6 +55,9 @@ AidlLocation loc(const yy::parser::location_type& l) {
     AidlArgument* arg;
     AidlArgument::Direction direction;
     AidlConstantValue* constant_value;
+    AidlEnumerator* enumerator;
+    std::vector<std::unique_ptr<AidlEnumerator>>* enumerators;
+    AidlEnumDeclaration* enum_decl;
     std::vector<std::unique_ptr<AidlConstantValue>>* constant_value_list;
     std::vector<std::unique_ptr<AidlArgument>>* arg_list;
     AidlVariableDeclaration* variable;
@@ -92,6 +95,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token PACKAGE "package"
 %token TRUE_LITERAL "true"
 %token FALSE_LITERAL "false"
+%token ENUM "enum"
 
 %type<declaration> decl
 %type<variable_list> variable_decls
@@ -102,6 +106,9 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<parcelable> parcelable_decl
 %type<method> method_decl
 %type<constant> constant_decl
+%type<enumerator> enumerator
+%type<enumerators> enumerators enum_decl_body
+%type<enum_decl> enum_decl
 %type<param> parameter
 %type<param_list> parameter_list
 %type<param_list> parameter_non_empty_list
@@ -190,6 +197,8 @@ unannotated_decl
   { $$ = $1; }
  | interface_decl
   { $$ = $1; }
+ | enum_decl
+  { $$ = $1; }
  ;
 
 parcelable_decl
@@ -224,6 +233,7 @@ variable_decl
    $$ = new AidlVariableDeclaration(loc(@2), $1, $2->GetText());
  }
  | type identifier '=' constant_value ';' {
+   // TODO(b/123321528): Support enum type default assignments (TestEnum foo = TestEnum.FOO).
    $$ = new AidlVariableDeclaration(loc(@2), $1, $2->GetText(),  $4);
  }
  | error ';' {
@@ -263,6 +273,7 @@ interface_members
     $$ = $1;
   };
 
+// TODO(b/139877950): Add support for constant expressions.
 constant_value
  : TRUE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), true); }
  | FALSE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), false); }
@@ -332,6 +343,38 @@ constant_value_non_empty_list
 constant_decl
  : CONST type identifier '=' constant_value ';' {
     $$ = new AidlConstantDeclaration(loc(@3), $2, $3->GetText(), $5);
+    delete $3;
+   }
+ ;
+
+// TODO(b/139877950): Support autofilling enumerator values
+enumerator
+ : identifier '=' constant_value {
+    $$ = new AidlEnumerator(loc(@1), $1->GetText(), $3);
+    delete $1;
+   }
+ ;
+
+enumerators
+ : enumerator {
+    $$ = new std::vector<std::unique_ptr<AidlEnumerator>>();
+    $$->push_back(std::unique_ptr<AidlEnumerator>($1));
+   }
+ | enumerators ',' enumerator {
+    $1->push_back(std::unique_ptr<AidlEnumerator>($3));
+   }
+ ;
+
+enum_decl_body
+ : '{' enumerators '}' { $$ = $2; }
+ | '{' enumerators ',' '}' { $$ = $2; }
+ ;
+
+// TODO(b/123321528): Support comments.
+enum_decl
+ : ENUM identifier enum_decl_body {
+    $$ = new AidlEnumDeclaration(loc(@2), $2->GetText(), $3, ps->Package());
+    delete $2;
     delete $3;
    }
  ;

@@ -196,6 +196,7 @@ class AidlAnnotatable : public AidlNode {
   bool IsStableParcelable() const;
 
   const AidlAnnotation* UnsupportedAppUsage() const;
+  const AidlTypeSpecifier* BackingType() const;
   std::string ToString() const;
 
   const vector<AidlAnnotation>& GetAnnotations() const { return annotations_; }
@@ -340,6 +341,7 @@ class AidlArgument : public AidlVariableDeclaration {
 
 class AidlMethod;
 class AidlConstantDeclaration;
+class AidlEnumDeclaration;
 class AidlMember : public AidlNode {
  public:
   AidlMember(const AidlLocation& location);
@@ -514,7 +516,7 @@ class AidlQualifiedName : public AidlNode {
 class AidlInterface;
 class AidlParcelable;
 class AidlStructuredParcelable;
-// AidlDefinedType represents either an interface or a parcelable that is
+// AidlDefinedType represents either an interface, parcelable, or enum that is
 // defined in the source file.
 class AidlDefinedType : public AidlAnnotatable {
  public:
@@ -536,6 +538,7 @@ class AidlDefinedType : public AidlAnnotatable {
 
   virtual const AidlStructuredParcelable* AsStructuredParcelable() const { return nullptr; }
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
+  virtual const AidlEnumDeclaration* AsEnumDeclaration() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
   virtual bool CheckValid(const AidlTypenames&) const { return CheckValidAnnotations(); }
   virtual bool LanguageSpecificCheckValid(Options::Language lang) const = 0;
@@ -545,6 +548,10 @@ class AidlDefinedType : public AidlAnnotatable {
   }
   AidlParcelable* AsParcelable() {
     return const_cast<AidlParcelable*>(const_cast<const AidlDefinedType*>(this)->AsParcelable());
+  }
+  AidlEnumDeclaration* AsEnumDeclaration() {
+    return const_cast<AidlEnumDeclaration*>(
+        const_cast<const AidlDefinedType*>(this)->AsEnumDeclaration());
   }
   AidlInterface* AsInterface() {
     return const_cast<AidlInterface*>(const_cast<const AidlDefinedType*>(this)->AsInterface());
@@ -626,6 +633,52 @@ class AidlStructuredParcelable : public AidlParcelable {
   const std::vector<std::unique_ptr<AidlVariableDeclaration>> variables_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlStructuredParcelable);
+};
+
+class AidlEnumerator : public AidlNode {
+ public:
+  AidlEnumerator(const AidlLocation& location, const std::string& name, AidlConstantValue* value);
+  virtual ~AidlEnumerator() = default;
+
+  const std::string& GetName() const { return name_; }
+  const AidlConstantValue* GetValue() const { return value_.get(); }
+  bool CheckValid(const AidlTypeSpecifier& enum_backing_type) const;
+
+  string ValueString(const AidlTypeSpecifier& backing_type,
+                     const ConstantValueDecorator& decorator) const;
+
+ private:
+  const std::string name_;
+  const unique_ptr<AidlConstantValue> value_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlEnumerator);
+};
+
+class AidlEnumDeclaration : public AidlDefinedType {
+ public:
+  AidlEnumDeclaration(const AidlLocation& location, const std::string& name,
+                      std::vector<std::unique_ptr<AidlEnumerator>>* enumerators,
+                      const std::vector<std::string>& package);
+  virtual ~AidlEnumDeclaration() = default;
+
+  void SetBackingType(std::unique_ptr<const AidlTypeSpecifier> type);
+  const AidlTypeSpecifier& GetBackingType() const { return *backing_type_; }
+  const std::vector<std::unique_ptr<AidlEnumerator>>& GetEnumerators() const {
+    return enumerators_;
+  }
+  bool CheckValid(const AidlTypenames& typenames) const override;
+  bool LanguageSpecificCheckValid(Options::Language) const override { return true; }
+  std::string GetPreprocessDeclarationName() const override { return "enum"; }
+  void Write(CodeWriter*) const override;
+
+  const AidlEnumDeclaration* AsEnumDeclaration() const override { return this; }
+
+ private:
+  const std::string name_;
+  const std::vector<std::unique_ptr<AidlEnumerator>> enumerators_;
+  std::unique_ptr<const AidlTypeSpecifier> backing_type_;
+
+  DISALLOW_COPY_AND_ASSIGN(AidlEnumDeclaration);
 };
 
 class AidlInterface final : public AidlDefinedType {
