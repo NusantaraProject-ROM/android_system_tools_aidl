@@ -93,6 +93,7 @@ static const string kVintfStability("VintfStability");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 static const string kSystemApi("SystemApi");
 static const string kStableParcelable("JavaOnlyStableParcelable");
+static const string kBacking("Backing");
 
 static const std::map<string, std::map<std::string, std::string>> kAnnotationParameters{
     {kNullable, {}},
@@ -105,7 +106,8 @@ static const std::map<string, std::map<std::string, std::string>> kAnnotationPar
       {"publicAlternatives", "String"},
       {"trackingBug", "long"}}},
     {kSystemApi, {}},
-    {kStableParcelable, {}}};
+    {kStableParcelable, {}},
+    {kBacking, {{"type", "String"}}}};
 
 AidlAnnotation* AidlAnnotation::Parse(
     const AidlLocation& location, const string& name,
@@ -218,6 +220,20 @@ bool AidlAnnotatable::IsVintfStability() const {
 
 const AidlAnnotation* AidlAnnotatable::UnsupportedAppUsage() const {
   return GetAnnotation(annotations_, kUnsupportedAppUsage);
+}
+
+const AidlTypeSpecifier* AidlAnnotatable::BackingType() const {
+  auto annotation = GetAnnotation(annotations_, kBacking);
+  if (annotation != nullptr) {
+    auto annotation_params = annotation->AnnotationParams(AidlConstantValueDecorator);
+    if (auto it = annotation_params.find("type"); it != annotation_params.end()) {
+      const string& type = it->second;
+      return new AidlTypeSpecifier(AIDL_LOCATION_HERE,
+                                   // Strip the quotes off the type String.
+                                   type.substr(1, type.length() - 2), false, nullptr, "");
+    }
+  }
+  return nullptr;
 }
 
 bool AidlAnnotatable::IsSystemApi() const {
@@ -786,13 +802,11 @@ void AidlStructuredParcelable::Write(CodeWriter* writer) const {
 }
 
 bool AidlStructuredParcelable::CheckValid(const AidlTypenames& typenames) const {
+  bool success = true;
   for (const auto& v : GetFields()) {
-    if (!(v->CheckValid(typenames))) {
-      return false;
-    }
+    success = success && v->CheckValid(typenames);
   }
-
-  return true;
+  return success;
 }
 
 // TODO: we should treat every backend all the same in future.
@@ -860,6 +874,64 @@ bool AidlStructuredParcelable::LanguageSpecificCheckValid(Options::Language lang
     }
   }
   return true;
+}
+
+AidlEnumerator::AidlEnumerator(const AidlLocation& location, const std::string& name,
+                               AidlConstantValue* value)
+    : AidlNode(location), name_(name), value_(value) {}
+
+bool AidlEnumerator::CheckValid(const AidlTypeSpecifier& enum_backing_type) const {
+  if (GetValue() == nullptr) {
+    return false;
+  }
+  if (!GetValue()->CheckValid()) {
+    return false;
+  }
+  if (GetValue()->As(enum_backing_type, AidlConstantValueDecorator).empty()) {
+    AIDL_ERROR(this) << "Enumerator type differs from enum backing type.";
+    return false;
+  }
+  return true;
+}
+
+string AidlEnumerator::ValueString(const AidlTypeSpecifier& backing_type,
+                                   const ConstantValueDecorator& decorator) const {
+  return GetValue()->As(backing_type, decorator);
+}
+
+AidlEnumDeclaration::AidlEnumDeclaration(const AidlLocation& location, const std::string& name,
+                                         std::vector<std::unique_ptr<AidlEnumerator>>* enumerators,
+                                         const std::vector<std::string>& package)
+    : AidlDefinedType(location, name, "", package), enumerators_(std::move(*enumerators)) {}
+
+void AidlEnumDeclaration::SetBackingType(std::unique_ptr<const AidlTypeSpecifier> type) {
+  backing_type_ = std::move(type);
+}
+
+bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
+  if (backing_type_ == nullptr) {
+    AIDL_ERROR(this) << "Enum declaration missing backing type.";
+    return false;
+  }
+  bool success = true;
+  for (const auto& enumerator : enumerators_) {
+    success = success && enumerator->CheckValid(GetBackingType());
+  }
+  return success;
+}
+
+void AidlEnumDeclaration::Write(CodeWriter* writer) const {
+  writer->Write(AidlAnnotatable::ToString().c_str());
+  writer->Write("enum %s {", GetName().c_str());
+  writer->Indent();
+  for (const auto& enumerator : GetEnumerators()) {
+    // TODO(b/123321528): After autofilling is supported, determine if we want
+    // to leave out the assigned value for enumerators that were autofilled.
+    writer->Write("%s = %s,\n", enumerator->GetName().c_str(),
+                  enumerator->ValueString(GetBackingType(), AidlConstantValueDecorator).c_str());
+  }
+  writer->Dedent();
+  writer->Write("}\n");
 }
 
 // TODO: we should treat every backend all the same in future.

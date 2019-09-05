@@ -90,7 +90,8 @@ bool generate_java(const std::string& filename, const AidlDefinedType* defined_t
     return generate_java_interface(filename, interface, typenames, io_delegate, options);
   }
 
-  CHECK(false) << "Unrecognized type sent for cpp generation.";
+  // TODO(b/123321528): Generate enums.
+  CHECK(false) << "Unrecognized type sent for java generation.";
   return false;
 }
 

@@ -92,6 +92,9 @@ interface             { yylval->token = new AidlToken("interface", extra_text);
 oneway                { yylval->token = new AidlToken("oneway", extra_text);
                         return yy::parser::token::ONEWAY;
                       }
+enum                  { yylval->token = new AidlToken("enum", extra_text);
+                        return yy::parser::token::ENUM;
+                      }
 
     /* scalars */
 {identifier}          { yylval->token = new AidlToken(yytext, extra_text);

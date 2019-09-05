@@ -18,6 +18,7 @@
 #include "aidl_language.h"
 #include "logging.h"
 
+#include <android-base/stringprintf.h>
 #include <android-base/strings.h>
 
 #include <functional>
@@ -25,6 +26,7 @@
 
 using android::base::Join;
 using android::base::Split;
+using android::base::StringPrintf;
 using std::ostringstream;
 
 namespace android {
@@ -201,11 +203,44 @@ std::string CppNameOf(const AidlTypeSpecifier& type, const AidlTypenames& typena
 }
 
 std::string ParcelReadMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
+  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
+    return ParcelReadMethodOf(enum_decl->GetBackingType(), typenames);
+  }
+
   return "read" + RawParcelMethod(type, typenames, true /* readMethod */);
 }
 
+std::string ParcelReadCastOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
+                             const std::string& variable_name) {
+  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
+    return StringPrintf("(%s *) %s", CppNameOf(enum_decl->GetBackingType(), typenames).c_str(),
+                        variable_name.c_str());
+  }
+
+  return variable_name;
+}
+
 std::string ParcelWriteMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
+  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
+    return ParcelWriteMethodOf(enum_decl->GetBackingType(), typenames);
+  }
+
   return "write" + RawParcelMethod(type, typenames, false /* readMethod */);
+}
+
+std::string ParcelWriteCastOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
+                              const std::string& variable_name) {
+  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
+    return StringPrintf("static_cast<%s>(%s)",
+                        CppNameOf(enum_decl->GetBackingType(), typenames).c_str(),
+                        variable_name.c_str());
+  }
+
+  if (typenames.GetInterface(type) != nullptr) {
+    return GetRawCppName(type) + "::asBinder(" + variable_name + ")";
+  }
+
+  return variable_name;
 }
 
 void AddHeaders(const AidlTypeSpecifier& raw_type, const AidlTypenames& typenames,
@@ -248,7 +283,8 @@ void AddHeaders(const AidlTypeSpecifier& raw_type, const AidlTypenames& typename
   if (definedType == nullptr) {
     return;
   }
-  if (definedType->AsInterface() != nullptr || definedType->AsStructuredParcelable() != nullptr) {
+  if (definedType->AsInterface() != nullptr || definedType->AsStructuredParcelable() != nullptr ||
+      definedType->AsEnumDeclaration() != nullptr) {
     AddHeaders(*definedType, headers);
   } else if (definedType->AsParcelable() != nullptr) {
     const std::string cpp_header = definedType->AsParcelable()->GetCppHeader();
@@ -266,14 +302,6 @@ void AddHeaders(const AidlDefinedType& definedType, std::set<std::string>& heade
   headers.insert(cpp_header);
 }
 
-std::string CastOf(const AidlTypeSpecifier& raw_type, const AidlTypenames& typenames,
-                   const std::string var) {
-  auto definedType = typenames.TryGetDefinedType(raw_type.GetName());
-  if (definedType != nullptr && definedType->AsInterface() != nullptr) {
-    return GetRawCppName(raw_type) + "::asBinder(" + var + ")";
-  }
-  return var;
-}
 }  // namespace cpp
 }  // namespace aidl
 }  // namespace android
