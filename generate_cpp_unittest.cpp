@@ -1378,6 +1378,63 @@ IMPLEMENT_META_INTERFACE(ComplexTypeInterface, "android.os.IComplexTypeInterface
 }  // namespace android
 )";
 
+const string kEnumAIDL = R"(package android.os;
+enum TestEnum {
+  FOO = 1,
+  BAR = 2,
+})";
+
+const char kExpectedEnumHeaderOutput[] =
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+#define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+
+#include <cstdint>
+
+namespace android {
+
+namespace os {
+
+enum class TestEnum : int8_t {
+  FOO = 1,
+  BAR = 2,
+};
+
+}  // namespace os
+
+}  // namespace android
+
+#endif  // AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+)";
+
+const string kEnumWithBackingTypeAIDL = R"(package android.os;
+@Backing(type="long")
+enum TestEnum {
+  FOO = 1,
+  BAR = 2,
+})";
+
+const char kExpectedEnumWithBackingTypeHeaderOutput[] =
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+#define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+
+#include <cstdint>
+
+namespace android {
+
+namespace os {
+
+enum class TestEnum : int64_t {
+  FOO = 1,
+  BAR = 2,
+};
+
+}  // namespace os
+
+}  // namespace android
+
+#endif  // AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
+)";
+
 }  // namespace
 
 class ASTTest : public ::testing::Test {
@@ -1404,6 +1461,25 @@ class ASTTest : public ::testing::Test {
     EXPECT_NE(nullptr, defined_types.front()->AsInterface());
 
     return defined_types.front()->AsInterface();
+  }
+
+  AidlEnumDeclaration* ParseSingleEnumDeclaration() {
+    io_delegate_.SetFileContents(options_.InputFiles().at(0), file_contents_);
+
+    vector<AidlDefinedType*> defined_types;
+    vector<string> imported_files;
+    AidlError err = ::android::aidl::internals::load_and_validate_aidl(
+        options_.InputFiles().front(), options_, io_delegate_, &typenames_, &defined_types,
+        &imported_files);
+
+    if (err != AidlError::OK) {
+      return nullptr;
+    }
+
+    EXPECT_EQ(1ul, defined_types.size());
+    EXPECT_NE(nullptr, defined_types.front()->AsEnumDeclaration());
+
+    return defined_types.front()->AsEnumDeclaration();
   }
 
   void Compare(Document* doc, const char* expected) {
@@ -1549,6 +1625,31 @@ TEST_F(IoErrorHandlingTest, HandlesBadCppWrite) {
   ASSERT_FALSE(GenerateCpp(options_.OutputFile(), options_, typenames_, *interface, io_delegate_));
   // We should remove partial results.
   ASSERT_TRUE(io_delegate_.PathWasRemoved(kOutputPath));
+}
+
+class EnumASTTest : public ASTTest {
+ public:
+  EnumASTTest() : ASTTest("aidl --lang=cpp -I . -o out android/os/TestEnum.aidl", kEnumAIDL) {}
+};
+
+TEST_F(EnumASTTest, GeneratesEnumHeader) {
+  AidlEnumDeclaration* enum_decl = ParseSingleEnumDeclaration();
+  ASSERT_NE(enum_decl, nullptr);
+  unique_ptr<Document> doc = internals::BuildEnumHeader(typenames_, *enum_decl);
+  Compare(doc.get(), kExpectedEnumHeaderOutput);
+}
+
+class EnumWithBackingTypeASTTest : public ASTTest {
+ public:
+  EnumWithBackingTypeASTTest()
+      : ASTTest("aidl --lang=cpp -I . -o out android/os/TestEnum.aidl", kEnumWithBackingTypeAIDL) {}
+};
+
+TEST_F(EnumWithBackingTypeASTTest, GeneratesEnumHeader) {
+  AidlEnumDeclaration* enum_decl = ParseSingleEnumDeclaration();
+  ASSERT_NE(enum_decl, nullptr);
+  unique_ptr<Document> doc = internals::BuildEnumHeader(typenames_, *enum_decl);
+  Compare(doc.get(), kExpectedEnumWithBackingTypeHeaderOutput);
 }
 
 }  // namespace cpp

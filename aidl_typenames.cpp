@@ -178,6 +178,24 @@ bool AidlTypenames::CanBeOutParameter(const AidlTypeSpecifier& type) const {
   return t->AsParcelable() != nullptr;
 }
 
+const AidlEnumDeclaration* AidlTypenames::GetEnumDeclaration(const AidlTypeSpecifier& type) const {
+  if (auto defined_type = TryGetDefinedType(type.GetName()); defined_type != nullptr) {
+    if (auto enum_decl = defined_type->AsEnumDeclaration(); enum_decl != nullptr) {
+      return enum_decl;
+    }
+  }
+  return nullptr;
+}
+
+const AidlInterface* AidlTypenames::GetInterface(const AidlTypeSpecifier& type) const {
+  if (auto defined_type = TryGetDefinedType(type.GetName()); defined_type != nullptr) {
+    if (auto intf = defined_type->AsInterface(); intf != nullptr) {
+      return intf;
+    }
+  }
+  return nullptr;
+}
+
 void AidlTypenames::IterateTypes(const std::function<void(const AidlDefinedType&)>& body) const {
   for (const auto& kv : defined_types_) {
     body(*kv.second);
