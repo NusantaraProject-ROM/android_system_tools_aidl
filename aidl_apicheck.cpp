@@ -177,6 +177,42 @@ static bool are_compatible_parcelables(const AidlStructuredParcelable& older,
   return compatible;
 }
 
+static bool are_compatible_enums(const AidlEnumDeclaration& older,
+                                 const AidlEnumDeclaration& newer) {
+  if (!are_compatible_types(older.GetBackingType(), newer.GetBackingType())) {
+    AIDL_ERROR(newer) << "Changed backing types.";
+    return false;
+  }
+
+  std::map<std::string, const AidlConstantValue*> old_enum_map;
+  for (const auto& enumerator : older.GetEnumerators()) {
+    old_enum_map[enumerator->GetName()] = enumerator->GetValue();
+  }
+  std::map<std::string, const AidlConstantValue*> new_enum_map;
+  for (const auto& enumerator : newer.GetEnumerators()) {
+    new_enum_map[enumerator->GetName()] = enumerator->GetValue();
+  }
+
+  bool compatible = true;
+  for (const auto& [name, value] : old_enum_map) {
+    if (new_enum_map.find(name) == new_enum_map.end()) {
+      AIDL_ERROR(newer) << "Removed enumerator from " << older.GetCanonicalName() << ": " << name;
+      compatible = false;
+      continue;
+    }
+    const string old_value =
+        old_enum_map[name]->As(older.GetBackingType(), AidlConstantValueDecorator);
+    const string new_value =
+        new_enum_map[name]->As(older.GetBackingType(), AidlConstantValueDecorator);
+    if (old_value != new_value) {
+      AIDL_ERROR(newer) << "Changed enumerator value: " << older.GetCanonicalName() << "::" << name
+                        << " from " << old_value << " to " << new_value << ".";
+      compatible = false;
+    }
+  }
+  return compatible;
+}
+
 bool check_api(const Options& options, const IoDelegate& io_delegate) {
   CHECK(options.IsStructured());
   CHECK(options.InputFiles().size() == 2) << "--checkapi requires two inputs "
@@ -236,26 +272,39 @@ bool check_api(const Options& options, const IoDelegate& io_delegate) {
     }
     const auto new_type = found->second;
 
-    const bool old_is_iface = old_type->AsInterface() != nullptr;
-    const bool new_is_iface = new_type->AsInterface() != nullptr;
-    if (old_is_iface != new_is_iface) {
-      AIDL_ERROR(new_type) << "Type mismatch: " << old_type->GetCanonicalName()
-                           << " is changed from " << old_type->GetPreprocessDeclarationName()
-                           << " to " << new_type->GetPreprocessDeclarationName();
-      compatible = false;
-      continue;
-    }
-
-    if (old_is_iface) {
+    if (old_type->AsInterface() != nullptr) {
+      if (new_type->AsInterface() == nullptr) {
+        AIDL_ERROR(new_type) << "Type mismatch: " << old_type->GetCanonicalName()
+                             << " is changed from " << old_type->GetPreprocessDeclarationName()
+                             << " to " << new_type->GetPreprocessDeclarationName();
+        compatible = false;
+        continue;
+      }
       compatible &=
           are_compatible_interfaces(*(old_type->AsInterface()), *(new_type->AsInterface()));
-    } else {
-      CHECK(old_type->AsStructuredParcelable() != nullptr)
-          << "Parcelable" << old_type->GetCanonicalName() << " is not structured. ";
-      CHECK(new_type->AsStructuredParcelable() != nullptr)
-          << "Parcelable" << new_type->GetCanonicalName() << " is not structured. ";
+    } else if (old_type->AsStructuredParcelable() != nullptr) {
+      if (new_type->AsStructuredParcelable() == nullptr) {
+        AIDL_ERROR(new_type) << "Parcelable" << new_type->GetCanonicalName()
+                             << " is not structured. ";
+        compatible = false;
+        continue;
+      }
       compatible &= are_compatible_parcelables(*(old_type->AsStructuredParcelable()),
                                                *(new_type->AsStructuredParcelable()));
+    } else if (old_type->AsEnumDeclaration() != nullptr) {
+      if (new_type->AsEnumDeclaration() == nullptr) {
+        AIDL_ERROR(new_type) << "Type mismatch: " << old_type->GetCanonicalName()
+                             << " is changed from " << old_type->GetPreprocessDeclarationName()
+                             << " to " << new_type->GetPreprocessDeclarationName();
+        compatible = false;
+        continue;
+      }
+      compatible &=
+          are_compatible_enums(*(old_type->AsEnumDeclaration()), *(new_type->AsEnumDeclaration()));
+    } else {
+      AIDL_ERROR(old_type) << "Unsupported type " << old_type->GetPreprocessDeclarationName()
+                           << " for " << old_type->GetCanonicalName();
+      compatible = false;
     }
   }
 
