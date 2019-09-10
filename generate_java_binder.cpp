@@ -49,8 +49,8 @@ class VariableFactory {
   using Variable = ::android::aidl::java::Variable;
 
   explicit VariableFactory(const std::string& base) : base_(base), index_(0) {}
-  std::shared_ptr<Variable> Get(const AidlTypeSpecifier& type) {
-    auto v = std::make_shared<Variable>(JavaSignatureOf(type),
+  std::shared_ptr<Variable> Get(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
+    auto v = std::make_shared<Variable>(JavaSignatureOf(type, typenames),
                                         StringPrintf("%s%d", base_.c_str(), index_));
     vars_.push_back(v);
     index_++;
@@ -346,8 +346,9 @@ ProxyClass::ProxyClass(const AidlInterface* interfaceType, const Options& option
 ProxyClass::~ProxyClass() {}
 
 // =================================================
-static void generate_new_array(const AidlTypeSpecifier& type, std::shared_ptr<StatementBlock> addTo,
-                               std::shared_ptr<Variable> v, std::shared_ptr<Variable> parcel) {
+static void generate_new_array(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
+                               std::shared_ptr<StatementBlock> addTo, std::shared_ptr<Variable> v,
+                               std::shared_ptr<Variable> parcel) {
   auto len = std::make_shared<Variable>("int", v->name + "_length");
   addTo->Add(
       std::make_shared<VariableDeclaration>(len, std::make_shared<MethodCall>(parcel, "readInt")));
@@ -357,7 +358,7 @@ static void generate_new_array(const AidlTypeSpecifier& type, std::shared_ptr<St
   lencheck->statements->Add(std::make_shared<Assignment>(v, NULL_VALUE));
   lencheck->elseif = std::make_shared<IfStatement>();
   lencheck->elseif->statements->Add(std::make_shared<Assignment>(
-      v, std::make_shared<NewArrayExpression>(InstantiableJavaSignatureOf(type), len)));
+      v, std::make_shared<NewArrayExpression>(InstantiableJavaSignatureOf(type, typenames), len)));
   addTo->Add(lencheck);
 }
 
@@ -392,17 +393,18 @@ static void generate_string_constant(Class* interface, const std::string& name,
   interface->elements.push_back(std::make_shared<LiteralClassElement>(code));
 }
 
-static std::shared_ptr<Method> generate_interface_method(const AidlMethod& method) {
+static std::shared_ptr<Method> generate_interface_method(const AidlMethod& method,
+                                                         const AidlTypenames& typenames) {
   auto decl = std::make_shared<Method>();
   decl->comment = method.GetComments();
   decl->modifiers = PUBLIC;
-  decl->returnType = JavaSignatureOf(method.GetType());
+  decl->returnType = JavaSignatureOf(method.GetType(), typenames);
   decl->name = method.GetName();
   decl->annotations = generate_java_annotations(method.GetType());
 
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
     decl->parameters.push_back(
-        std::make_shared<Variable>(JavaSignatureOf(arg->GetType()), arg->GetName()));
+        std::make_shared<Variable>(JavaSignatureOf(arg->GetType(), typenames), arg->GetName()));
   }
 
   decl->exceptions.push_back("android.os.RemoteException");
@@ -432,7 +434,7 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
     // at most once.
     bool is_classloader_created = false;
     for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
-      std::shared_ptr<Variable> v = stubArgs.Get(arg->GetType());
+      std::shared_ptr<Variable> v = stubArgs.Get(arg->GetType(), typenames);
 
       statements->Add(std::make_shared<VariableDeclaration>(v));
 
@@ -451,9 +453,10 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
       } else {
         if (!arg->GetType().IsArray()) {
           statements->Add(std::make_shared<Assignment>(
-              v, std::make_shared<NewExpression>(InstantiableJavaSignatureOf(arg->GetType()))));
+              v, std::make_shared<NewExpression>(
+                     InstantiableJavaSignatureOf(arg->GetType(), typenames))));
         } else {
-          generate_new_array(arg->GetType(), statements, v, transact_data);
+          generate_new_array(arg->GetType(), typenames, statements, v, transact_data);
         }
       }
 
@@ -495,7 +498,8 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
       statements->Add(ex);
     }
   } else {
-    auto _result = std::make_shared<Variable>(JavaSignatureOf(method.GetType()), "_result");
+    auto _result =
+        std::make_shared<Variable>(JavaSignatureOf(method.GetType(), typenames), "_result");
     if (options.GenTraces()) {
       statements->Add(std::make_shared<VariableDeclaration>(_result));
       statements->Add(tryStatement);
@@ -586,12 +590,12 @@ static std::shared_ptr<Method> generate_proxy_method(
   auto proxy = std::make_shared<Method>();
   proxy->comment = method.GetComments();
   proxy->modifiers = PUBLIC | OVERRIDE;
-  proxy->returnType = JavaSignatureOf(method.GetType());
+  proxy->returnType = JavaSignatureOf(method.GetType(), typenames);
   proxy->name = method.GetName();
   proxy->statements = std::make_shared<StatementBlock>();
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
     proxy->parameters.push_back(
-        std::make_shared<Variable>(JavaSignatureOf(arg->GetType()), arg->GetName()));
+        std::make_shared<Variable>(JavaSignatureOf(arg->GetType(), typenames), arg->GetName()));
   }
   proxy->exceptions.push_back("android.os.RemoteException");
 
@@ -636,7 +640,7 @@ static std::shared_ptr<Method> generate_proxy_method(
 
   // the parameters
   for (const std::unique_ptr<AidlArgument>& arg : method.GetArguments()) {
-    auto v = std::make_shared<Variable>(JavaSignatureOf(arg->GetType()), arg->GetName());
+    auto v = std::make_shared<Variable>(JavaSignatureOf(arg->GetType(), typenames), arg->GetName());
     AidlArgument::Direction dir = arg->GetDirection();
     if (dir == AidlArgument::OUT_DIR && arg->GetType().IsArray()) {
       auto checklen = std::make_shared<IfStatement>();
@@ -769,7 +773,7 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
   // == the declaration in the interface ===================================
   std::shared_ptr<ClassElement> decl;
   if (method.IsUserDefined()) {
-    decl = generate_interface_method(method);
+    decl = generate_interface_method(method, typenames);
   } else {
     if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
       std::ostringstream code;
@@ -903,21 +907,22 @@ static void compute_outline_methods(const AidlInterface* iface,
   }
 }
 
-static shared_ptr<ClassElement> generate_default_impl_method(const AidlMethod& method) {
+static shared_ptr<ClassElement> generate_default_impl_method(const AidlMethod& method,
+                                                             const AidlTypenames& typenames) {
   auto default_method = std::make_shared<Method>();
   default_method->comment = method.GetComments();
   default_method->modifiers = PUBLIC | OVERRIDE;
-  default_method->returnType = JavaSignatureOf(method.GetType());
+  default_method->returnType = JavaSignatureOf(method.GetType(), typenames);
   default_method->name = method.GetName();
   default_method->statements = std::make_shared<StatementBlock>();
   for (const auto& arg : method.GetArguments()) {
     default_method->parameters.push_back(
-        std::make_shared<Variable>(JavaSignatureOf(arg->GetType()), arg->GetName()));
+        std::make_shared<Variable>(JavaSignatureOf(arg->GetType(), typenames), arg->GetName()));
   }
   default_method->exceptions.push_back("android.os.RemoteException");
 
   if (method.GetType().GetName() != "void") {
-    const string& defaultValue = DefaultJavaValueOf(method.GetType());
+    const string& defaultValue = DefaultJavaValueOf(method.GetType(), typenames);
     default_method->statements->Add(
         std::make_shared<LiteralStatement>(StringPrintf("return %s;\n", defaultValue.c_str())));
   }
@@ -925,6 +930,7 @@ static shared_ptr<ClassElement> generate_default_impl_method(const AidlMethod& m
 }
 
 static shared_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
+                                                     const AidlTypenames& typenames,
                                                      const Options& options) {
   auto default_class = std::make_shared<Class>();
   default_class->comment = "/** Default implementation for " + iface.GetName() + ". */";
@@ -935,7 +941,7 @@ static shared_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
 
   for (const auto& m : iface.GetMethods()) {
     if (m->IsUserDefined()) {
-      default_class->elements.emplace_back(generate_default_impl_method(*m.get()));
+      default_class->elements.emplace_back(generate_default_impl_method(*m.get(), typenames));
     } else {
       if (m->GetName() == kGetInterfaceVersion && options.Version() > 0) {
         // This is called only when the remote side is not implementing this
@@ -988,7 +994,7 @@ std::unique_ptr<Class> generate_binder_interface_class(const AidlInterface* ifac
   }
 
   // the default impl class
-  auto default_impl = generate_default_impl_class(*iface, options);
+  auto default_impl = generate_default_impl_class(*iface, typenames, options);
   interface->elements.emplace_back(default_impl);
 
   // the stub inner class

@@ -16,6 +16,11 @@
 
 package android.aidl.tests;
 
+import android.aidl.tests.ByteEnum;
+import android.aidl.tests.INamedCallback;
+import android.aidl.tests.ITestService;
+import android.aidl.tests.IntEnum;
+import android.aidl.tests.LongEnum;
 import android.aidl.tests.SimpleParcelable;
 import android.aidl.tests.StructuredParcelable;
 import android.aidl.tests.TestFailException;
@@ -23,13 +28,13 @@ import android.aidl.tests.TestLogger;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.ServiceSpecificException;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.ServiceSpecificException;
 import android.util.Log;
 import java.io.File;
 import java.io.FileDescriptor;
@@ -39,13 +44,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-
-// Generated
-import android.aidl.tests.INamedCallback;
-import android.aidl.tests.ITestService;
 
 public class TestServiceClient extends Activity {
     private static final String TAG = "TestServiceClient";
@@ -157,6 +158,27 @@ public class TestServiceClient extends Activity {
                     mLog.logAndThrow("Repeat with " + query +
                                      " responded " + response);
                 }
+            }
+            {
+              byte query = ByteEnum.FOO;
+              byte response = service.RepeatByteEnum(query);
+              if (query != response) {
+                mLog.logAndThrow("Repeat ByteEnum with " + query + " responded " + response);
+              }
+            }
+            {
+              int query = IntEnum.FOO;
+              int response = service.RepeatIntEnum(query);
+              if (query != response) {
+                mLog.logAndThrow("Repeat IntEnum with " + query + " responded " + response);
+              }
+            }
+            {
+              long query = LongEnum.FOO;
+              long response = service.RepeatLongEnum(query);
+              if (query != response) {
+                mLog.logAndThrow("Repeat LongEnum with " + query + " responded " + response);
+              }
             }
 
             List<String> queries = Arrays.asList(
@@ -784,6 +806,19 @@ public class TestServiceClient extends Activity {
 
       if (!parcelable.shouldBeJerry.equals("Jerry")) {
         mLog.logAndThrow("shouldBeJerry should be 'Jerry' but is " + parcelable.shouldBeJerry);
+      }
+
+      if (parcelable.shouldBeByteBar != ByteEnum.BAR) {
+        mLog.logAndThrow(
+            "shouldBeByteBar should be ByteEnum.BAR but is " + parcelable.shouldBeByteBar);
+      }
+      if (parcelable.shouldBeIntBar != IntEnum.BAR) {
+        mLog.logAndThrow(
+            "shouldBeIntBar should be IntEnum.BAR but is " + parcelable.shouldBeIntBar);
+      }
+      if (parcelable.shouldBeLongBar != LongEnum.BAR) {
+        mLog.logAndThrow(
+            "shouldBeLongBar should be LongEnum.BAR but is " + parcelable.shouldBeLongBar);
       }
     }
 

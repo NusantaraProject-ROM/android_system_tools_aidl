@@ -27,7 +27,8 @@ std::string dump_location(const AidlNode& method) {
   return method.PrintLocation();
 }
 
-SignatureMap generate_mappings(const AidlDefinedType* defined_type) {
+SignatureMap generate_mappings(const AidlDefinedType* defined_type,
+                               const AidlTypenames& typenames) {
   const AidlInterface* interface = defined_type->AsInterface();
   SignatureMap mappings;
   if (interface == nullptr) {
@@ -39,10 +40,10 @@ SignatureMap generate_mappings(const AidlDefinedType* defined_type) {
       signature << interface->GetCanonicalName() << "|";
       signature << method->GetName() << "|";
       for (const auto& arg : method->GetArguments()) {
-        signature << java::JavaSignatureOf(arg->GetType()) << ",";
+        signature << java::JavaSignatureOf(arg->GetType(), typenames) << ",";
       }
       signature << "|";
-      signature << java::JavaSignatureOf(method->GetType());
+      signature << java::JavaSignatureOf(method->GetType(), typenames);
       mappings[signature.str()] = dump_location(*method);
     }
   }
