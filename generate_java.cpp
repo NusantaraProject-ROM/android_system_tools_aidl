@@ -125,7 +125,7 @@ std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
     out << "public " << JavaSignatureOf(variable->GetType(), typenames) << " "
         << variable->GetName();
     if (variable->GetDefaultValue()) {
-      out << " = " << variable->ValueString(AidlConstantValueDecorator);
+      out << " = " << variable->ValueString(ConstantValueDecorator);
     }
     out << ";\n";
     parcel_class->elements.push_back(std::make_shared<LiteralClassElement>(out.str()));
@@ -270,14 +270,14 @@ void generate_enum(const CodeWriterPtr& code_writer, const AidlEnumDeclaration* 
         "public static final %s %s = %s;\n",
         JavaSignatureOf(enum_decl->GetBackingType(), typenames).c_str(),
         enumerator->GetName().c_str(),
-        enumerator->ValueString(enum_decl->GetBackingType(), AidlConstantValueDecorator).c_str());
+        enumerator->ValueString(enum_decl->GetBackingType(), ConstantValueDecorator).c_str());
   }
   code_writer->Dedent();
   code_writer->Write("}\n");
 }
 
 std::string generate_java_annotation_parameters(const AidlAnnotation& a) {
-  const std::map<std::string, std::string> params = a.AnnotationParams(AidlConstantValueDecorator);
+  const std::map<std::string, std::string> params = a.AnnotationParams(ConstantValueDecorator);
   if (params.empty()) {
     return "";
   }
