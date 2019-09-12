@@ -932,8 +932,9 @@ unique_ptr<Document> BuildInterfaceHeader(const AidlTypenames& typenames,
         string_constants.push_back(std::move(getter));
         break;
       }
-      case AidlConstantValue::Type::INTEGRAL:
-      case AidlConstantValue::Type::HEXIDECIMAL: {
+      case AidlConstantValue::Type::BOOLEAN:  // fall-through
+      case AidlConstantValue::Type::INT8:     // fall-through
+      case AidlConstantValue::Type::INT32: {
         int_constant_enum->AddValue(constant->GetName(),
                                     constant->ValueString(ConstantValueDecorator));
         break;

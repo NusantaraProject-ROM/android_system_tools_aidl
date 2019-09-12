@@ -859,6 +859,67 @@ public class TestServiceClient extends Activity {
         mLog.logAndThrow("hexInt32_neg_1 should be -1 but is " + parcelable.hexInt32_neg_1);
       }
 
+      boolean success = true;
+      for (int ndx = 0; ndx < parcelable.int32_1.length; ndx++) {
+        if (parcelable.int32_1[ndx] != 1) {
+          mLog.log("int32_1[" + ndx + "] should be 1 but is " + parcelable.int32_1[ndx]);
+          success = false;
+        }
+      }
+      if (!success) {
+        mLog.logAndThrow("Failed to parse int32_1 array");
+      }
+
+      for (int ndx = 0; ndx < parcelable.int64_1.length; ndx++) {
+        if (parcelable.int64_1[ndx] != 1) {
+          mLog.log("int64_1[" + ndx + "] should be 1 but is " + parcelable.int64_1[ndx]);
+          success = false;
+        }
+      }
+      if (!success) {
+        mLog.logAndThrow("Failed to parse int64_1 array");
+      }
+
+      if (parcelable.hexInt32_pos_1 != 1) {
+        mLog.logAndThrow("hexInt32_pos_1 should be 1 but is " + parcelable.hexInt32_pos_1);
+      }
+
+      if (parcelable.hexInt64_pos_1 != 1) {
+        mLog.logAndThrow("hexInt64_pos_1 should be 1 but is " + parcelable.hexInt64_pos_1);
+      }
+
+      if (parcelable.const_exprs_1 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_1 should be 1 but is " + parcelable.const_exprs_1);
+      }
+      if (parcelable.const_exprs_2 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_2 should be 1 but is " + parcelable.const_exprs_2);
+      }
+      if (parcelable.const_exprs_3 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_3 should be 1 but is " + parcelable.const_exprs_3);
+      }
+      if (parcelable.const_exprs_4 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_4 should be 1 but is " + parcelable.const_exprs_4);
+      }
+      if (parcelable.const_exprs_5 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_5 should be 1 but is " + parcelable.const_exprs_5);
+      }
+      if (parcelable.const_exprs_6 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_6 should be 1 but is " + parcelable.const_exprs_6);
+      }
+      if (parcelable.const_exprs_7 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_7 should be 1 but is " + parcelable.const_exprs_7);
+      }
+      if (parcelable.const_exprs_8 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_8 should be 1 but is " + parcelable.const_exprs_8);
+      }
+      if (parcelable.const_exprs_9 != 1) {
+        mLog.logAndThrow("parcelable.const_exprs_9 should be 1 but is " + parcelable.const_exprs_9);
+      }
+      if (parcelable.const_exprs_10 != 1) {
+        mLog.logAndThrow(
+            "parcelable.const_exprs_10 should be 1 but is " + parcelable.const_exprs_10);
+      }
+
       mLog.log("Successfully verified the StructuredParcelable");
     }
 

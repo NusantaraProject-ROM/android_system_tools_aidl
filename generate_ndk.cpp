@@ -211,6 +211,8 @@ static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
 static void GenerateConstantDeclarations(CodeWriter& out, const AidlInterface& interface) {
   for (const auto& constant : interface.GetConstantDeclarations()) {
     const AidlConstantValue& value = constant->GetValue();
+    CHECK(value.GetType() != AidlConstantValue::Type::UNARY &&
+          value.GetType() != AidlConstantValue::Type::BINARY);
     if (value.GetType() == AidlConstantValue::Type::STRING) {
       out << "static const char* " << constant->GetName() << ";\n";
     }
@@ -220,8 +222,11 @@ static void GenerateConstantDeclarations(CodeWriter& out, const AidlInterface& i
   bool hasIntegralConstant = false;
   for (const auto& constant : interface.GetConstantDeclarations()) {
     const AidlConstantValue& value = constant->GetValue();
-    if (value.GetType() == AidlConstantValue::Type::HEXIDECIMAL ||
-        value.GetType() == AidlConstantValue::Type::INTEGRAL) {
+    CHECK(value.GetType() != AidlConstantValue::Type::UNARY &&
+          value.GetType() != AidlConstantValue::Type::BINARY);
+    if (value.GetType() == AidlConstantValue::Type::BOOLEAN ||
+        value.GetType() == AidlConstantValue::Type::INT8 ||
+        value.GetType() == AidlConstantValue::Type::INT32) {
       hasIntegralConstant = true;
       break;
     }
@@ -232,8 +237,9 @@ static void GenerateConstantDeclarations(CodeWriter& out, const AidlInterface& i
     out.Indent();
     for (const auto& constant : interface.GetConstantDeclarations()) {
       const AidlConstantValue& value = constant->GetValue();
-      if (value.GetType() == AidlConstantValue::Type::HEXIDECIMAL ||
-          value.GetType() == AidlConstantValue::Type::INTEGRAL) {
+      if (value.GetType() == AidlConstantValue::Type::BOOLEAN ||
+          value.GetType() == AidlConstantValue::Type::INT8 ||
+          value.GetType() == AidlConstantValue::Type::INT32) {
         out << constant->GetName() << " = " << constant->ValueString(ConstantValueDecorator)
             << ",\n";
       }
@@ -247,6 +253,8 @@ static void GenerateConstantDefinitions(CodeWriter& out, const AidlInterface& in
 
   for (const auto& constant : interface.GetConstantDeclarations()) {
     const AidlConstantValue& value = constant->GetValue();
+    CHECK(value.GetType() != AidlConstantValue::Type::UNARY &&
+          value.GetType() != AidlConstantValue::Type::BINARY);
     if (value.GetType() == AidlConstantValue::Type::STRING) {
       out << "const char* " << clazz << "::" << constant->GetName() << " = "
           << constant->ValueString(ConstantValueDecorator) << ";\n";
