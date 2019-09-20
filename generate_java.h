@@ -31,12 +31,11 @@ bool generate_java(const std::string& filename, const AidlDefinedType* iface,
                    const AidlTypenames& typenames, const IoDelegate& io_delegate,
                    const Options& options);
 
-android::aidl::java::Class* generate_binder_interface_class(const AidlInterface* iface,
-                                                            const AidlTypenames& typenames,
-                                                            const Options& options);
+std::unique_ptr<android::aidl::java::Class> generate_binder_interface_class(
+    const AidlInterface* iface, const AidlTypenames& typenames, const Options& options);
 
-android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
-                                                  const AidlTypenames& typenames);
+std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
+    const AidlStructuredParcelable* parcel, const AidlTypenames& typenames);
 
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a);
 
