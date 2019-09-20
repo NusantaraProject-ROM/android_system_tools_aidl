@@ -35,6 +35,8 @@ bootstrap_go_package {
 
 cc_defaults {
     name: "aidl-cpp-module-defaults",
+    // TODO(b/31559095): remove when host bionic is available
+    defaults: ["libbinder_ndk_host_user"],
     cflags: [
         "-Wall",
         "-Werror",
@@ -60,9 +62,10 @@ filegroup {
 // Copy of test-piece-1 as test only. Creating a separate library because 'vendor_available' is
 // contagious.
 aidl_interface {
-    name: "test-vendor",
+    name: "test-variants",
     local_include_dir: "tests_1",
     vendor_available: true,
+    host_supported: true,
     srcs: [
         ":aidl-test-filegroup",
     ],
