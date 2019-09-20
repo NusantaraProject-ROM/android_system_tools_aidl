@@ -30,6 +30,12 @@ cc_defaults {
         windows: {
             enabled: true,
         },
+        host: {
+            cflags: [
+                "-O0",
+                "-g",
+            ],
+        },
     },
 }
 
