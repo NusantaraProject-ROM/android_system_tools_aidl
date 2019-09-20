@@ -578,10 +578,6 @@ type aidlInterfaceProperties struct {
 
 	// Whether the library can be installed on the vendor image.
 	Vendor_available *bool
-
-	// Whether the library can be used on host
-	Host_supported *bool
-
 	// Top level directories for includes.
 	// TODO(b/128940869): remove it if aidl_interface can depend on framework.aidl
 	Include_dirs []string
@@ -844,14 +840,14 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 	var sdkVersion *string
 	var stl *string
 	var cpp_std *string
-	var host_supported *bool
-
 	if lang == langCpp {
 		importExportDependencies = append(importExportDependencies, "libbinder", "libutils")
 		if genLog {
 			libJSONCppDependency = []string{"libjsoncpp"}
 		}
-		host_supported = i.properties.Host_supported
+		sdkVersion = nil
+		stl = nil
+		cpp_std = nil
 	} else if lang == langNdk {
 		importExportDependencies = append(importExportDependencies, "libbinder_ndk")
 		if genLog {
@@ -864,7 +860,6 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		if genLog {
 			libJSONCppDependency = []string{"libjsoncpp"}
 		}
-		host_supported = i.properties.Host_supported
 	} else {
 		panic("Unrecognized language: " + lang)
 	}
@@ -872,7 +867,6 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 	mctx.CreateModule(android.ModuleFactoryAdaptor(cc.LibraryFactory), &ccProperties{
 		Name:                      proptools.StringPtr(cppModuleGen),
 		Vendor_available:          i.properties.Vendor_available,
-		Host_supported:            host_supported,
 		Defaults:                  []string{"aidl-cpp-module-defaults"},
 		Generated_sources:         []string{cppSourceGen},
 		Generated_headers:         []string{cppSourceGen},
