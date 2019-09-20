@@ -40,10 +40,10 @@ namespace java {
 bool generate_java_interface(const string& filename, const AidlInterface* iface,
                              const AidlTypenames& typenames, const IoDelegate& io_delegate,
                              const Options& options) {
-  Class* cl = generate_binder_interface_class(iface, typenames, options);
+  auto cl = generate_binder_interface_class(iface, typenames, options);
 
-  Document* document =
-      new Document("" /* no comment */, iface->GetPackage(), unique_ptr<Class>(cl));
+  std::unique_ptr<Document> document =
+      std::make_unique<Document>("" /* no comment */, iface->GetPackage(), std::move(cl));
 
   CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
   document->Write(code_writer.get());
@@ -53,10 +53,10 @@ bool generate_java_interface(const string& filename, const AidlInterface* iface,
 
 bool generate_java_parcel(const std::string& filename, const AidlStructuredParcelable* parcel,
                           const AidlTypenames& typenames, const IoDelegate& io_delegate) {
-  Class* cl = generate_parcel_class(parcel, typenames);
+  auto cl = generate_parcel_class(parcel, typenames);
 
-  Document* document =
-      new Document("" /* no comment */, parcel->GetPackage(), unique_ptr<Class>(cl));
+  std::unique_ptr<Document> document =
+      std::make_unique<Document>("" /* no comment */, parcel->GetPackage(), std::move(cl));
 
   CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
   document->Write(code_writer.get());
@@ -95,9 +95,9 @@ bool generate_java(const std::string& filename, const AidlDefinedType* defined_t
   return false;
 }
 
-android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable* parcel,
-                                                  const AidlTypenames& typenames) {
-  Class* parcel_class = new Class;
+std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
+    const AidlStructuredParcelable* parcel, const AidlTypenames& typenames) {
+  auto parcel_class = std::make_unique<Class>();
   parcel_class->comment = parcel->GetComments();
   parcel_class->modifiers = PUBLIC;
   parcel_class->what = Class::CLASS;
@@ -118,7 +118,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       out << " = " << variable->ValueString(AidlConstantValueDecorator);
     }
     out << ";\n";
-    parcel_class->elements.push_back(new LiteralClassElement(out.str()));
+    parcel_class->elements.push_back(std::make_shared<LiteralClassElement>(out.str()));
   }
 
   std::ostringstream out;
@@ -136,23 +136,23 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
   out << "    return new " << parcel->GetName() << "[_aidl_size];\n";
   out << "  }\n";
   out << "};\n";
-  parcel_class->elements.push_back(new LiteralClassElement(out.str()));
+  parcel_class->elements.push_back(std::make_shared<LiteralClassElement>(out.str()));
 
-  Variable* flag_variable = new Variable("int", "_aidl_flag");
-  Variable* parcel_variable = new Variable("android.os.Parcel", "_aidl_parcel");
+  auto flag_variable = std::make_shared<Variable>("int", "_aidl_flag");
+  auto parcel_variable = std::make_shared<Variable>("android.os.Parcel", "_aidl_parcel");
 
-  Method* write_method = new Method;
+  auto write_method = std::make_shared<Method>();
   write_method->modifiers = PUBLIC | OVERRIDE | FINAL;
   write_method->returnType = "void";
   write_method->name = "writeToParcel";
   write_method->parameters.push_back(parcel_variable);
   write_method->parameters.push_back(flag_variable);
-  write_method->statements = new StatementBlock();
+  write_method->statements = std::make_shared<StatementBlock>();
 
   out.str("");
   out << "int _aidl_start_pos = _aidl_parcel.dataPosition();\n"
       << "_aidl_parcel.writeInt(0);\n";
-  write_method->statements->Add(new LiteralStatement(out.str()));
+  write_method->statements->Add(std::make_shared<LiteralStatement>(out.str()));
 
   for (const auto& field : parcel->GetFields()) {
     string code;
@@ -167,7 +167,7 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     };
     WriteToParcelFor(context);
     writer->Close();
-    write_method->statements->Add(new LiteralStatement(code));
+    write_method->statements->Add(std::make_shared<LiteralStatement>(code));
   }
 
   out.str("");
@@ -176,16 +176,16 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       << "_aidl_parcel.writeInt(_aidl_end_pos - _aidl_start_pos);\n"
       << "_aidl_parcel.setDataPosition(_aidl_end_pos);\n";
 
-  write_method->statements->Add(new LiteralStatement(out.str()));
+  write_method->statements->Add(std::make_shared<LiteralStatement>(out.str()));
 
   parcel_class->elements.push_back(write_method);
 
-  Method* read_method = new Method;
+  auto read_method = std::make_shared<Method>();
   read_method->modifiers = PUBLIC | FINAL;
   read_method->returnType = "void";
   read_method->name = "readFromParcel";
   read_method->parameters.push_back(parcel_variable);
-  read_method->statements = new StatementBlock();
+  read_method->statements = std::make_shared<StatementBlock>();
 
   out.str("");
   out << "int _aidl_start_pos = _aidl_parcel.dataPosition();\n"
@@ -193,12 +193,12 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       << "if (_aidl_parcelable_size < 0) return;\n"
       << "try {\n";
 
-  read_method->statements->Add(new LiteralStatement(out.str()));
+  read_method->statements->Add(std::make_shared<LiteralStatement>(out.str()));
 
   out.str("");
   out << "  if (_aidl_parcel.dataPosition() - _aidl_start_pos >= _aidl_parcelable_size) return;\n";
 
-  LiteralStatement* sizeCheck = nullptr;
+  std::shared_ptr<LiteralStatement> sizeCheck = nullptr;
   // keep this across different fields in order to create the classloader
   // at most once.
   bool is_classloader_created = false;
@@ -216,8 +216,8 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
     context.writer.Indent();
     CreateFromParcelFor(context);
     writer->Close();
-    read_method->statements->Add(new LiteralStatement(code));
-    if (!sizeCheck) sizeCheck = new LiteralStatement(out.str());
+    read_method->statements->Add(std::make_shared<LiteralStatement>(code));
+    if (!sizeCheck) sizeCheck = std::make_shared<LiteralStatement>(out.str());
     read_method->statements->Add(sizeCheck);
   }
 
@@ -226,16 +226,16 @@ android::aidl::java::Class* generate_parcel_class(const AidlStructuredParcelable
       << "  _aidl_parcel.setDataPosition(_aidl_start_pos + _aidl_parcelable_size);\n"
       << "}\n";
 
-  read_method->statements->Add(new LiteralStatement(out.str()));
+  read_method->statements->Add(std::make_shared<LiteralStatement>(out.str()));
 
   parcel_class->elements.push_back(read_method);
 
-  Method* describe_contents_method = new Method;
+  auto describe_contents_method = std::make_shared<Method>();
   describe_contents_method->modifiers = PUBLIC | OVERRIDE;
   describe_contents_method->returnType = "int";
   describe_contents_method->name = "describeContents";
-  describe_contents_method->statements = new StatementBlock();
-  describe_contents_method->statements->Add(new LiteralStatement("return 0;\n"));
+  describe_contents_method->statements = std::make_shared<StatementBlock>();
+  describe_contents_method->statements->Add(std::make_shared<LiteralStatement>("return 0;\n"));
   parcel_class->elements.push_back(describe_contents_method);
 
   return parcel_class;
