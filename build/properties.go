@@ -30,7 +30,6 @@ type ccProperties struct {
 	Owner                     *string
 	Defaults                  []string
 	Vendor_available          *bool
-	Host_supported            *bool
 	Generated_sources         []string
 	Generated_headers         []string
 	Shared                    sharedLib
