@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2019, The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-#pragma once
+package android.aidl.tests;
 
-#include <string>
-#include <unordered_map>
-#include "aidl_language.h"
+@Backing(type="int")
+enum IntEnum {
+  FOO = 1000,
+  BAR = 2000,
+}
 
-namespace android {
-namespace aidl {
-namespace mappings {
-
-using SignatureMap = std::unordered_map<std::string, std::string>;
-
-SignatureMap generate_mappings(const AidlDefinedType* iface, const AidlTypenames& typenames);
-}  // namespace mappings
-}  // namespace aidl
-}  // namespace android

@@ -64,7 +64,10 @@ using android::binder::Status;
 // Generated code:
 using android::aidl::tests::BnNamedCallback;
 using android::aidl::tests::BnTestService;
+using android::aidl::tests::ByteEnum;
 using android::aidl::tests::INamedCallback;
+using android::aidl::tests::IntEnum;
+using android::aidl::tests::LongEnum;
 using android::aidl::tests::SimpleParcelable;
 using android::os::ParcelFileDescriptor;
 using android::os::PersistableBundle;
@@ -155,6 +158,21 @@ class NativeService : public BnTestService {
   }
   Status RepeatString(const String16& token, String16* _aidl_return) override {
     LogRepeatedStringToken(token);
+    *_aidl_return = token;
+    return Status::ok();
+  }
+  Status RepeatByteEnum(const ByteEnum& token, ByteEnum* _aidl_return) override {
+    ALOGI("Repeating ByteEnum token %d", static_cast<int8_t>(token));
+    *_aidl_return = token;
+    return Status::ok();
+  }
+  Status RepeatIntEnum(const IntEnum& token, IntEnum* _aidl_return) override {
+    ALOGI("Repeating IntEnum token %d", static_cast<int8_t>(token));
+    *_aidl_return = token;
+    return Status::ok();
+  }
+  Status RepeatLongEnum(const LongEnum& token, LongEnum* _aidl_return) override {
+    ALOGI("Repeating LongEnum token %d", static_cast<int8_t>(token));
     *_aidl_return = token;
     return Status::ok();
   }
@@ -453,6 +471,9 @@ class NativeService : public BnTestService {
       ::android::aidl::tests::StructuredParcelable* parcelable) {
     parcelable->shouldBeJerry = "Jerry";
     parcelable->shouldContainThreeFs = {parcelable->f, parcelable->f, parcelable->f};
+    parcelable->shouldBeByteBar = ByteEnum::BAR;
+    parcelable->shouldBeIntBar = IntEnum::BAR;
+    parcelable->shouldBeLongBar = LongEnum::BAR;
     return Status::ok();
   }
 
@@ -462,7 +483,7 @@ class NativeService : public BnTestService {
 
   android::status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply,
                                uint32_t flags) override {
-    if (code == ::android::IBinder::FIRST_CALL_TRANSACTION + 44 /* UnimplementedMethod */) {
+    if (code == ::android::IBinder::FIRST_CALL_TRANSACTION + 47 /* UnimplementedMethod */) {
       // pretend that UnimplementedMethod isn't implemented by this service.
       return android::UNKNOWN_TRANSACTION;
     } else {

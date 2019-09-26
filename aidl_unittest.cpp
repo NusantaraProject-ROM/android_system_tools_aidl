@@ -75,7 +75,7 @@ public class Rect implements android.os.Parcelable
   @android.annotation.SystemApi
   public int x = 5;
 
-  @dalvik.annotation.compat.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42)
+  @dalvik.annotation.compat.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42L)
   @android.annotation.SystemApi
   public int y;
 
@@ -671,7 +671,7 @@ TEST_F(AidlTest, UnderstandsNativeParcelables) {
     EXPECT_TRUE(pair.second);
     AidlTypeSpecifier native_type(AIDL_LOCATION_HERE, "p.Bar", false, nullptr, "");
     native_type.Resolve(typenames_);
-    EXPECT_EQ("p.Bar", java::InstantiableJavaSignatureOf(native_type));
+    EXPECT_EQ("p.Bar", java::InstantiableJavaSignatureOf(native_type, typenames_));
   }
 }
 
