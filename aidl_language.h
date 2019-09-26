@@ -196,7 +196,7 @@ class AidlAnnotatable : public AidlNode {
   bool IsStableParcelable() const;
 
   const AidlAnnotation* UnsupportedAppUsage() const;
-  const AidlTypeSpecifier* BackingType() const;
+  const AidlTypeSpecifier* BackingType(const AidlTypenames& typenames) const;
   std::string ToString() const;
 
   const vector<AidlAnnotation>& GetAnnotations() const { return annotations_; }
@@ -256,7 +256,7 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
 
   // Resolve the base type name to a fully-qualified name. Return false if the
   // resolution fails.
-  bool Resolve(android::aidl::AidlTypenames& typenames);
+  bool Resolve(const AidlTypenames& typenames);
 
   bool CheckValid(const AidlTypenames& typenames) const;
   bool LanguageSpecificCheckValid(Options::Language lang) const;
