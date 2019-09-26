@@ -800,7 +800,7 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 	addApiModule(mctx, i)
 
 	// Reserve this module name for future use
-	mctx.CreateModule(android.ModuleFactoryAdaptor(phony.PhonyFactory), &phonyProperties{
+	mctx.CreateModule(phony.PhonyFactory, &phonyProperties{
 		Name:     proptools.StringPtr(i.ModuleBase.Name()),
 		Required: libs,
 	})
@@ -825,7 +825,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		genLog = proptools.Bool(i.properties.Backend.Ndk.Gen_log)
 	}
 
-	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
+	mctx.CreateModule(aidlGenFactory, &nameProperties{
 		Name: proptools.StringPtr(cppSourceGen),
 	}, &aidlGenProperties{
 		Srcs:      srcs,
@@ -869,7 +869,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		panic("Unrecognized language: " + lang)
 	}
 
-	mctx.CreateModule(android.ModuleFactoryAdaptor(cc.LibraryFactory), &ccProperties{
+	mctx.CreateModule(cc.LibraryFactory, &ccProperties{
 		Name:                      proptools.StringPtr(cppModuleGen),
 		Vendor_available:          i.properties.Vendor_available,
 		Host_supported:            host_supported,
@@ -905,7 +905,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 
 	sdkVersion := proptools.StringDefault(i.properties.Backend.Java.Sdk_version, "system_current")
 
-	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlGenFactory), &nameProperties{
+	mctx.CreateModule(aidlGenFactory, &nameProperties{
 		Name: proptools.StringPtr(javaSourceGen),
 	}, &aidlGenProperties{
 		Srcs:      srcs,
@@ -917,7 +917,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		Version:   version,
 	})
 
-	mctx.CreateModule(android.ModuleFactoryAdaptor(java.LibraryFactory), &javaProperties{
+	mctx.CreateModule(java.LibraryFactory, &javaProperties{
 		Name:        proptools.StringPtr(javaModuleGen),
 		Installable: proptools.BoolPtr(true),
 		Defaults:    []string{"aidl-java-module-defaults"},
@@ -931,7 +931,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 
 func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 	apiModule := i.ModuleBase.Name() + aidlApiSuffix
-	mctx.CreateModule(android.ModuleFactoryAdaptor(aidlApiFactory), &nameProperties{
+	mctx.CreateModule(aidlApiFactory, &nameProperties{
 		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
 		BaseName: i.ModuleBase.Name(),
