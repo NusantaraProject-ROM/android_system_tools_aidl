@@ -16,10 +16,17 @@
 
 package android.aidl.tests;
 
+import android.aidl.tests.ByteEnum;
+import android.aidl.tests.IntEnum;
+import android.aidl.tests.LongEnum;
+
 parcelable StructuredParcelable {
     int[] shouldContainThreeFs;
     int f;
     @utf8InCpp String shouldBeJerry;
+    ByteEnum shouldBeByteBar;
+    IntEnum shouldBeIntBar;
+    LongEnum shouldBeLongBar;
 
     String stringDefaultsToFoo = "foo";
     byte byteDefaultsToFour = 4;

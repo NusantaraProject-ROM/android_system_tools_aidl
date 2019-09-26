@@ -222,15 +222,18 @@ const AidlAnnotation* AidlAnnotatable::UnsupportedAppUsage() const {
   return GetAnnotation(annotations_, kUnsupportedAppUsage);
 }
 
-const AidlTypeSpecifier* AidlAnnotatable::BackingType() const {
+const AidlTypeSpecifier* AidlAnnotatable::BackingType(const AidlTypenames& typenames) const {
   auto annotation = GetAnnotation(annotations_, kBacking);
   if (annotation != nullptr) {
     auto annotation_params = annotation->AnnotationParams(AidlConstantValueDecorator);
     if (auto it = annotation_params.find("type"); it != annotation_params.end()) {
       const string& type = it->second;
-      return new AidlTypeSpecifier(AIDL_LOCATION_HERE,
-                                   // Strip the quotes off the type String.
-                                   type.substr(1, type.length() - 2), false, nullptr, "");
+      AidlTypeSpecifier* type_specifier =
+          new AidlTypeSpecifier(AIDL_LOCATION_HERE,
+                                // Strip the quotes off the type String.
+                                type.substr(1, type.length() - 2), false, nullptr, "");
+      type_specifier->Resolve(typenames);
+      return type_specifier;
     }
   }
   return nullptr;
@@ -306,7 +309,7 @@ string AidlTypeSpecifier::Signature() const {
   return ret;
 }
 
-bool AidlTypeSpecifier::Resolve(android::aidl::AidlTypenames& typenames) {
+bool AidlTypeSpecifier::Resolve(const AidlTypenames& typenames) {
   CHECK(!IsResolved());
   pair<string, bool> result = typenames.ResolveTypename(unresolved_name_);
   if (result.second) {
@@ -349,6 +352,11 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
     const auto definedType = typenames.TryGetDefinedType(GetName());
     if (definedType != nullptr && definedType->AsInterface() != nullptr) {
       AIDL_ERROR(this) << "Binder type cannot be an array";
+      return false;
+    }
+    if (definedType != nullptr && definedType->AsEnumDeclaration() != nullptr) {
+      // TODO(b/123321528): Support arrays of enums.
+      AIDL_ERROR(this) << "Enum type cannot be an array";
       return false;
     }
   }
@@ -612,7 +620,7 @@ string AidlConstantValue::As(const AidlTypeSpecifier& type,
       }
       if (type_string == "long") {
         if (!android::base::ParseInt<int64_t>(value_, nullptr)) goto parse_error;
-        return decorator(type, value_);
+        return decorator(type, value_ + "L");
       }
       goto mismatch_error;
     case AidlConstantValue::Type::STRING:

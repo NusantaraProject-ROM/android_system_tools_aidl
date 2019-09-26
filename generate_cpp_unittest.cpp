@@ -1424,8 +1424,8 @@ namespace android {
 namespace os {
 
 enum class TestEnum : int64_t {
-  FOO = 1,
-  BAR = 2,
+  FOO = 1L,
+  BAR = 2L,
 };
 
 }  // namespace os
