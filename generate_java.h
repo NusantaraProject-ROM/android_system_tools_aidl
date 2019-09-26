@@ -37,6 +37,9 @@ std::unique_ptr<android::aidl::java::Class> generate_binder_interface_class(
 std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
     const AidlStructuredParcelable* parcel, const AidlTypenames& typenames);
 
+void generate_enum(const CodeWriterPtr& code_writer, const AidlEnumDeclaration* enum_decl,
+                   const AidlTypenames& typenames);
+
 std::vector<std::string> generate_java_annotations(const AidlAnnotatable& a);
 
 }  // namespace java

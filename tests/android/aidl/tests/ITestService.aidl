@@ -16,7 +16,10 @@
 
 package android.aidl.tests;
 
+import android.aidl.tests.ByteEnum;
 import android.aidl.tests.INamedCallback;
+import android.aidl.tests.IntEnum;
+import android.aidl.tests.LongEnum;
 import android.aidl.tests.SimpleParcelable;
 import android.aidl.tests.StructuredParcelable;
 import android.os.PersistableBundle;
@@ -50,6 +53,9 @@ interface ITestService {
   float RepeatFloat(float token);
   double RepeatDouble(double token);
   String RepeatString(String token);
+  ByteEnum RepeatByteEnum(ByteEnum token);
+  IntEnum RepeatIntEnum(IntEnum token);
+  LongEnum RepeatLongEnum(LongEnum token);
 
   SimpleParcelable RepeatSimpleParcelable(in SimpleParcelable input,
                                           out SimpleParcelable repeat);

@@ -521,12 +521,14 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
       // because other types that may use enums, such as Interface or
       // StructuredParcelable, need to know the enum BackingType when
       // generating code.
-      if (auto backing_type = enum_decl->BackingType(); backing_type != nullptr) {
+      if (auto backing_type = enum_decl->BackingType(*typenames); backing_type != nullptr) {
         enum_decl->SetBackingType(std::unique_ptr<const AidlTypeSpecifier>(backing_type));
       } else {
         // Default to byte type for enums.
-        enum_decl->SetBackingType(std::make_unique<const AidlTypeSpecifier>(
-            AIDL_LOCATION_HERE, "byte", false, nullptr, ""));
+        auto byte_type =
+            std::make_unique<AidlTypeSpecifier>(AIDL_LOCATION_HERE, "byte", false, nullptr, "");
+        byte_type->Resolve(*typenames);
+        enum_decl->SetBackingType(std::move(byte_type));
       }
 
       // TODO(b/139877950): Support autofilling enumerators, and ensure that
@@ -623,11 +625,10 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
     }
 
     if (enum_decl != nullptr) {
-      if (!is_check_api && (options.TargetLanguage() == Options::Language::NDK ||
-                            options.TargetLanguage() == Options::Language::JAVA)) {
-        AIDL_ERROR(defined_type) << "Enums are not yet supported in Java or NDK. "
-                                 << "Please set \"backend: { java: { enabled: false }, "
-                                 << "ndk: { enabled: false },},\" if you want to use Enums.";
+      if (!is_check_api && (options.TargetLanguage() == Options::Language::NDK)) {
+        AIDL_ERROR(defined_type) << "Enums are not yet supported in NDK. "
+                                 << "Please set \"backend: { ndk: { enabled: false },},\" "
+                                 << "if you want to use Enums.";
         return AidlError::BAD_TYPE;
       }
     }
@@ -737,7 +738,7 @@ bool dump_mappings(const Options& options, const IoDelegate& io_delegate) {
       continue;
     }
     for (const auto defined_type : defined_types) {
-      auto mappings = mappings::generate_mappings(defined_type);
+      auto mappings = mappings::generate_mappings(defined_type, typenames);
       all_mappings.insert(mappings.begin(), mappings.end());
     }
   }

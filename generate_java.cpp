@@ -72,25 +72,36 @@ bool generate_java_parcel_declaration(const std::string& filename, const IoDeleg
   return true;
 }
 
+bool generate_java_enum_declaration(const std::string& filename,
+                                    const AidlEnumDeclaration* enum_decl,
+                                    const AidlTypenames& typenames, const IoDelegate& io_delegate) {
+  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
+  generate_enum(code_writer, enum_decl, typenames);
+  return true;
+}
+
 bool generate_java(const std::string& filename, const AidlDefinedType* defined_type,
                    const AidlTypenames& typenames, const IoDelegate& io_delegate,
                    const Options& options) {
-  const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
-  if (parcelable != nullptr) {
+  if (const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
+      parcelable != nullptr) {
     return generate_java_parcel(filename, parcelable, typenames, io_delegate);
   }
 
-  const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
-  if (parcelable_decl != nullptr) {
+  if (const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
+      parcelable_decl != nullptr) {
     return generate_java_parcel_declaration(filename, io_delegate);
   }
 
-  const AidlInterface* interface = defined_type->AsInterface();
-  if (interface != nullptr) {
+  if (const AidlEnumDeclaration* enum_decl = defined_type->AsEnumDeclaration();
+      enum_decl != nullptr) {
+    return generate_java_enum_declaration(filename, enum_decl, typenames, io_delegate);
+  }
+
+  if (const AidlInterface* interface = defined_type->AsInterface(); interface != nullptr) {
     return generate_java_interface(filename, interface, typenames, io_delegate, options);
   }
 
-  // TODO(b/123321528): Generate enums.
   CHECK(false) << "Unrecognized type sent for java generation.";
   return false;
 }
@@ -106,14 +117,13 @@ std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
   parcel_class->annotations = generate_java_annotations(*parcel);
 
   for (const auto& variable : parcel->GetFields()) {
-    const AidlTypeSpecifier& type = variable->GetType();
-
     std::ostringstream out;
     out << variable->GetType().GetComments() << "\n";
     for (const auto& a : generate_java_annotations(variable->GetType())) {
       out << a << "\n";
     }
-    out << "public " << JavaSignatureOf(type) << " " << variable->GetName();
+    out << "public " << JavaSignatureOf(variable->GetType(), typenames) << " "
+        << variable->GetName();
     if (variable->GetDefaultValue()) {
       out << " = " << variable->ValueString(AidlConstantValueDecorator);
     }
@@ -239,6 +249,31 @@ std::unique_ptr<android::aidl::java::Class> generate_parcel_class(
   parcel_class->elements.push_back(describe_contents_method);
 
   return parcel_class;
+}
+
+void generate_enum(const CodeWriterPtr& code_writer, const AidlEnumDeclaration* enum_decl,
+                   const AidlTypenames& typenames) {
+  code_writer->Write(
+      "/*\n"
+      " * This file is auto-generated.  DO NOT MODIFY.\n"
+      " */\n");
+
+  code_writer->Write("package %s;\n", enum_decl->GetPackage().c_str());
+  // TODO(b/123321528): Support comments.
+  for (const std::string& annotation : generate_java_annotations(*enum_decl)) {
+    code_writer->Write(annotation.c_str());
+  }
+  code_writer->Write("public @interface %s {\n", enum_decl->GetName().c_str());
+  code_writer->Indent();
+  for (const auto& enumerator : enum_decl->GetEnumerators()) {
+    code_writer->Write(
+        "public static final %s %s = %s;\n",
+        JavaSignatureOf(enum_decl->GetBackingType(), typenames).c_str(),
+        enumerator->GetName().c_str(),
+        enumerator->ValueString(enum_decl->GetBackingType(), AidlConstantValueDecorator).c_str());
+  }
+  code_writer->Dedent();
+  code_writer->Write("}\n");
 }
 
 std::string generate_java_annotation_parameters(const AidlAnnotation& a) {
