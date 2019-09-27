@@ -438,7 +438,7 @@ void GenerateClassSource(CodeWriter& out, const AidlTypenames& types,
   }
   out << "return _aidl_ret_status;\n";
   out.Dedent();
-  out << "};\n\n";
+  out << "}\n\n";
 
   out << "static AIBinder_Class* " << kClazz << " = ::ndk::ICInterface::defineClass(" << clazz
       << "::" << kDescriptor << ", _aidl_onTransact);\n\n";
