@@ -185,6 +185,18 @@ std::map<std::string, std::string> AidlAnnotation::AnnotationParams(
   return raw_params;
 }
 
+std::string AidlAnnotation::ToString(const ConstantValueDecorator& decorator) const {
+  if (parameters_.empty()) {
+    return "@" + GetName();
+  } else {
+    vector<string> param_strings;
+    for (const auto& [name, value] : AnnotationParams(decorator)) {
+      param_strings.emplace_back(name + "=" + value);
+    }
+    return "@" + GetName() + "(" + Join(param_strings, ", ") + ")";
+  }
+}
+
 static bool HasAnnotation(const vector<AidlAnnotation>& annotations, const string& name) {
   for (const auto& a : annotations) {
     if (a.GetName() == name) {
@@ -260,7 +272,7 @@ bool AidlAnnotatable::CheckValidAnnotations() const {
 string AidlAnnotatable::ToString() const {
   vector<string> ret;
   for (const auto& a : annotations_) {
-    ret.emplace_back(a.ToString());
+    ret.emplace_back(a.ToString(AidlConstantValueDecorator));
   }
   std::sort(ret.begin(), ret.end());
   return Join(ret, " ");
@@ -620,7 +632,7 @@ string AidlConstantValue::As(const AidlTypeSpecifier& type,
       }
       if (type_string == "long") {
         if (!android::base::ParseInt<int64_t>(value_, nullptr)) goto parse_error;
-        return decorator(type, value_ + "L");
+        return decorator(type, value_);
       }
       goto mismatch_error;
     case AidlConstantValue::Type::STRING:
@@ -929,8 +941,8 @@ bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
 }
 
 void AidlEnumDeclaration::Write(CodeWriter* writer) const {
-  writer->Write(AidlAnnotatable::ToString().c_str());
-  writer->Write("enum %s {", GetName().c_str());
+  writer->Write("%s\n", AidlAnnotatable::ToString().c_str());
+  writer->Write("enum %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& enumerator : GetEnumerators()) {
     // TODO(b/123321528): After autofilling is supported, determine if we want

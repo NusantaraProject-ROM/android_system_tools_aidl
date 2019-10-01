@@ -154,7 +154,7 @@ class AidlAnnotation : public AidlNode {
   bool CheckValid() const;
 
   const string& GetName() const { return name_; }
-  string ToString() const { return "@" + name_; }
+  string ToString(const ConstantValueDecorator& decorator) const;
   std::map<std::string, std::string> AnnotationParams(
       const ConstantValueDecorator& decorator) const;
   const string& GetComments() const { return comments_; }
