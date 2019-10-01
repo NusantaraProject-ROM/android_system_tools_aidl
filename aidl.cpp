@@ -623,15 +623,6 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
         return AidlError::BAD_METHOD_ID;
       }
     }
-
-    if (enum_decl != nullptr) {
-      if (!is_check_api && (options.TargetLanguage() == Options::Language::NDK)) {
-        AIDL_ERROR(defined_type) << "Enums are not yet supported in NDK. "
-                                 << "Please set \"backend: { ndk: { enabled: false },},\" "
-                                 << "if you want to use Enums.";
-        return AidlError::BAD_TYPE;
-      }
-    }
   }
 
   typenames->IterateTypes([&](const AidlDefinedType& type) {
