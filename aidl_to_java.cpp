@@ -39,9 +39,11 @@ using std::map;
 using std::string;
 using std::vector;
 
-std::string ConstantValueDecorator(const AidlTypeSpecifier& /*type*/,
-                                   const std::string& raw_value) {
-  // no difference
+std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value) {
+  if (type.GetName() == "long") {
+    return raw_value + "L";
+  }
+
   return raw_value;
 };
 
