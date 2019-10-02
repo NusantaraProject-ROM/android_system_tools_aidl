@@ -56,7 +56,14 @@ R"(place/for/output/p/IFoo.java : \
   p/IFoo.aidl
 )";
 
-const char kExpectedParcelableDepFileContents[] =
+const char kExpectedParcelableDeclarationDepFileContents[] =
+    R"( : \
+  p/Foo.aidl
+
+p/Foo.aidl :
+)";
+
+const char kExpectedStructuredParcelableDepFileContents[] =
     R"(place/for/output/p/Foo.java : \
   p/Foo.aidl
 
@@ -710,7 +717,7 @@ TEST_F(AidlTest, WritesCorrectDependencyFileNinja) {
   EXPECT_EQ(actual_dep_file_contents, kExpectedNinjaDepFileContents);
 }
 
-TEST_F(AidlTest, WritesTrivialDependencyFileForParcelable) {
+TEST_F(AidlTest, WritesTrivialDependencyFileForParcelableDeclaration) {
   // The SDK uses aidl to decide whether a .aidl file is a parcelable.  It does
   // this by calling aidl with every .aidl file it finds, then parsing the
   // generated dependency files.  Those that reference .java output files are
@@ -726,7 +733,22 @@ TEST_F(AidlTest, WritesTrivialDependencyFileForParcelable) {
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
   string actual_dep_file_contents;
   EXPECT_TRUE(io_delegate_.GetWrittenContents(options.DependencyFile(), &actual_dep_file_contents));
-  EXPECT_EQ(actual_dep_file_contents, kExpectedParcelableDepFileContents);
+  EXPECT_EQ(actual_dep_file_contents, kExpectedParcelableDeclarationDepFileContents);
+}
+
+TEST_F(AidlTest, WritesDependencyFileForStructuredParcelable) {
+  vector<string> args = {
+    "aidl",
+    "--structured",
+    "-o place/for/output",
+    "-d dep/file/path",
+    "p/Foo.aidl"};
+  Options options = Options::From(args);
+  io_delegate_.SetFileContents(options.InputFiles().front(), "package p; parcelable Foo {int a;}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  string actual_dep_file_contents;
+  EXPECT_TRUE(io_delegate_.GetWrittenContents(options.DependencyFile(), &actual_dep_file_contents));
+  EXPECT_EQ(actual_dep_file_contents, kExpectedStructuredParcelableDepFileContents);
 }
 
 /* not working until type_namespace.h is fixed
