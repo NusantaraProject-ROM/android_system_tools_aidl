@@ -820,6 +820,27 @@ public class TestServiceClient extends Activity {
         mLog.logAndThrow(
             "shouldBeLongBar should be LongEnum.BAR but is " + parcelable.shouldBeLongBar);
       }
+
+      if (parcelable.int32_min != Integer.MIN_VALUE) {
+        mLog.logAndThrow(
+            "int32_min should be " + Integer.MIN_VALUE + "but is " + parcelable.int32_min);
+      }
+
+      if (parcelable.int32_max != Integer.MAX_VALUE) {
+        mLog.logAndThrow(
+            "int32_max should be " + Integer.MAX_VALUE + "but is " + parcelable.int32_max);
+      }
+
+      if (parcelable.int64_max != Long.MAX_VALUE) {
+        mLog.logAndThrow(
+            "int64_max should be " + Long.MAX_VALUE + "but is " + parcelable.int64_max);
+      }
+
+      if (parcelable.hexInt32_neg_1 != -1) {
+        mLog.logAndThrow("hexInt32_neg_1 should be -1 but is " + parcelable.hexInt32_neg_1);
+      }
+
+      mLog.log("Successfully verified the StructuredParcelable");
     }
 
     private void checkDefaultImpl(ITestService service) throws TestFailException {
