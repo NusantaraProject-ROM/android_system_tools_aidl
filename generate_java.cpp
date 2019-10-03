@@ -259,13 +259,14 @@ void generate_enum(const CodeWriterPtr& code_writer, const AidlEnumDeclaration* 
       " */\n");
 
   code_writer->Write("package %s;\n", enum_decl->GetPackage().c_str());
-  // TODO(b/123321528): Support comments.
+  code_writer->Write("%s\n", enum_decl->GetComments().c_str());
   for (const std::string& annotation : generate_java_annotations(*enum_decl)) {
     code_writer->Write(annotation.c_str());
   }
   code_writer->Write("public @interface %s {\n", enum_decl->GetName().c_str());
   code_writer->Indent();
   for (const auto& enumerator : enum_decl->GetEnumerators()) {
+    code_writer->Write(enumerator->GetComments().c_str());
     code_writer->Write(
         "public static final %s %s = %s;\n",
         JavaSignatureOf(enum_decl->GetBackingType(), typenames).c_str(),
