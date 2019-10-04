@@ -155,6 +155,8 @@ class AidlTest : public ::testing::Test {
 
   void TearDown() override {
     auto actual_stderr = GetCapturedStderr();
+    std::cerr << actual_stderr << std::endl;
+
     if (expected_stderr_.size() > 0) {
       EXPECT_EQ(android::base::Join(expected_stderr_, ""), actual_stderr);
     }
@@ -620,7 +622,7 @@ TEST_F(AidlTest, ParseNegativeConstHexValue) {
               }
            )",
                                 typenames_, Options::Language::CPP, &reported_error);
-  EXPECT_NE(nullptr, cpp_parse_result);
+  ASSERT_NE(nullptr, cpp_parse_result);
   const AidlInterface* interface = cpp_parse_result->AsInterface();
   ASSERT_NE(nullptr, interface);
   const auto& cpp_constants = interface->GetConstantDeclarations();
