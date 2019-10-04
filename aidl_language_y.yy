@@ -364,7 +364,7 @@ constant_decl
 // TODO(b/139877950): Support autofilling enumerator values
 enumerator
  : identifier '=' constant_value {
-    $$ = new AidlEnumerator(loc(@1), $1->GetText(), $3);
+    $$ = new AidlEnumerator(loc(@1), $1->GetText(), $3, $1->GetComments());
     delete $1;
    }
  ;
@@ -385,10 +385,9 @@ enum_decl_body
  | '{' enumerators ',' '}' { $$ = $2; }
  ;
 
-// TODO(b/123321528): Support comments.
 enum_decl
  : ENUM identifier enum_decl_body {
-    $$ = new AidlEnumDeclaration(loc(@2), $2->GetText(), $3, ps->Package());
+    $$ = new AidlEnumDeclaration(loc(@2), $2->GetText(), $3, ps->Package(), $1->GetComments());
     delete $1;
     delete $2;
     delete $3;

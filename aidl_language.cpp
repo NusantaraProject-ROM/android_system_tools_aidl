@@ -712,8 +712,8 @@ bool AidlStructuredParcelable::LanguageSpecificCheckValid(Options::Language lang
 }
 
 AidlEnumerator::AidlEnumerator(const AidlLocation& location, const std::string& name,
-                               AidlConstantValue* value)
-    : AidlNode(location), name_(name), value_(value) {}
+                               AidlConstantValue* value, const std::string& comments)
+    : AidlNode(location), name_(name), value_(value), comments_(comments) {}
 
 bool AidlEnumerator::CheckValid(const AidlTypeSpecifier& enum_backing_type) const {
   if (GetValue() == nullptr) {
@@ -736,8 +736,9 @@ string AidlEnumerator::ValueString(const AidlTypeSpecifier& backing_type,
 
 AidlEnumDeclaration::AidlEnumDeclaration(const AidlLocation& location, const std::string& name,
                                          std::vector<std::unique_ptr<AidlEnumerator>>* enumerators,
-                                         const std::vector<std::string>& package)
-    : AidlDefinedType(location, name, "", package), enumerators_(std::move(*enumerators)) {}
+                                         const std::vector<std::string>& package,
+                                         const std::string& comments)
+    : AidlDefinedType(location, name, comments, package), enumerators_(std::move(*enumerators)) {}
 
 void AidlEnumDeclaration::SetBackingType(std::unique_ptr<const AidlTypeSpecifier> type) {
   backing_type_ = std::move(type);

@@ -637,11 +637,13 @@ class AidlStructuredParcelable : public AidlParcelable {
 
 class AidlEnumerator : public AidlNode {
  public:
-  AidlEnumerator(const AidlLocation& location, const std::string& name, AidlConstantValue* value);
+  AidlEnumerator(const AidlLocation& location, const std::string& name, AidlConstantValue* value,
+                 const std::string& comments);
   virtual ~AidlEnumerator() = default;
 
   const std::string& GetName() const { return name_; }
   const AidlConstantValue* GetValue() const { return value_.get(); }
+  const std::string& GetComments() const { return comments_; }
   bool CheckValid(const AidlTypeSpecifier& enum_backing_type) const;
 
   string ValueString(const AidlTypeSpecifier& backing_type,
@@ -650,6 +652,7 @@ class AidlEnumerator : public AidlNode {
  private:
   const std::string name_;
   const unique_ptr<AidlConstantValue> value_;
+  const std::string comments_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlEnumerator);
 };
@@ -658,7 +661,7 @@ class AidlEnumDeclaration : public AidlDefinedType {
  public:
   AidlEnumDeclaration(const AidlLocation& location, const std::string& name,
                       std::vector<std::unique_ptr<AidlEnumerator>>* enumerators,
-                      const std::vector<std::string>& package);
+                      const std::vector<std::string>& package, const std::string& comments);
   virtual ~AidlEnumDeclaration() = default;
 
   void SetBackingType(std::unique_ptr<const AidlTypeSpecifier> type);

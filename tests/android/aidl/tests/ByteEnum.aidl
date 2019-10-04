@@ -16,8 +16,12 @@
 
 package android.aidl.tests;
 
+/*
+ * Hello, world!
+ */
 @Backing(type="byte")
 enum ByteEnum {
+  // Comment about FOO.
   FOO = 1,
   BAR = 2,
 }
