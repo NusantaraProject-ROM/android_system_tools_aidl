@@ -1550,5 +1550,53 @@ TEST_F(AidlOutputPathTest, NoOutDirWithNoOutputFile) {
   Test(Options::From("aidl sub/dir/foo/bar/IFoo.aidl"), "sub/dir/foo/bar/IFoo.java");
 }
 
+TEST_F(AidlTest, FailOnOutOfBoundsInt32MaxConstInt) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
+                           R"(package p;
+                              interface IFoo {
+                                const int int32_max_oob = 2147483650;
+                              }
+                             )",
+                           typenames_, Options::Language::CPP, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
+TEST_F(AidlTest, FailOnOutOfBoundsInt32MinConstInt) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
+                           R"(package p;
+                              interface IFoo {
+                                const int int32_min_oob = -2147483650;
+                              }
+                             )",
+                           typenames_, Options::Language::CPP, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
+TEST_F(AidlTest, FailOnOutOfBoundsInt64MaxConstInt) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
+                           R"(package p;
+                              interface IFoo {
+                                const long int64_max_oob = 21474836509999999999999999;
+                              }
+                             )",
+                           typenames_, Options::Language::CPP, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
+TEST_F(AidlTest, FailOnOutOfBoundsInt64MinConstInt) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/IFoo.aidl",
+                           R"(package p;
+                              interface IFoo {
+                                const long int64_min_oob = -21474836509999999999999999;
+                              }
+                             )",
+                           typenames_, Options::Language::CPP, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
 }  // namespace aidl
 }  // namespace android

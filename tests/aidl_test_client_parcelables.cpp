@@ -221,6 +221,25 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
     return false;
   }
 
+  if (parcelable.int32_min != INT32_MIN) {
+    cout << "int32_min should be " << INT32_MIN << "but is " << parcelable.int32_min << endl;
+    return false;
+  }
+  if (parcelable.int32_max != INT32_MAX) {
+    cout << "int32_max should be " << INT32_MAX << "but is " << parcelable.int32_max << endl;
+    return false;
+  }
+
+  if (parcelable.int64_max != INT64_MAX) {
+    cout << "int64_max should be " << INT64_MAX << "but is " << parcelable.int64_max << endl;
+    return false;
+  }
+
+  if (parcelable.hexInt32_neg_1 != -1) {
+    cout << "hexInt32_neg_1 should be -1 but is " << parcelable.hexInt32_neg_1 << endl;
+    return false;
+  }
+
   return true;
 }
 
