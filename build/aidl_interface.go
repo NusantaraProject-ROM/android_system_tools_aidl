@@ -40,7 +40,6 @@ var (
 	langJava            = "java"
 	langNdk             = "ndk"
 	langNdkPlatform     = "ndk_platform"
-	futureVersion       = "10000"
 
 	pctx = android.NewPackageContext("android/aidl")
 
@@ -378,13 +377,13 @@ func (m *aidlApi) validateCurrentVersion(ctx android.ModuleContext) string {
 	} else {
 		latestVersion := m.properties.Versions[len(m.properties.Versions)-1]
 
-		i, err := strconv.ParseInt(latestVersion, 10, 64)
+		i, err := strconv.Atoi(latestVersion)
 		if err != nil {
 			ctx.PropertyErrorf("versions", "must be integers")
 			return ""
 		}
 
-		return strconv.FormatInt(i+1, 10)
+		return strconv.Itoa(i + 1)
 	}
 }
 
@@ -713,16 +712,36 @@ func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 	}
 }
 
-func (i *aidlInterface) versionedName(version string) string {
+func (i *aidlInterface) currentVersion(ctx android.BaseModuleContext) string {
+	if len(i.properties.Versions) == 0 {
+		return ""
+	} else {
+		latestVersion := i.properties.Versions[len(i.properties.Versions)-1]
+
+		i, err := strconv.Atoi(latestVersion)
+		if err != nil {
+			ctx.PropertyErrorf("versions", "must be integers")
+			return ""
+		}
+
+		return strconv.Itoa(i + 1)
+	}
+}
+
+func (i *aidlInterface) isCurrentVersion(ctx android.BaseModuleContext, version string) bool {
+	return version == i.currentVersion(ctx)
+}
+
+func (i *aidlInterface) versionedName(ctx android.BaseModuleContext, version string) string {
 	name := i.ModuleBase.Name()
-	if version != futureVersion && version != "" {
+	if !i.isCurrentVersion(ctx, version) {
 		name = name + "-V" + version
 	}
 	return name
 }
 
 func (i *aidlInterface) srcsForVersion(mctx android.LoadHookContext, version string) (srcs []string, base string) {
-	if version == futureVersion || version == "" {
+	if i.isCurrentVersion(mctx, version) {
 		return i.properties.Srcs, i.properties.Local_include_dir
 	} else {
 		var apiDir string
@@ -763,10 +782,7 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 
 	var libs []string
 
-	currentVersion := ""
-	if len(i.properties.Versions) > 0 {
-		currentVersion = futureVersion
-	}
+	currentVersion := i.currentVersion(mctx)
 
 	if i.shouldGenerateCppBackend() {
 		libs = append(libs, addCppLibrary(mctx, i, currentVersion, langCpp))
@@ -807,8 +823,8 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 }
 
 func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version string, lang string) string {
-	cppSourceGen := i.versionedName(version) + "-" + lang + "-source"
-	cppModuleGen := i.versionedName(version) + "-" + lang
+	cppSourceGen := i.versionedName(mctx, version) + "-" + lang + "-source"
+	cppModuleGen := i.versionedName(mctx, version) + "-" + lang
 
 	srcs, base := i.srcsForVersion(mctx, version)
 	if len(srcs) == 0 {
@@ -892,8 +908,8 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 }
 
 func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version string) string {
-	javaSourceGen := i.versionedName(version) + "-java-source"
-	javaModuleGen := i.versionedName(version) + "-java"
+	javaSourceGen := i.versionedName(mctx, version) + "-java-source"
+	javaModuleGen := i.versionedName(mctx, version) + "-java"
 
 	srcs, base := i.srcsForVersion(mctx, version)
 	if len(srcs) == 0 {
