@@ -372,8 +372,8 @@ static void generate_write_to_parcel(const AidlTypeSpecifier& type,
       .writer = *(writer.get()),
       .typenames = typenames,
       .type = type,
-      .var = v->name,
       .parcel = parcel->name,
+      .var = v->name,
       .is_return_value = is_return_value,
   };
   WriteToParcelFor(context);
@@ -444,8 +444,8 @@ static void generate_stub_code(const AidlInterface& iface, const AidlMethod& met
         CodeGeneratorContext context{.writer = *(writer.get()),
                                      .typenames = typenames,
                                      .type = arg->GetType(),
-                                     .var = v->name,
                                      .parcel = transact_data->name,
+                                     .var = v->name,
                                      .is_classloader_created = &is_classloader_created};
         CreateFromParcelFor(context);
         writer->Close();
@@ -703,8 +703,8 @@ static std::shared_ptr<Method> generate_proxy_method(
       CodeGeneratorContext context{.writer = *(writer.get()),
                                    .typenames = typenames,
                                    .type = method.GetType(),
-                                   .var = _result->name,
                                    .parcel = _reply->name,
+                                   .var = _result->name,
                                    .is_classloader_created = &is_classloader_created};
       CreateFromParcelFor(context);
       writer->Close();
@@ -719,8 +719,8 @@ static std::shared_ptr<Method> generate_proxy_method(
         CodeGeneratorContext context{.writer = *(writer.get()),
                                      .typenames = typenames,
                                      .type = arg->GetType(),
-                                     .var = arg->GetName(),
                                      .parcel = _reply->name,
+                                     .var = arg->GetName(),
                                      .is_classloader_created = &is_classloader_created};
         ReadFromParcelFor(context);
         writer->Close();
