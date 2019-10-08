@@ -161,17 +161,17 @@ class NativeService : public BnTestService {
     *_aidl_return = token;
     return Status::ok();
   }
-  Status RepeatByteEnum(const ByteEnum& token, ByteEnum* _aidl_return) override {
+  Status RepeatByteEnum(ByteEnum token, ByteEnum* _aidl_return) override {
     ALOGI("Repeating ByteEnum token %d", static_cast<int8_t>(token));
     *_aidl_return = token;
     return Status::ok();
   }
-  Status RepeatIntEnum(const IntEnum& token, IntEnum* _aidl_return) override {
+  Status RepeatIntEnum(IntEnum token, IntEnum* _aidl_return) override {
     ALOGI("Repeating IntEnum token %d", static_cast<int8_t>(token));
     *_aidl_return = token;
     return Status::ok();
   }
-  Status RepeatLongEnum(const LongEnum& token, LongEnum* _aidl_return) override {
+  Status RepeatLongEnum(LongEnum token, LongEnum* _aidl_return) override {
     ALOGI("Repeating LongEnum token %d", static_cast<int8_t>(token));
     *_aidl_return = token;
     return Status::ok();
