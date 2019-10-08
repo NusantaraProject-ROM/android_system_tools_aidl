@@ -107,9 +107,14 @@ ArgList BuildArgList(const AidlTypenames& typenames, const AidlMethod& method, b
       if (a->IsOut()) {
         literal = literal + "*";
       } else {
+        const auto definedType = typenames.TryGetDefinedType(a->GetType().GetName());
+
+        const bool isEnum = definedType && definedType->AsEnumDeclaration() != nullptr;
+        const bool isPrimitive = AidlTypenames::IsPrimitiveTypename(a->GetType().GetName());
+
         // We pass in parameters that are not primitives by const reference.
         // Arrays of primitives are not primitives.
-        if (!AidlTypenames::IsPrimitiveTypename(a->GetType().GetName()) || a->GetType().IsArray()) {
+        if (!(isPrimitive || isEnum) || a->GetType().IsArray()) {
           literal = "const " + literal + "&";
         }
       }
