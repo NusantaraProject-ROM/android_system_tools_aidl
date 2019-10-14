@@ -171,9 +171,9 @@ static void StatusCheckReturn(CodeWriter& out) {
 static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& defined_type) {
   out << "#include <android/binder_parcel_utils.h>\n";
-  out << "#ifndef __ANDROID_NDK__\n";
+  out << "#ifdef BINDER_STABILITY_SUPPORT\n";
   out << "#include <android/binder_stability.h>\n";
-  out << "#endif  // __ANDROID_NDK__\n";
+  out << "#endif  // BINDER_STABILITY_SUPPORT\n";
 
   types.IterateTypes([&](const AidlDefinedType& other_defined_type) {
     if (&other_defined_type == &defined_type) return;
@@ -512,13 +512,13 @@ void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
   out.Indent();
   out << "AIBinder* binder = AIBinder_new(" << kClazz << ", static_cast<void*>(this));\n";
 
-  out << "#ifndef __ANDROID_NDK__\n";
+  out << "#ifdef BINDER_STABILITY_SUPPORT\n";
   if (defined_type.IsVintfStability()) {
     out << "AIBinder_markVintfStability(binder);\n";
   } else {
     out << "AIBinder_markCompilationUnitStability(binder);\n";
   }
-  out << "#endif  // __ANDROID_NDK__\n";
+  out << "#endif  // BINDER_STABILITY_SUPPORT\n";
 
   out << "return ::ndk::SpAIBinder(binder);\n";
   out.Dedent();
