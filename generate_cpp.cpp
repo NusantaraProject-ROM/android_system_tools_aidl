@@ -1003,10 +1003,31 @@ std::unique_ptr<Document> BuildParcelHeader(const AidlTypenames& typenames,
   unique_ptr<ClassDecl> parcel_class{new ClassDecl{parcel.GetName(), "::android::Parcelable"}};
 
   set<string> includes = {kStatusHeader, kParcelHeader};
+  includes.insert("tuple");
   for (const auto& variable : parcel.GetFields()) {
     AddHeaders(variable->GetType(), typenames, includes);
   }
 
+  set<string> operators = {"<", ">", "==", ">=", "<=", "!="};
+  for (const auto& op : operators) {
+    std::ostringstream operator_code;
+    std::vector<std::string> variable_name;
+    std::vector<std::string> rhs_variable_name;
+    for (const auto& variable : parcel.GetFields()) {
+      variable_name.push_back(variable->GetName());
+      rhs_variable_name.push_back("rhs." + variable->GetName());
+    }
+
+    operator_code << "inline bool operator" << op << "(const " << parcel.GetName()
+                  << "& rhs) const {\n"
+                  << "  return "
+                  << "std::tie(" << Join(variable_name, ", ") << ")" << op << "std::tie("
+                  << Join(rhs_variable_name, ", ") << ")"
+                  << ";\n"
+                  << "}\n";
+
+    parcel_class->AddPublic(std::unique_ptr<LiteralDecl>(new LiteralDecl(operator_code.str())));
+  }
   for (const auto& variable : parcel.GetFields()) {
 
     std::ostringstream out;
