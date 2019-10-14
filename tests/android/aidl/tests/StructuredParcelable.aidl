@@ -49,4 +49,6 @@ parcelable StructuredParcelable {
     int int32_max =  2147483647;
     long int64_max =  9223372036854775807;
     int hexInt32_neg_1 = 0xffffffff;
+
+    @nullable IBinder ibinder;
 }

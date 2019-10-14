@@ -145,6 +145,79 @@ bool ConfirmPersistableBundles(const sp<ITestService>& s) {
   return true;
 }
 
+bool ConfirmStructuredParcelablesEquality(const sp<ITestService>& s) {
+  StructuredParcelable parcelable1;
+  StructuredParcelable parcelable2;
+
+  parcelable1.f = 11;
+  parcelable2.f = 11;
+
+  parcelable1.shouldBeJerry = "Jerry";
+  parcelable2.shouldBeJerry = "Jerry";
+
+  parcelable1.shouldContainThreeFs = {parcelable1.f, parcelable1.f, parcelable1.f};
+  parcelable2.shouldContainThreeFs = {parcelable2.f, parcelable2.f, parcelable2.f};
+
+  parcelable1.shouldBeByteBar = ByteEnum::BAR;
+  parcelable2.shouldBeByteBar = ByteEnum::BAR;
+
+  parcelable1.shouldBeIntBar = IntEnum::BAR;
+  parcelable2.shouldBeIntBar = IntEnum::BAR;
+
+  parcelable1.shouldBeLongBar = LongEnum::BAR;
+  parcelable2.shouldBeLongBar = LongEnum::BAR;
+
+  sp<INamedCallback> callback1;
+  sp<INamedCallback> callback2;
+  s->GetOtherTestService(String16("callback1"), &callback1);
+  s->GetOtherTestService(String16("callback2"), &callback2);
+
+  parcelable1.ibinder = IInterface::asBinder(callback1);
+  parcelable2.ibinder = IInterface::asBinder(callback1);
+
+  if (parcelable1 != parcelable2) {
+    cout << "parcelable1 and parcelable2 should be same." << endl;
+    return false;
+  }
+  parcelable1.f = 0;
+  if (parcelable1 >= parcelable2) {
+    cout << "parcelable1 and parcelable2 should be different because of shouldContainThreeFs"
+         << endl;
+    return false;
+  }
+  parcelable1.f = 11;
+
+  parcelable1.shouldBeJerry = "Jarry";
+  if (!(parcelable1 < parcelable2)) {
+    cout << "parcelable1 and parcelable2 should be different because of shouldContainThreeFs"
+         << endl;
+    return false;
+  }
+  parcelable1.shouldBeJerry = "Jerry";
+
+  parcelable2.shouldContainThreeFs = {};
+  if (parcelable1 <= parcelable2) {
+    cout << "parcelable1 and parcelable2 should be different because of shouldContainThreeFs"
+         << endl;
+    return false;
+  }
+  parcelable2.shouldContainThreeFs = {parcelable2.f, parcelable2.f, parcelable2.f};
+
+  parcelable2.shouldBeIntBar = IntEnum::FOO;
+  if (!(parcelable1 > parcelable2)) {
+    cout << "parcelable1 and parcelable2 should be different because of shouldBeIntBar" << endl;
+    return false;
+  }
+  parcelable2.shouldBeIntBar = IntEnum::BAR;
+
+  parcelable2.ibinder = IInterface::asBinder(callback2);
+  if (parcelable1 == parcelable2) {
+    cout << "parcelable1 and parcelable2 should be different because of ibinder" << endl;
+    return false;
+  }
+  return true;
+}
+
 bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
   constexpr int kDesiredValue = 23;
 
