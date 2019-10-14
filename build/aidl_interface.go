@@ -861,6 +861,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 	var stl *string
 	var cpp_std *string
 	var host_supported *bool
+	var addCflags []string
 
 	if lang == langCpp {
 		importExportDependencies = append(importExportDependencies, "libbinder", "libutils")
@@ -881,6 +882,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 			libJSONCppDependency = []string{"libjsoncpp"}
 		}
 		host_supported = i.properties.Host_supported
+		addCflags = append(addCflags, "-DBINDER_STABILITY_SUPPORT")
 	} else {
 		panic("Unrecognized language: " + lang)
 	}
@@ -901,7 +903,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Sdk_version:               sdkVersion,
 		Stl:                       stl,
 		Cpp_std:                   cpp_std,
-		Cflags:                    []string{"-Wextra", "-Wall", "-Werror"},
+		Cflags:                    append(addCflags, "-Wextra", "-Wall", "-Werror"),
 	}, &i.properties.VndkProperties)
 
 	return cppModuleGen
