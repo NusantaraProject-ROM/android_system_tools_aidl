@@ -169,7 +169,7 @@ pair<string, bool> AidlTypenames::ResolveTypename(const string& type_name) const
 // Only T[], List, Map, ParcelFileDescriptor and Parcelable can be an out parameter.
 bool AidlTypenames::CanBeOutParameter(const AidlTypeSpecifier& type) const {
   const string& name = type.GetName();
-  if (IsBuiltinTypename(name)) {
+  if (IsBuiltinTypename(name) || GetEnumDeclaration(type)) {
     return type.IsArray() || type.GetName() == "List" || type.GetName() == "Map" ||
            type.GetName() == "ParcelFileDescriptor";
   }

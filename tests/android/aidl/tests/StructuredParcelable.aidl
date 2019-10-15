@@ -27,6 +27,9 @@ parcelable StructuredParcelable {
     ByteEnum shouldBeByteBar;
     IntEnum shouldBeIntBar;
     LongEnum shouldBeLongBar;
+    ByteEnum[] shouldContainTwoByteFoos;
+    IntEnum[] shouldContainTwoIntFoos;
+    LongEnum[] shouldContainTwoLongFoos;
 
     String stringDefaultsToFoo = "foo";
     byte byteDefaultsToFour = 4;

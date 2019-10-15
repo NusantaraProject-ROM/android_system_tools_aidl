@@ -71,6 +71,14 @@ std::string RawParcelMethod(const AidlTypeSpecifier& raw_type, const AidlTypenam
   const auto& type = raw_type.IsGeneric() ? *raw_type.GetTypeParameters().at(0) : raw_type;
   const string& aidl_name = type.GetName();
 
+  if (auto enum_decl = typenames.GetEnumDeclaration(raw_type); enum_decl != nullptr) {
+    if (isVector) {
+      return "EnumVector";
+    } else {
+      return RawParcelMethod(enum_decl->GetBackingType(), typenames, readMethod);
+    }
+  }
+
   if (isVector) {
     if (kBuiltinVector.find(aidl_name) != kBuiltinVector.end()) {
       CHECK(AidlTypenames::IsBuiltinTypename(aidl_name));
@@ -126,11 +134,12 @@ std::string GetRawCppName(const AidlTypeSpecifier& type) {
   return "::" + Join(type.GetSplitName(), "::");
 }
 
-std::string WrapIfNullable(const std::string type_str, const AidlTypeSpecifier& raw_type) {
+std::string WrapIfNullable(const std::string type_str, const AidlTypeSpecifier& raw_type,
+                           const AidlTypenames& typenames) {
   const auto& type = raw_type.IsGeneric() ? (*raw_type.GetTypeParameters().at(0)) : raw_type;
 
   if (raw_type.IsNullable() && !AidlTypenames::IsPrimitiveTypename(type.GetName()) &&
-      type.GetName() != "IBinder") {
+      type.GetName() != "IBinder" && typenames.GetEnumDeclaration(type) == nullptr) {
     return "::std::unique_ptr<" + type_str + ">";
   }
   return type_str;
@@ -163,16 +172,16 @@ std::string GetCppName(const AidlTypeSpecifier& raw_type, const AidlTypenames& t
       return "uint8_t";
     } else if (raw_type.IsUtf8InCpp()) {
       CHECK(aidl_name == "String");
-      return WrapIfNullable("::std::string", raw_type);
+      return WrapIfNullable("::std::string", raw_type, typenames);
     }
-    return WrapIfNullable(m[aidl_name], raw_type);
+    return WrapIfNullable(m[aidl_name], raw_type, typenames);
   }
   auto definedType = typenames.TryGetDefinedType(type.GetName());
   if (definedType != nullptr && definedType->AsInterface() != nullptr) {
     return "::android::sp<" + GetRawCppName(type) + ">";
   }
 
-  return WrapIfNullable(GetRawCppName(type), raw_type);
+  return WrapIfNullable(GetRawCppName(type), raw_type, typenames);
 }
 }  // namespace
 std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value) {
@@ -207,17 +216,15 @@ std::string CppNameOf(const AidlTypeSpecifier& type, const AidlTypenames& typena
 }
 
 std::string ParcelReadMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
-  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
-    return ParcelReadMethodOf(enum_decl->GetBackingType(), typenames);
-  }
-
   return "read" + RawParcelMethod(type, typenames, true /* readMethod */);
 }
 
 std::string ParcelReadCastOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
                              const std::string& variable_name) {
-  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
-    return StringPrintf("(%s *) %s", CppNameOf(enum_decl->GetBackingType(), typenames).c_str(),
+  if (auto enum_decl = typenames.GetEnumDeclaration(type);
+      enum_decl != nullptr && !type.IsArray()) {
+    return StringPrintf("reinterpret_cast<%s *>(%s)",
+                        CppNameOf(enum_decl->GetBackingType(), typenames).c_str(),
                         variable_name.c_str());
   }
 
@@ -225,16 +232,13 @@ std::string ParcelReadCastOf(const AidlTypeSpecifier& type, const AidlTypenames&
 }
 
 std::string ParcelWriteMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
-  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
-    return ParcelWriteMethodOf(enum_decl->GetBackingType(), typenames);
-  }
-
   return "write" + RawParcelMethod(type, typenames, false /* readMethod */);
 }
 
 std::string ParcelWriteCastOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames,
                               const std::string& variable_name) {
-  if (auto enum_decl = typenames.GetEnumDeclaration(type); enum_decl != nullptr) {
+  if (auto enum_decl = typenames.GetEnumDeclaration(type);
+      enum_decl != nullptr && !type.IsArray()) {
     return StringPrintf("static_cast<%s>(%s)",
                         CppNameOf(enum_decl->GetBackingType(), typenames).c_str(),
                         variable_name.c_str());

@@ -382,16 +382,16 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
       AIDL_ERROR(this) << "Binder type cannot be an array";
       return false;
     }
-    if (definedType != nullptr && definedType->AsEnumDeclaration() != nullptr) {
-      // TODO(b/123321528): Support arrays of enums.
-      AIDL_ERROR(this) << "Enum type cannot be an array";
-      return false;
-    }
   }
 
   if (IsNullable()) {
     if (AidlTypenames::IsPrimitiveTypename(GetName()) && !IsArray()) {
       AIDL_ERROR(this) << "Primitive type cannot get nullable annotation";
+      return false;
+    }
+    const auto definedType = typenames.TryGetDefinedType(GetName());
+    if (definedType != nullptr && definedType->AsEnumDeclaration() != nullptr && !IsArray()) {
+      AIDL_ERROR(this) << "Enum type cannot get nullable annotation";
       return false;
     }
   }
