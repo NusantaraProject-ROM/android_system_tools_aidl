@@ -193,9 +193,43 @@ TypeInfo EnumDeclarationTypeInfo(const AidlEnumDeclaration& enum_decl) {
                          << backing_type_name << ">(" << c.var << "))";
               },
       },
-      .array = nullptr,
+      .array = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+          .cpp_name = "std::vector<" + clazz + ">",
+          .value_is_cheap = false,
+          .read_func =
+              [aparcel_name, backing_type_name](const CodeGeneratorContext& c) {
+                c.writer << "AParcel_read" << aparcel_name << "Array(" << c.parcel
+                         << ", static_cast<void*>(" << c.var
+                         << "), ndk::AParcel_stdVectorAllocator<" << backing_type_name << ">)";
+              },
+          .write_func =
+              [aparcel_name, backing_type_name](const CodeGeneratorContext& c) {
+                c.writer << "AParcel_write" << aparcel_name << "Array(" << c.parcel
+                         << ", reinterpret_cast<const " << backing_type_name << "*>(" << c.var
+                         << ".data()), " << c.var << ".size())";
+              },
+      }),
       .nullable = nullptr,
-      .nullable_array = nullptr,
+      .nullable_array = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+          .cpp_name = "std::optional<std::vector<" + clazz + ">>",
+          .value_is_cheap = false,
+          .read_func =
+              [aparcel_name, backing_type_name](const CodeGeneratorContext& c) {
+                c.writer << "AParcel_read" << aparcel_name << "Array(" << c.parcel
+                         << ", static_cast<void*>(" << c.var
+                         << "), ndk::AParcel_nullableStdVectorAllocator<" << backing_type_name
+                         << ">)";
+              },
+          .write_func =
+              [aparcel_name, backing_type_name](const CodeGeneratorContext& c) {
+                // If the var exists, use writeArray with data() and size().
+                // Otherwise, use nullptr and -1.
+                c.writer << "AParcel_write" << aparcel_name << "Array(" << c.parcel << ", ("
+                         << c.var << " ? reinterpret_cast<const " << backing_type_name << "*>("
+                         << c.var << "->data()) : nullptr)"
+                         << ", (" << c.var << " ? " << c.var << "->size() : -1))";
+              },
+      }),
   };
 }
 
