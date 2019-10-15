@@ -754,6 +754,9 @@ public class TestServiceClient extends Activity {
       parcelable.shouldContainThreeFs = new int[0];
       parcelable.f = kDesiredFValue;
       parcelable.shouldBeJerry = "";
+      parcelable.shouldContainTwoByteFoos = new byte[2];
+      parcelable.shouldContainTwoIntFoos = new int[2];
+      parcelable.shouldContainTwoLongFoos = new long[2];
 
       if (!parcelable.stringDefaultsToFoo.equals("foo")) {
         mLog.logAndThrow(
@@ -819,6 +822,22 @@ public class TestServiceClient extends Activity {
       if (parcelable.shouldBeLongBar != LongEnum.BAR) {
         mLog.logAndThrow(
             "shouldBeLongBar should be LongEnum.BAR but is " + parcelable.shouldBeLongBar);
+      }
+
+      if (!Arrays.equals(
+              parcelable.shouldContainTwoByteFoos, new byte[] {ByteEnum.FOO, ByteEnum.FOO})) {
+        mLog.logAndThrow(
+            "shouldContainTwoByteFoos is " + Arrays.toString(parcelable.shouldContainTwoByteFoos));
+      }
+      if (!Arrays.equals(
+              parcelable.shouldContainTwoIntFoos, new int[] {IntEnum.FOO, IntEnum.FOO})) {
+        mLog.logAndThrow(
+            "shouldContainTwoIntFoos is " + Arrays.toString(parcelable.shouldContainTwoIntFoos));
+      }
+      if (!Arrays.equals(
+              parcelable.shouldContainTwoLongFoos, new long[] {LongEnum.FOO, LongEnum.FOO})) {
+        mLog.logAndThrow(
+            "shouldContainTwoLongFoos is " + Arrays.toString(parcelable.shouldContainTwoLongFoos));
       }
 
       if (parcelable.int32_min != Integer.MIN_VALUE) {

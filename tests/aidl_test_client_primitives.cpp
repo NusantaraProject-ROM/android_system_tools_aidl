@@ -22,7 +22,10 @@
 #include <utils/String16.h>
 #include <utils/String8.h>
 
+#include "android/aidl/tests/ByteEnum.h"
 #include "android/aidl/tests/INamedCallback.h"
+#include "android/aidl/tests/IntEnum.h"
+#include "android/aidl/tests/LongEnum.h"
 
 #include "test_helpers.h"
 
@@ -56,33 +59,23 @@ bool ConfirmPrimitiveRepeat(const sp<ITestService>& s) {
       !RepeatPrimitive(s, &ITestService::RepeatChar, char16_t{'A'}) ||
       !RepeatPrimitive(s, &ITestService::RepeatInt, int32_t{1 << 30}) ||
       !RepeatPrimitive(s, &ITestService::RepeatLong, int64_t{1LL << 60}) ||
-      !RepeatPrimitive(s, &ITestService::RepeatFloat, float{1.0f/3.0f}) ||
-      !RepeatPrimitive(s, &ITestService::RepeatDouble, double{1.0/3.0}) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT)  ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT2) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT3) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT4) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT5) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT6) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT7) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT8) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT9) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT10) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT11) ||
-      !RepeatPrimitive(
-          s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT12)
-      ) {
+      !RepeatPrimitive(s, &ITestService::RepeatFloat, float{1.0f / 3.0f}) ||
+      !RepeatPrimitive(s, &ITestService::RepeatDouble, double{1.0 / 3.0}) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT2) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT3) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT4) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT5) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT6) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT7) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT8) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT9) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT10) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT11) ||
+      !RepeatPrimitive(s, &ITestService::RepeatInt, ITestService::TEST_CONSTANT12) ||
+      !RepeatPrimitive(s, &ITestService::RepeatByteEnum, ByteEnum::FOO) ||
+      !RepeatPrimitive(s, &ITestService::RepeatIntEnum, IntEnum::BAR) ||
+      !RepeatPrimitive(s, &ITestService::RepeatLongEnum, LongEnum::FOO)) {
     return false;
   }
 
@@ -113,22 +106,20 @@ bool ConfirmPrimitiveRepeat(const sp<ITestService>& s) {
 bool ConfirmReverseArrays(const sp<ITestService>& s) {
   cout << "Confirming passing and returning arrays works." << endl;
 
-  if (!ReverseArray(s, &ITestService::ReverseBoolean,
-                    {true, false, false}) ||
-      !ReverseArray(s, &ITestService::ReverseByte,
-                    {uint8_t{255}, uint8_t{0}, uint8_t{127}}) ||
-      !ReverseArray(s, &ITestService::ReverseChar,
-                    {char16_t{'A'}, char16_t{'B'}, char16_t{'C'}}) ||
-      !ReverseArray(s, &ITestService::ReverseInt,
-                    {1, 2, 3}) ||
-      !ReverseArray(s, &ITestService::ReverseLong,
-                    {-1LL, 0LL, int64_t{1LL << 60}}) ||
-      !ReverseArray(s, &ITestService::ReverseFloat,
-                    {-0.3f, -0.7f, 8.0f}) ||
-      !ReverseArray(s, &ITestService::ReverseDouble,
-                    {1.0/3.0, 1.0/7.0, 42.0}) ||
+  if (!ReverseArray(s, &ITestService::ReverseBoolean, {true, false, false}) ||
+      !ReverseArray(s, &ITestService::ReverseByte, {uint8_t{255}, uint8_t{0}, uint8_t{127}}) ||
+      !ReverseArray(s, &ITestService::ReverseChar, {char16_t{'A'}, char16_t{'B'}, char16_t{'C'}}) ||
+      !ReverseArray(s, &ITestService::ReverseInt, {1, 2, 3}) ||
+      !ReverseArray(s, &ITestService::ReverseLong, {-1LL, 0LL, int64_t{1LL << 60}}) ||
+      !ReverseArray(s, &ITestService::ReverseFloat, {-0.3f, -0.7f, 8.0f}) ||
+      !ReverseArray(s, &ITestService::ReverseDouble, {1.0 / 3.0, 1.0 / 7.0, 42.0}) ||
       !ReverseArray(s, &ITestService::ReverseString,
-                    {String16{"f"}, String16{"a"}, String16{"b"}})) {
+                    {String16{"f"}, String16{"a"}, String16{"b"}}) ||
+      !ReverseArray(s, &ITestService::ReverseByteEnum,
+                    {ByteEnum::FOO, ByteEnum::BAR, ByteEnum::BAR}) ||
+      !ReverseArray(s, &ITestService::ReverseIntEnum, {IntEnum::FOO, IntEnum::BAR, IntEnum::BAR}) ||
+      !ReverseArray(s, &ITestService::ReverseLongEnum,
+                    {LongEnum::FOO, LongEnum::BAR, LongEnum::BAR})) {
     return false;
   }
 
