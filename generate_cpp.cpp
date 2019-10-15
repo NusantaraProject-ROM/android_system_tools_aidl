@@ -264,17 +264,17 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
   b->AddStatement(GotoErrorOnBadStatus());
 
   for (const auto& a: method.GetArguments()) {
-    string var_name = ((a->IsOut()) ? "*" : "") + a->GetName();
-    var_name = ParcelWriteCastOf(a->GetType(), typenames, var_name);
+    const string var_name = ((a->IsOut()) ? "*" : "") + a->GetName();
 
     if (a->IsIn()) {
       // Serialization looks roughly like:
       //     _aidl_ret_status = _aidl_data.WriteInt32(in_param_name);
       //     if (_aidl_ret_status != ::android::OK) { goto error; }
       const string& method = ParcelWriteMethodOf(a->GetType(), typenames);
-      b->AddStatement(new Assignment(
-          kAndroidStatusVarName,
-          new MethodCall(StringPrintf("%s.%s", kDataVarName, method.c_str()), var_name)));
+      b->AddStatement(
+          new Assignment(kAndroidStatusVarName,
+                         new MethodCall(StringPrintf("%s.%s", kDataVarName, method.c_str()),
+                                        ParcelWriteCastOf(a->GetType(), typenames, var_name))));
       b->AddStatement(GotoErrorOnBadStatus());
     } else if (a->IsOut() && a->GetType().IsArray()) {
       // Special case, the length of the out array is written into the parcel.
@@ -503,12 +503,13 @@ bool HandleServerTransaction(const AidlTypenames& typenames, const AidlInterface
     // Deserialization looks roughly like:
     //     _aidl_ret_status = _aidl_data.ReadInt32(&in_param_name);
     //     if (_aidl_ret_status != ::android::OK) { break; }
-    const string& var_name = ParcelReadCastOf(a->GetType(), typenames, "&" + BuildVarName(*a));
+    const string& var_name = "&" + BuildVarName(*a);
     if (a->IsIn()) {
       const string& readMethod = ParcelReadMethodOf(a->GetType(), typenames);
       b->AddStatement(
           new Assignment{kAndroidStatusVarName,
-                         new MethodCall{string(kDataVarName) + "." + readMethod, var_name}});
+                         new MethodCall{string(kDataVarName) + "." + readMethod,
+                                        ParcelReadCastOf(a->GetType(), typenames, var_name)}});
       b->AddStatement(BreakOnStatusNotOk());
     } else if (a->IsOut() && a->GetType().IsArray()) {
       // Special case, the length of the out array is written into the parcel.

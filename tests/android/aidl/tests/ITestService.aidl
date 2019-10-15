@@ -62,14 +62,17 @@ interface ITestService {
   PersistableBundle RepeatPersistableBundle(in PersistableBundle input);
 
   // Test that arrays work as parameters and return types.
-  boolean[] ReverseBoolean(in boolean[] input, out boolean[] repeated);
-  byte[]    ReverseByte   (in byte[]    input, out byte[]    repeated);
-  char[]    ReverseChar   (in char[]    input, out char[]    repeated);
-  int[]     ReverseInt    (in int[]     input, out int[]     repeated);
-  long[]    ReverseLong   (in long[]    input, out long[]    repeated);
-  float[]   ReverseFloat  (in float[]   input, out float[]   repeated);
-  double[]  ReverseDouble (in double[]  input, out double[]  repeated);
-  String[]  ReverseString (in String[]  input, out String[]  repeated);
+  boolean[]   ReverseBoolean  (in boolean[]   input, out boolean[]   repeated);
+  byte[]      ReverseByte     (in byte[]      input, out byte[]      repeated);
+  char[]      ReverseChar     (in char[]      input, out char[]      repeated);
+  int[]       ReverseInt      (in int[]       input, out int[]       repeated);
+  long[]      ReverseLong     (in long[]      input, out long[]      repeated);
+  float[]     ReverseFloat    (in float[]     input, out float[]     repeated);
+  double[]    ReverseDouble   (in double[]    input, out double[]    repeated);
+  String[]    ReverseString   (in String[]    input, out String[]    repeated);
+  ByteEnum[]  ReverseByteEnum (in ByteEnum[]  input, out ByteEnum[]  repeated);
+  IntEnum[]   ReverseIntEnum  (in IntEnum[]   input, out IntEnum[]   repeated);
+  LongEnum[]  ReverseLongEnum (in LongEnum[]  input, out LongEnum[]  repeated);
 
   SimpleParcelable[]  ReverseSimpleParcelables(in SimpleParcelable[] input,
                                                out SimpleParcelable[] repeated);
@@ -99,6 +102,9 @@ interface ITestService {
 
   // Test nullability
   @nullable int[] RepeatNullableIntArray(in @nullable int[] input);
+  @nullable ByteEnum[] RepeatNullableByteEnumArray(in @nullable ByteEnum[] input);
+  @nullable IntEnum[] RepeatNullableIntEnumArray(in @nullable IntEnum[] input);
+  @nullable LongEnum[] RepeatNullableLongEnumArray(in @nullable LongEnum[] input);
   @nullable String RepeatNullableString(in @nullable String input);
   @nullable List<String> RepeatNullableStringList(in @nullable List<String> input);
   @nullable SimpleParcelable RepeatNullableParcelable(in @nullable SimpleParcelable input);
