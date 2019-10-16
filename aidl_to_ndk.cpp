@@ -69,7 +69,7 @@ struct TypeInfo {
 };
 
 std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value) {
-  if (type.GetName() == "long") {
+  if (type.GetName() == "long" && !type.IsArray()) {
     return raw_value + "L";
   }
 

@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2019, The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma once
 
 #include "aidl_typenames.h"
@@ -354,42 +370,119 @@ class AidlMember : public AidlNode {
   DISALLOW_COPY_AND_ASSIGN(AidlMember);
 };
 
+class AidlUnaryConstExpression;
+class AidlBinaryConstExpression;
+
 class AidlConstantValue : public AidlNode {
  public:
-  enum class Type { ERROR, ARRAY, BOOLEAN, CHARACTER, FLOATING, HEXIDECIMAL, INTEGRAL, STRING };
+  enum class Type {
+    // WARNING: Don't change this order! The order is used to determine type
+    // promotion during a binary expression.
+    BOOLEAN,
+    INT8,
+    INT32,
+    INT64,
+    ARRAY,
+    CHARACTER,
+    STRING,
+    FLOATING,
+    UNARY,
+    BINARY,
+    ERROR,
+  };
+
+  /*
+   * Return the value casted to the given type.
+   */
+  template <typename T>
+  T cast() const;
 
   virtual ~AidlConstantValue() = default;
 
   static AidlConstantValue* Boolean(const AidlLocation& location, bool value);
   static AidlConstantValue* Character(const AidlLocation& location, char value);
-  // example: "0x4f"
-  static AidlConstantValue* Floating(const AidlLocation& location, const std::string& value);
-  static AidlConstantValue* Hex(const AidlLocation& location, const std::string& value);
   // example: 123, -5498, maybe any size
-  static AidlConstantValue* Integral(const AidlLocation& location, const std::string& value);
+  static AidlConstantValue* Integral(const AidlLocation& location, const string& value);
+  static AidlConstantValue* Floating(const AidlLocation& location, const std::string& value);
   static AidlConstantValue* Array(const AidlLocation& location,
-                                  std::vector<std::unique_ptr<AidlConstantValue>>* values);
+                                  std::unique_ptr<vector<unique_ptr<AidlConstantValue>>> values);
   // example: "\"asdf\""
-  static AidlConstantValue* String(const AidlLocation& location, const std::string& value);
+  static AidlConstantValue* String(const AidlLocation& location, const string& value);
 
-  Type GetType() const { return type_; }
+  Type GetType() const { return final_type_; }
 
-  bool CheckValid() const;
+  virtual bool CheckValid() const;
 
   // Raw value of type (currently valid in C++ and Java). Empty string on error.
-  string As(const AidlTypeSpecifier& type, const ConstantValueDecorator& decorator) const;
+  virtual string ValueString(const AidlTypeSpecifier& type,
+                             const ConstantValueDecorator& decorator) const;
 
  private:
-  AidlConstantValue(const AidlLocation& location, Type type, const std::string& checked_value);
+  AidlConstantValue(const AidlLocation& location, Type parsed_type, int64_t parsed_value,
+                    const string& checked_value);
+  AidlConstantValue(const AidlLocation& location, Type type, const string& checked_value);
   AidlConstantValue(const AidlLocation& location, Type type,
-                    std::vector<std::unique_ptr<AidlConstantValue>>* values);
+                    std::unique_ptr<vector<unique_ptr<AidlConstantValue>>> values);
   static string ToString(Type type);
+  static bool ParseIntegral(const string& value, int64_t* parsed_value, Type* parsed_type);
+  static bool IsHex(const string& value);
+  virtual bool evaluate(const AidlTypeSpecifier& type) const;
 
   const Type type_ = Type::ERROR;
-  const std::vector<std::unique_ptr<AidlConstantValue>> values_;  // if type_ == ARRAY
-  const std::string value_;                                       // otherwise
+  const vector<unique_ptr<AidlConstantValue>> values_;  // if type_ == ARRAY
+  const string value_;                                  // otherwise
+
+  // State for tracking evaluation of expressions
+  mutable bool is_valid_;
+  mutable bool is_evaluated_;
+  mutable Type final_type_;
+  mutable int64_t final_value_;
+  mutable string final_string_value_ = "";
 
   DISALLOW_COPY_AND_ASSIGN(AidlConstantValue);
+
+  friend AidlUnaryConstExpression;
+  friend AidlBinaryConstExpression;
+};
+
+class AidlUnaryConstExpression : public AidlConstantValue {
+ public:
+  AidlUnaryConstExpression(const AidlLocation& location, const string& op,
+                           std::unique_ptr<AidlConstantValue> rval);
+
+  static bool IsCompatibleType(Type type, const string& op);
+  bool CheckValid() const override;
+  string ValueString(const AidlTypeSpecifier& type,
+                     const ConstantValueDecorator& decorator) const override;
+
+ private:
+  bool evaluate(const AidlTypeSpecifier& type) const override;
+
+  std::unique_ptr<AidlConstantValue> unary_;
+  const string op_;
+};
+
+class AidlBinaryConstExpression : public AidlConstantValue {
+ public:
+  AidlBinaryConstExpression(const AidlLocation& location, std::unique_ptr<AidlConstantValue> lval,
+                            const string& op, std::unique_ptr<AidlConstantValue> rval);
+
+  bool CheckValid() const override;
+  string ValueString(const AidlTypeSpecifier& type,
+                     const ConstantValueDecorator& decorator) const override;
+
+  static bool AreCompatibleTypes(Type t1, Type t2);
+  // Returns the promoted kind for both operands
+  static Type UsualArithmeticConversion(Type left, Type right);
+  // Returns the promoted integral type where INT32 is the smallest type
+  static Type IntegralPromotion(Type in);
+
+ private:
+  bool evaluate(const AidlTypeSpecifier& type) const override;
+
+  std::unique_ptr<AidlConstantValue> left_val_;
+  std::unique_ptr<AidlConstantValue> right_val_;
+  const string op_;
 };
 
 struct AidlAnnotationParameter {
@@ -400,44 +493,43 @@ struct AidlAnnotationParameter {
 class AidlConstantDeclaration : public AidlMember {
  public:
   AidlConstantDeclaration(const AidlLocation& location, AidlTypeSpecifier* specifier,
-                          const std::string& name, AidlConstantValue* value);
+                          const string& name, AidlConstantValue* value);
   virtual ~AidlConstantDeclaration() = default;
 
   const AidlTypeSpecifier& GetType() const { return *type_; }
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
-  const std::string& GetName() const { return name_; }
+  const string& GetName() const { return name_; }
   const AidlConstantValue& GetValue() const { return *value_; }
   bool CheckValid(const AidlTypenames& typenames) const;
 
-  std::string ToString() const;
-  std::string Signature() const;
+  string ToString() const;
+  string Signature() const;
   string ValueString(const ConstantValueDecorator& decorator) const {
-    return GetValue().As(GetType(), decorator);
+    return value_->ValueString(GetType(), decorator);
   }
 
   AidlConstantDeclaration* AsConstantDeclaration() override { return this; }
 
  private:
   const unique_ptr<AidlTypeSpecifier> type_;
-  const std::string name_;
-  const unique_ptr<AidlConstantValue> value_;
+  const string name_;
+  unique_ptr<AidlConstantValue> value_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlConstantDeclaration);
 };
 
 class AidlMethod : public AidlMember {
  public:
-  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
-             const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-             const std::string& comments);
-  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type,
-             const std::string& name, std::vector<std::unique_ptr<AidlArgument>>* args,
-             const std::string& comments, int id, bool is_user_defined = true);
+  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type, const string& name,
+             vector<unique_ptr<AidlArgument>>* args, const string& comments);
+  AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecifier* type, const string& name,
+             vector<unique_ptr<AidlArgument>>* args, const string& comments, int id,
+             bool is_user_defined = true);
   virtual ~AidlMethod() = default;
 
   AidlMethod* AsMethod() override { return this; }
 
-  const std::string& GetComments() const { return comments_; }
+  const string& GetComments() const { return comments_; }
   const AidlTypeSpecifier& GetType() const { return *type_; }
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
 
@@ -642,7 +734,7 @@ class AidlEnumerator : public AidlNode {
   virtual ~AidlEnumerator() = default;
 
   const std::string& GetName() const { return name_; }
-  const AidlConstantValue* GetValue() const { return value_.get(); }
+  AidlConstantValue* GetValue() const { return value_.get(); }
   const std::string& GetComments() const { return comments_; }
   bool CheckValid(const AidlTypeSpecifier& enum_backing_type) const;
 
@@ -651,7 +743,7 @@ class AidlEnumerator : public AidlNode {
 
  private:
   const std::string name_;
-  const unique_ptr<AidlConstantValue> value_;
+  unique_ptr<AidlConstantValue> value_;
   const std::string comments_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlEnumerator);
@@ -659,7 +751,7 @@ class AidlEnumerator : public AidlNode {
 
 class AidlEnumDeclaration : public AidlDefinedType {
  public:
-  AidlEnumDeclaration(const AidlLocation& location, const std::string& name,
+  AidlEnumDeclaration(const AidlLocation& location, const string& name,
                       std::vector<std::unique_ptr<AidlEnumerator>>* enumerators,
                       const std::vector<std::string>& package, const std::string& comments);
   virtual ~AidlEnumDeclaration() = default;

@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018, The Android Open Source Project *
+ * Copyright (C) 2018, The Android Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -201,9 +202,9 @@ static bool are_compatible_enums(const AidlEnumDeclaration& older,
       continue;
     }
     const string old_value =
-        old_enum_map[name]->As(older.GetBackingType(), AidlConstantValueDecorator);
+        old_enum_map[name]->ValueString(older.GetBackingType(), AidlConstantValueDecorator);
     const string new_value =
-        new_enum_map[name]->As(older.GetBackingType(), AidlConstantValueDecorator);
+        new_enum_map[name]->ValueString(newer.GetBackingType(), AidlConstantValueDecorator);
     if (old_value != new_value) {
       AIDL_ERROR(newer) << "Changed enumerator value: " << older.GetCanonicalName() << "::" << name
                         << " from " << old_value << " to " << new_value << ".";
