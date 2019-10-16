@@ -629,6 +629,32 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
       if (!check_and_assign_method_ids(interface->GetMethods())) {
         return AidlError::BAD_METHOD_ID;
       }
+
+      // Verify and resolve the constant declarations
+      for (const auto& constant : interface->GetConstantDeclarations()) {
+        switch (constant->GetValue().GetType()) {
+          case AidlConstantValue::Type::STRING:    // fall-through
+          case AidlConstantValue::Type::INT8:      // fall-through
+          case AidlConstantValue::Type::INT32:     // fall-through
+          case AidlConstantValue::Type::INT64:     // fall-through
+          case AidlConstantValue::Type::FLOATING:  // fall-through
+          case AidlConstantValue::Type::UNARY:     // fall-through
+          case AidlConstantValue::Type::BINARY: {
+            bool success = constant->CheckValid(*typenames);
+            if (!success) {
+              return AidlError::BAD_TYPE;
+            }
+            if (constant->ValueString(cpp::ConstantValueDecorator).empty()) {
+              return AidlError::BAD_TYPE;
+            }
+            break;
+          }
+          default:
+            LOG(FATAL) << "Unrecognized constant type: "
+                       << static_cast<int>(constant->GetValue().GetType());
+            break;
+        }
+      }
     }
   }
 

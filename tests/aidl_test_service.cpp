@@ -65,6 +65,7 @@ using android::binder::Status;
 using android::aidl::tests::BnNamedCallback;
 using android::aidl::tests::BnTestService;
 using android::aidl::tests::ByteEnum;
+using android::aidl::tests::ConstantExpressionEnum;
 using android::aidl::tests::INamedCallback;
 using android::aidl::tests::IntEnum;
 using android::aidl::tests::LongEnum;
@@ -504,6 +505,18 @@ class NativeService : public BnTestService {
     parcelable->shouldContainTwoByteFoos = {ByteEnum::FOO, ByteEnum::FOO};
     parcelable->shouldContainTwoIntFoos = {IntEnum::FOO, IntEnum::FOO};
     parcelable->shouldContainTwoLongFoos = {LongEnum::FOO, LongEnum::FOO};
+
+    parcelable->const_exprs_1 = ConstantExpressionEnum::decInt32_1;
+    parcelable->const_exprs_2 = ConstantExpressionEnum::decInt32_2;
+    parcelable->const_exprs_3 = ConstantExpressionEnum::decInt64_1;
+    parcelable->const_exprs_4 = ConstantExpressionEnum::decInt64_2;
+    parcelable->const_exprs_5 = ConstantExpressionEnum::decInt64_3;
+    parcelable->const_exprs_6 = ConstantExpressionEnum::decInt64_4;
+    parcelable->const_exprs_7 = ConstantExpressionEnum::hexInt32_1;
+    parcelable->const_exprs_8 = ConstantExpressionEnum::hexInt32_2;
+    parcelable->const_exprs_9 = ConstantExpressionEnum::hexInt32_3;
+    parcelable->const_exprs_10 = ConstantExpressionEnum::hexInt64_1;
+
     return Status::ok();
   }
 

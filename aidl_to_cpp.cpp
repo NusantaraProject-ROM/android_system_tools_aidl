@@ -185,11 +185,15 @@ std::string GetCppName(const AidlTypeSpecifier& raw_type, const AidlTypenames& t
 }
 }  // namespace
 std::string ConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value) {
+  if (type.IsArray()) {
+    return raw_value;
+  }
+
   if (type.GetName() == "long") {
     return raw_value + "L";
   }
 
-  if (type.GetName() == "String" && !type.IsArray() && !type.IsUtf8InCpp()) {
+  if (type.GetName() == "String" && !type.IsUtf8InCpp()) {
     return "::android::String16(" + raw_value + ")";
   }
 

@@ -26,6 +26,7 @@ using android::sp;
 using android::binder::Status;
 
 // generated
+using android::aidl::tests::ConstantExpressionEnum;
 using android::aidl::tests::ITestService;
 using android::aidl::tests::SimpleParcelable;
 using android::os::PersistableBundle;
@@ -152,20 +153,8 @@ bool ConfirmStructuredParcelablesEquality(const sp<ITestService>& s) {
   parcelable1.f = 11;
   parcelable2.f = 11;
 
-  parcelable1.shouldBeJerry = "Jerry";
-  parcelable2.shouldBeJerry = "Jerry";
-
-  parcelable1.shouldContainThreeFs = {parcelable1.f, parcelable1.f, parcelable1.f};
-  parcelable2.shouldContainThreeFs = {parcelable2.f, parcelable2.f, parcelable2.f};
-
-  parcelable1.shouldBeByteBar = ByteEnum::BAR;
-  parcelable2.shouldBeByteBar = ByteEnum::BAR;
-
-  parcelable1.shouldBeIntBar = IntEnum::BAR;
-  parcelable2.shouldBeIntBar = IntEnum::BAR;
-
-  parcelable1.shouldBeLongBar = LongEnum::BAR;
-  parcelable2.shouldBeLongBar = LongEnum::BAR;
+  s->FillOutStructuredParcelable(&parcelable1);
+  s->FillOutStructuredParcelable(&parcelable2);
 
   sp<INamedCallback> callback1;
   sp<INamedCallback> callback2;
@@ -219,6 +208,7 @@ bool ConfirmStructuredParcelablesEquality(const sp<ITestService>& s) {
 }
 
 bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
+  bool success = true;
   constexpr int kDesiredValue = 23;
 
   StructuredParcelable parcelable;
@@ -298,6 +288,7 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
     cout << "int32_min should be " << INT32_MIN << "but is " << parcelable.int32_min << endl;
     return false;
   }
+
   if (parcelable.int32_max != INT32_MAX) {
     cout << "int32_max should be " << INT32_MAX << "but is " << parcelable.int32_max << endl;
     return false;
@@ -310,6 +301,99 @@ bool ConfirmStructuredParcelables(const sp<ITestService>& s) {
 
   if (parcelable.hexInt32_neg_1 != -1) {
     cout << "hexInt32_neg_1 should be -1 but is " << parcelable.hexInt32_neg_1 << endl;
+    return false;
+  }
+
+  for (size_t ndx = 0; ndx < parcelable.int32_1.size(); ndx++) {
+    if (parcelable.int32_1[ndx] != 1) {
+      cout << "int32_1[" << ndx << "] should be 1 but is " << parcelable.int32_1[ndx] << endl;
+      success = false;
+    }
+  }
+  if (!success) {
+    return false;
+  }
+
+  for (size_t ndx = 0; ndx < parcelable.int64_1.size(); ndx++) {
+    if (parcelable.int64_1[ndx] != 1) {
+      cout << "int64_1[" << ndx << "] should be 1 but is " << parcelable.int64_1[ndx] << endl;
+      success = false;
+    }
+  }
+  if (!success) {
+    return false;
+  }
+
+  if (static_cast<int>(parcelable.hexInt32_pos_1) != 1) {
+    cout << "hexInt32_pos_1 should be 1 but is " << parcelable.hexInt32_pos_1 << endl;
+    return false;
+  }
+
+  if (parcelable.hexInt64_pos_1 != 1) {
+    cout << "hexInt64_pos_1 should be 1 but is " << parcelable.hexInt64_pos_1 << endl;
+    return false;
+  }
+
+  if (static_cast<int>(parcelable.const_exprs_1) != 1) {
+    cout << "parcelable.const_exprs_1 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_1) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_2) != 1) {
+    cout << "parcelable.const_exprs_2 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_2) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_3) != 1) {
+    cout << "parcelable.const_exprs_3 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_3) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_4) != 1) {
+    cout << "parcelable.const_exprs_4 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_4) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_5) != 1) {
+    cout << "parcelable.const_exprs_5 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_5) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_6) != 1) {
+    cout << "parcelable.const_exprs_6 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_6) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_7) != 1) {
+    cout << "parcelable.const_exprs_7 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_7) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_8) != 1) {
+    cout << "parcelable.const_exprs_8 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_8) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_9) != 1) {
+    cout << "parcelable.const_exprs_9 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_9) << endl;
+    return false;
+  }
+  if (static_cast<int>(parcelable.const_exprs_10) != 1) {
+    cout << "parcelable.const_exprs_10 should be 1 but is "
+         << static_cast<int>(parcelable.const_exprs_10) << endl;
+    return false;
+  }
+
+  if (parcelable.addString1 != "hello world!") {
+    cout << "parcelable.addString1 should be \"hello world!\" but is \"" << parcelable.addString1
+         << "\"" << endl;
+    return false;
+  }
+  if (parcelable.addString2 != "The quick brown fox jumps over the lazy dog.") {
+    cout << "parcelable.addString2 should be \"The quick brown fox jumps over the lazy dog.\""
+            " but is \""
+         << parcelable.addString2 << "\"" << endl;
     return false;
   }
 
