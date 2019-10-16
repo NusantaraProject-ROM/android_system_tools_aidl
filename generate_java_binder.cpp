@@ -1023,8 +1023,9 @@ std::unique_ptr<Class> generate_binder_interface_class(const AidlInterface* ifac
                                  constant->ValueString(ConstantValueDecorator));
         break;
       }
-      case AidlConstantValue::Type::INTEGRAL:
-      case AidlConstantValue::Type::HEXIDECIMAL: {
+      case AidlConstantValue::Type::BOOLEAN:  // fall-through
+      case AidlConstantValue::Type::INT8:     // fall-through
+      case AidlConstantValue::Type::INT32: {
         generate_int_constant(interface.get(), constant->GetName(),
                               constant->ValueString(ConstantValueDecorator));
         break;

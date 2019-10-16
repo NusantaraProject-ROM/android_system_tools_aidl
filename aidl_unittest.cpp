@@ -592,7 +592,7 @@ TEST_F(AidlTest, FailOnMalformedConstHexValue) {
                       }
                    )",
                            typenames_, Options::Language::CPP, &reported_error));
-  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+  EXPECT_EQ(AidlError::PARSE_ERROR, reported_error);
 }
 
 TEST_F(AidlTest, ParsePositiveConstHexValue) {
@@ -610,6 +610,7 @@ TEST_F(AidlTest, ParsePositiveConstHexValue) {
   const auto& cpp_constants = interface->GetConstantDeclarations();
   EXPECT_EQ((size_t)1, cpp_constants.size());
   EXPECT_EQ("POSITIVE_HEX_VALUE", cpp_constants[0]->GetName());
+  EXPECT_TRUE(cpp_constants[0]->CheckValid(typenames_));
   EXPECT_EQ("245", cpp_constants[0]->ValueString(cpp::ConstantValueDecorator));
 }
 
@@ -628,6 +629,7 @@ TEST_F(AidlTest, ParseNegativeConstHexValue) {
   const auto& cpp_constants = interface->GetConstantDeclarations();
   EXPECT_EQ((size_t)1, cpp_constants.size());
   EXPECT_EQ("NEGATIVE_HEX_VALUE", cpp_constants[0]->GetName());
+  EXPECT_EQ(true, cpp_constants[0]->CheckValid(typenames_));
   EXPECT_EQ("-1", cpp_constants[0]->ValueString(cpp::ConstantValueDecorator));
 }
 
@@ -1583,7 +1585,7 @@ TEST_F(AidlTest, FailOnOutOfBoundsInt64MaxConstInt) {
                               }
                              )",
                            typenames_, Options::Language::CPP, &reported_error));
-  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+  EXPECT_EQ(AidlError::PARSE_ERROR, reported_error);
 }
 
 TEST_F(AidlTest, FailOnOutOfBoundsInt64MinConstInt) {
@@ -1595,7 +1597,7 @@ TEST_F(AidlTest, FailOnOutOfBoundsInt64MinConstInt) {
                               }
                              )",
                            typenames_, Options::Language::CPP, &reported_error));
-  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+  EXPECT_EQ(AidlError::PARSE_ERROR, reported_error);
 }
 
 }  // namespace aidl

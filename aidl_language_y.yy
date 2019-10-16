@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2016, The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 %{
 #include "aidl_language.h"
 #include "aidl_language_y.h"
@@ -54,7 +70,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
     AidlTypeSpecifier* type;
     AidlArgument* arg;
     AidlArgument::Direction direction;
-    AidlConstantValue* constant_value;
+    AidlConstantValue* const_expr;
     AidlEnumerator* enumerator;
     std::vector<std::unique_ptr<AidlEnumerator>>* enumerators;
     AidlEnumDeclaration* enum_decl;
@@ -89,7 +105,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token<token> HEXVALUE "hex literal"
 %token<token> INTVALUE "int literal"
 
-%token '(' ')' ',' '=' '[' ']' '<' '>' '.' '{' '}' ';'
+%token '(' ')' ',' '=' '[' ']' '.' '{' '}' ';'
 %token CONST "const"
 %token UNKNOWN "unrecognized character"
 %token CPP_HEADER "cpp_header"
@@ -100,6 +116,28 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %token PACKAGE "package"
 %token TRUE_LITERAL "true"
 %token FALSE_LITERAL "false"
+
+/* Operator precedence and associativity, as per
+ * http://en.cppreference.com/w/cpp/language/operator_precedence */
+/* Precedence level 13 - 14, LTR, logical operators*/
+%left LOGICAL_OR
+%left LOGICAL_AND
+/* Precedence level 10 - 12, LTR, bitwise operators*/
+%left '|'
+%left '^'
+%left '&'
+/* Precedence level 9, LTR */
+%left EQUALITY NEQ
+/* Precedence level 8, LTR */
+%left '<' '>' LEQ GEQ
+/* Precedence level 7, LTR */
+%left LSHIFT RSHIFT
+/* Precedence level 6, LTR */
+%left '+' '-'
+/* Precedence level 5, LTR */
+%left '*' '/' '%'
+/* Precedence level 3, RTL; but we have to use %left here */
+%right UNARY_PLUS UNARY_MINUS  '!' '~'
 
 %type<declaration> decl
 %type<variable_list> variable_decls
@@ -125,10 +163,9 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<direction> direction
 %type<type_args> type_args
 %type<qname> qualified_name
-%type<constant_value> constant_value
+%type<const_expr> const_expr
 %type<constant_value_list> constant_value_list
 %type<constant_value_list> constant_value_non_empty_list
-%type<str> possibly_multiline_string
 
 %type<token> identifier error
 %%
@@ -244,7 +281,7 @@ variable_decl
    $$ = new AidlVariableDeclaration(loc(@2), $1, $2->GetText());
    delete $2;
  }
- | type identifier '=' constant_value ';' {
+ | type identifier '=' const_expr ';' {
    // TODO(b/123321528): Support enum type default assignments (TestEnum foo = TestEnum.FOO).
    $$ = new AidlVariableDeclaration(loc(@2), $1, $2->GetText(),  $4);
    delete $2;
@@ -286,13 +323,18 @@ interface_members
     $$ = $1;
   };
 
-// TODO(b/139877950): Add support for constant expressions.
-constant_value
+const_expr
  : TRUE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), true); }
  | FALSE_LITERAL { $$ = AidlConstantValue::Boolean(loc(@1), false); }
  | CHARVALUE { $$ = AidlConstantValue::Character(loc(@1), $1); }
  | INTVALUE {
     $$ = AidlConstantValue::Integral(loc(@1), $1->GetText());
+    if ($$ == nullptr) {
+      std::cerr << "ERROR: Could not parse integer: "
+                << $1->GetText() << " at " << @1 << ".\n";
+      ps->AddError();
+      $$ = AidlConstantValue::Integral(loc(@1), "0");
+    }
     delete $1;
   }
  | FLOATVALUE {
@@ -300,17 +342,100 @@ constant_value
     delete $1;
   }
  | HEXVALUE {
-    $$ = AidlConstantValue::Hex(loc(@1), $1->GetText());
+    $$ = AidlConstantValue::Integral(loc(@1), $1->GetText());
+    if ($$ == nullptr) {
+      std::cerr << "ERROR: Could not parse hexvalue: "
+                << $1->GetText() << " at " << @1 << ".\n";
+      ps->AddError();
+      $$ = AidlConstantValue::Integral(loc(@1), "0");
+    }
     delete $1;
   }
- | possibly_multiline_string {
-    $$ = AidlConstantValue::String(loc(@1), *$1);
+ | C_STR {
+    $$ = AidlConstantValue::String(loc(@1), $1->GetText());
     delete $1;
   }
  | '{' constant_value_list '}' {
-    $$ = AidlConstantValue::Array(loc(@1), $2);
-    delete $2;
+    $$ = AidlConstantValue::Array(loc(@1), std::unique_ptr<vector<unique_ptr<AidlConstantValue>>>($2));
   }
+ | const_expr LOGICAL_OR const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "||", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr LOGICAL_AND const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "&&", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '|' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "|" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '^' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "^" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '&' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "&" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr EQUALITY const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "==", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr NEQ const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "!=", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '<' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "<" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '>' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), ">" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr LEQ const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "<=", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr GEQ const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), ">=", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr LSHIFT const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "<<", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr RSHIFT const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), ">>", std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '+' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "+" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '-' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "-" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '*' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "*" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '/' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "/" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | const_expr '%' const_expr {
+    $$ = new AidlBinaryConstExpression(loc(@1), std::unique_ptr<AidlConstantValue>($1), "%" , std::unique_ptr<AidlConstantValue>($3));
+  }
+ | '+' const_expr %prec UNARY_PLUS  {
+    $$ = new AidlUnaryConstExpression(loc(@1), "+", std::unique_ptr<AidlConstantValue>($2));
+  }
+ | '-' const_expr %prec UNARY_MINUS {
+    $$ = new AidlUnaryConstExpression(loc(@1), "-", std::unique_ptr<AidlConstantValue>($2));
+  }
+ | '!' const_expr {
+    $$ = new AidlUnaryConstExpression(loc(@1), "!", std::unique_ptr<AidlConstantValue>($2));
+  }
+ | '~' const_expr {
+    $$ = new AidlUnaryConstExpression(loc(@1), "~", std::unique_ptr<AidlConstantValue>($2));
+  }
+ | '(' const_expr ')'
+  {
+    $$ = $2;
+  }
+ | '(' error ')'
+   {
+     std::cerr << "ERROR: invalid const expression within parenthesis: "
+               << $2->GetText() << " at " << @1 << ".\n";
+     // to avoid segfaults
+     ps->AddError();
+     $$ = AidlConstantValue::Integral(loc(@1), "0");
+   }
  ;
 
 constant_value_list
@@ -323,39 +448,18 @@ constant_value_list
  ;
 
 constant_value_non_empty_list
- : constant_value {
+ : const_expr {
     $$ = new std::vector<std::unique_ptr<AidlConstantValue>>;
     $$->push_back(std::unique_ptr<AidlConstantValue>($1));
  }
- | constant_value_non_empty_list ',' constant_value {
+ | constant_value_non_empty_list ',' const_expr {
     $$ = $1;
     $$->push_back(std::unique_ptr<AidlConstantValue>($3));
  }
  ;
 
- possibly_multiline_string
- : C_STR {
-    $$ = new string($1->GetText());
-    delete $1;
- }
- | possibly_multiline_string '+' C_STR {
-   $$ = $1;
-   // Remove trailing " from lhs
-   if ($1->back() != '"') {
-    AIDL_ERROR(loc(@1)) << "'" << (*$1) << "' is missing a trailing quote.";
-   }
-   $1->pop_back();
-   const std::string& rhs = $3->GetText();
-   // Remove starting " from rhs
-   if (rhs.front() != '"') {
-    AIDL_ERROR(loc(@3)) << "'" << $3->GetText() << "' is missing a leading quote.";
-   }
-   $$->append(rhs.begin() + 1, rhs.end());
-   delete $3;
- };
-
 constant_decl
- : CONST type identifier '=' constant_value ';' {
+ : CONST type identifier '=' const_expr ';' {
     $$ = new AidlConstantDeclaration(loc(@3), $2, $3->GetText(), $5);
     delete $3;
    }
@@ -363,7 +467,7 @@ constant_decl
 
 // TODO(b/139877950): Support autofilling enumerator values
 enumerator
- : identifier '=' constant_value {
+ : identifier '=' const_expr {
     $$ = new AidlEnumerator(loc(@1), $1->GetText(), $3, $1->GetComments());
     delete $1;
    }
@@ -496,7 +600,7 @@ annotation_list
   };
 
 parameter
-  : identifier '=' constant_value {
+  : identifier '=' const_expr {
     $$ = new AidlAnnotationParameter{$1->GetText(), std::unique_ptr<AidlConstantValue>($3)};
     delete $1;
   };
