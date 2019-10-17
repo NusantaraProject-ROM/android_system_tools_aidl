@@ -1380,8 +1380,11 @@ IMPLEMENT_META_INTERFACE(ComplexTypeInterface, "android.os.IComplexTypeInterface
 
 const string kEnumAIDL = R"(package android.os;
 enum TestEnum {
-  FOO = 1,
-  BAR = 2,
+  ZERO,
+  ONE,
+  THREE = 3,
+  FOUR = 4,
+  FIVE,
 })";
 
 const char kExpectedEnumHeaderOutput[] =
@@ -1395,8 +1398,11 @@ namespace android {
 namespace os {
 
 enum class TestEnum : int8_t {
-  FOO = 1,
-  BAR = 2,
+  ZERO = 0,
+  ONE = 1,
+  THREE = 3,
+  FOUR = 4,
+  FIVE = 5,
 };
 
 }  // namespace os
