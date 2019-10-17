@@ -64,14 +64,6 @@ bool generate_java_parcel(const std::string& filename, const AidlStructuredParce
   return true;
 }
 
-bool generate_java_parcel_declaration(const std::string& filename, const IoDelegate& io_delegate) {
-  CodeWriterPtr code_writer = io_delegate.GetCodeWriter(filename);
-  *code_writer
-      << "// This file is intentionally left blank as placeholder for parcel declaration.\n";
-
-  return true;
-}
-
 bool generate_java_enum_declaration(const std::string& filename,
                                     const AidlEnumDeclaration* enum_decl,
                                     const AidlTypenames& typenames, const IoDelegate& io_delegate) {
@@ -86,11 +78,6 @@ bool generate_java(const std::string& filename, const AidlDefinedType* defined_t
   if (const AidlStructuredParcelable* parcelable = defined_type->AsStructuredParcelable();
       parcelable != nullptr) {
     return generate_java_parcel(filename, parcelable, typenames, io_delegate);
-  }
-
-  if (const AidlParcelable* parcelable_decl = defined_type->AsParcelable();
-      parcelable_decl != nullptr) {
-    return generate_java_parcel_declaration(filename, io_delegate);
   }
 
   if (const AidlEnumDeclaration* enum_decl = defined_type->AsEnumDeclaration();
