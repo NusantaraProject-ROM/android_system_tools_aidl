@@ -755,6 +755,19 @@ TEST_F(AidlTest, WritesDependencyFileForStructuredParcelable) {
   EXPECT_EQ(actual_dep_file_contents, kExpectedStructuredParcelableDepFileContents);
 }
 
+TEST_F(AidlTest, NoJavaOutputForParcelableDeclaration) {
+ vector<string> args = {
+    "aidl",
+    "--lang=java",
+    "-o place/for/output",
+    "p/Foo.aidl"};
+  Options options = Options::From(args);
+  io_delegate_.SetFileContents(options.InputFiles().front(), "package p; parcelable Foo;");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  string output_file_contents;
+  EXPECT_FALSE(io_delegate_.GetWrittenContents(options.OutputFile(), &output_file_contents));
+}
+
 /* not working until type_namespace.h is fixed
 TEST_F(AidlTest, AcceptsNestedContainerType) {
   string nested_in_iface = "package a; interface IFoo {\n"
