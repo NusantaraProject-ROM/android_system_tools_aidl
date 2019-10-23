@@ -144,7 +144,6 @@ class AidlError {
 namespace android {
 namespace aidl {
 
-class ValidatableType;
 class AidlTypenames;
 
 }  // namespace aidl
@@ -277,14 +276,6 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   bool CheckValid(const AidlTypenames& typenames) const;
   bool LanguageSpecificCheckValid(Options::Language lang) const;
 
-  void SetLanguageType(const android::aidl::ValidatableType* language_type) {
-    language_type_ = language_type;
-  }
-
-  template<typename T>
-  const T* GetLanguageType() const {
-    return reinterpret_cast<const T*>(language_type_);
-  }
  private:
   AidlTypeSpecifier(const AidlTypeSpecifier&) = default;
 
@@ -293,7 +284,6 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   bool is_array_;
   const shared_ptr<vector<unique_ptr<AidlTypeSpecifier>>> type_params_;
   string comments_;
-  const android::aidl::ValidatableType* language_type_ = nullptr;
   vector<string> split_name_;
 };
 
@@ -658,21 +648,11 @@ class AidlDefinedType : public AidlAnnotatable {
         const_cast<const AidlDefinedType*>(this)->AsUnstructuredParcelable());
   }
 
-  void SetLanguageType(const android::aidl::ValidatableType* language_type) {
-    language_type_ = language_type;
-  }
-
-  template <typename T>
-  const T* GetLanguageType() const {
-    return reinterpret_cast<const T*>(language_type_);
-  }
-
   virtual void Write(CodeWriter* writer) const = 0;
 
  private:
   std::string name_;
   std::string comments_;
-  const android::aidl::ValidatableType* language_type_ = nullptr;
   const std::vector<std::string> package_;
 
   DISALLOW_COPY_AND_ASSIGN(AidlDefinedType);
