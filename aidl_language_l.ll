@@ -100,9 +100,6 @@ floatvalue  [0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?f?
 ">="                  { return(yy::parser::token::GEQ); }
 "=="                  { return(yy::parser::token::EQUALITY); }
 "!="                  { return(yy::parser::token::NEQ); }
-"?"                   { return('?'); }
-"@"                   { return('@'); }
-"#"                   { return('#'); }
 
     /* annotations */
 @{identifier}         { yylval->token = new AidlToken(yytext + 1, extra_text);
