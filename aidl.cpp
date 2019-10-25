@@ -538,9 +538,7 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
         enum_decl->SetBackingType(std::move(byte_type));
       }
 
-      // TODO(b/139877950): Support autofilling enumerators, and ensure that
-      // autofilling does not cause any enumerators to have a value larger than
-      // allowed by the backing type.
+      enum_decl->Autofill();
     }
   });
 

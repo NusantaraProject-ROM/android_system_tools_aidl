@@ -20,5 +20,6 @@ package android.aidl.tests;
 enum IntEnum {
   FOO = 1000,
   BAR = 2000,
+  BAZ,
 }
 

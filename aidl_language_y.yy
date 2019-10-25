@@ -465,10 +465,13 @@ constant_decl
    }
  ;
 
-// TODO(b/139877950): Support autofilling enumerator values
 enumerator
  : identifier '=' const_expr {
     $$ = new AidlEnumerator(loc(@1), $1->GetText(), $3, $1->GetComments());
+    delete $1;
+   }
+ | identifier {
+    $$ = new AidlEnumerator(loc(@1), $1->GetText(), nullptr, $1->GetComments());
     delete $1;
    }
  ;
