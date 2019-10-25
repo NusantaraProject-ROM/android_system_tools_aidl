@@ -399,6 +399,10 @@ class AidlConstantValue : public AidlNode {
   // example: "\"asdf\""
   static AidlConstantValue* String(const AidlLocation& location, const string& value);
 
+  // Construct an AidlConstantValue by evaluating the other constant's value
+  // string. This does not preserve the structure of the copied constant.
+  static AidlConstantValue* ShallowCopy(const AidlConstantValue& other);
+
   Type GetType() const { return final_type_; }
 
   virtual bool CheckValid() const;
@@ -721,6 +725,8 @@ class AidlEnumerator : public AidlNode {
   string ValueString(const AidlTypeSpecifier& backing_type,
                      const ConstantValueDecorator& decorator) const;
 
+  void SetValue(std::unique_ptr<AidlConstantValue> value) { value_ = std::move(value); }
+
  private:
   const std::string name_;
   unique_ptr<AidlConstantValue> value_;
@@ -741,6 +747,7 @@ class AidlEnumDeclaration : public AidlDefinedType {
   const std::vector<std::unique_ptr<AidlEnumerator>>& GetEnumerators() const {
     return enumerators_;
   }
+  void Autofill();
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language) const override { return true; }
   std::string GetPreprocessDeclarationName() const override { return "enum"; }

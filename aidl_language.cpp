@@ -758,6 +758,27 @@ void AidlEnumDeclaration::SetBackingType(std::unique_ptr<const AidlTypeSpecifier
   backing_type_ = std::move(type);
 }
 
+void AidlEnumDeclaration::Autofill() {
+  const AidlEnumerator* previous = nullptr;
+  for (const auto& enumerator : enumerators_) {
+    if (enumerator->GetValue() == nullptr) {
+      if (previous == nullptr) {
+        enumerator->SetValue(std::unique_ptr<AidlConstantValue>(
+            AidlConstantValue::Integral(AIDL_LOCATION_HERE, "0")));
+      } else {
+        enumerator->SetValue(std::make_unique<AidlBinaryConstExpression>(
+            AIDL_LOCATION_HERE,
+            std::unique_ptr<AidlConstantValue>(
+                AidlConstantValue::ShallowCopy(*previous->GetValue())),
+            "+",
+            std::unique_ptr<AidlConstantValue>(
+                AidlConstantValue::Integral(AIDL_LOCATION_HERE, "1"))));
+      }
+    }
+    previous = enumerator.get();
+  }
+}
+
 bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
   if (backing_type_ == nullptr) {
     AIDL_ERROR(this) << "Enum declaration missing backing type.";
@@ -775,8 +796,6 @@ void AidlEnumDeclaration::Write(CodeWriter* writer) const {
   writer->Write("enum %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& enumerator : GetEnumerators()) {
-    // TODO(b/123321528): After autofilling is supported, determine if we want
-    // to leave out the assigned value for enumerators that were autofilled.
     writer->Write("%s = %s,\n", enumerator->GetName().c_str(),
                   enumerator->ValueString(GetBackingType(), AidlConstantValueDecorator).c_str());
   }

@@ -1613,5 +1613,19 @@ TEST_F(AidlTest, FailOnOutOfBoundsInt64MinConstInt) {
   EXPECT_EQ(AidlError::PARSE_ERROR, reported_error);
 }
 
+TEST_F(AidlTest, FailOnOutOfBoundsAutofilledEnum) {
+  AidlError reported_error;
+  EXPECT_EQ(nullptr, Parse("p/TestEnum.aidl",
+                           R"(package p;
+                              @Backing(type="byte")
+                              enum TestEnum {
+                                FOO = 127,
+                                BAR,
+                              }
+                             )",
+                           typenames_, Options::Language::CPP, &reported_error));
+  EXPECT_EQ(AidlError::BAD_TYPE, reported_error);
+}
+
 }  // namespace aidl
 }  // namespace android
