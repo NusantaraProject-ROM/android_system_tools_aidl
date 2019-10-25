@@ -20,5 +20,6 @@ package android.aidl.tests;
 enum LongEnum {
   FOO = 100000000000,
   BAR = 200000000000,
+  BAZ,
 }
 

@@ -24,5 +24,6 @@ enum ByteEnum {
   // Comment about FOO.
   FOO = 1,
   BAR = 2,
+  BAZ,
 }
 
