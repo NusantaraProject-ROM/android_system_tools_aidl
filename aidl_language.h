@@ -399,9 +399,9 @@ class AidlConstantValue : public AidlNode {
   // example: "\"asdf\""
   static AidlConstantValue* String(const AidlLocation& location, const string& value);
 
-  // Construct an AidlConstantValue by evaluating the other constant's value
-  // string. This does not preserve the structure of the copied constant.
-  static AidlConstantValue* ShallowCopy(const AidlConstantValue& other);
+  // Construct an AidlConstantValue by evaluating the other integral constant's
+  // value string. This does not preserve the structure of the copied constant.
+  static AidlConstantValue* ShallowIntegralCopy(const AidlConstantValue& other);
 
   Type GetType() const { return final_type_; }
 
