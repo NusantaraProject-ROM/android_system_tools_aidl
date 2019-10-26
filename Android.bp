@@ -133,14 +133,11 @@ cc_test {
         "libaidl-common",
         "libbase",
         "libcutils",
+        "libgmock",
     ],
     target: {
-        host: {
-            static_libs: ["libgmock_host"],
-        },
         android: {
             static_libs: [
-                "libgmock",
                 "liblog",
             ],
         },
