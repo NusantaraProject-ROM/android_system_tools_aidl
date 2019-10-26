@@ -769,7 +769,7 @@ void AidlEnumDeclaration::Autofill() {
         enumerator->SetValue(std::make_unique<AidlBinaryConstExpression>(
             AIDL_LOCATION_HERE,
             std::unique_ptr<AidlConstantValue>(
-                AidlConstantValue::ShallowCopy(*previous->GetValue())),
+                AidlConstantValue::ShallowIntegralCopy(*previous->GetValue())),
             "+",
             std::unique_ptr<AidlConstantValue>(
                 AidlConstantValue::Integral(AIDL_LOCATION_HERE, "1"))));
