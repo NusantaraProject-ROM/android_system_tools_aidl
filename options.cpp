@@ -39,7 +39,7 @@ namespace aidl {
 string Options::GetUsage() const {
   std::ostringstream sstr;
   sstr << "usage:" << endl
-       << myname_ << " --lang={java|cpp} [OPTION]... INPUT..." << endl
+       << myname_ << " --lang={java|cpp|ndk} [OPTION]... INPUT..." << endl
        << "   Generate Java or C++ files for AIDL file(s)." << endl
        << endl
        << myname_ << " --preprocess OUTPUT INPUT..." << endl
