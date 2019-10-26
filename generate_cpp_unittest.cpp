@@ -1383,8 +1383,13 @@ enum TestEnum {
   ZERO,
   ONE,
   THREE = 3,
-  FOUR = 4,
+  FOUR = 3 + 1,
   FIVE,
+  SIX,
+  SEVEN,
+  EIGHT = 16 / 2,
+  NINE,
+  TEN,
 })";
 
 const char kExpectedEnumHeaderOutput[] =
@@ -1403,6 +1408,11 @@ enum class TestEnum : int8_t {
   THREE = 3,
   FOUR = 4,
   FIVE = 5,
+  SIX = 6,
+  SEVEN = 7,
+  EIGHT = 8,
+  NINE = 9,
+  TEN = 10,
 };
 
 }  // namespace os
