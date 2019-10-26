@@ -110,7 +110,6 @@ cc_test {
         "-Wextra",
         "-Werror",
         "-g",
-        "-DUNIT_TEST",
     ],
 
     srcs: [
