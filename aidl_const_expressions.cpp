@@ -306,19 +306,19 @@ AidlConstantValue* AidlConstantValue::String(const AidlLocation& location, const
   return new AidlConstantValue(location, Type::STRING, value);
 }
 
-AidlConstantValue* AidlConstantValue::ShallowCopy(const AidlConstantValue& other) {
-  switch (other.GetType()) {
-    case Type::INT8:   // fall-through
-    case Type::INT32:  // fall-through
-    case Type::INT64:
-      return Integral(
-          AIDL_LOCATION_HERE,
-          other.ValueString(AidlTypeSpecifier(AIDL_LOCATION_HERE, "long", false, nullptr, ""),
-                            AidlConstantValueDecorator));
-    default:
-      AIDL_FATAL(other) << "Unsupported type for ShallowCopy: " << ToString(other.GetType());
-      return nullptr;
+AidlConstantValue* AidlConstantValue::ShallowIntegralCopy(const AidlConstantValue& other) {
+  // TODO(b/142894901): Perform full proper copy
+  AidlTypeSpecifier type = AidlTypeSpecifier(AIDL_LOCATION_HERE, "long", false, nullptr, "");
+  if (!other.evaluate(type)) {
+    AIDL_FATAL(other) << "Unsupported type for ShallowIntegralCopy: " << ToString(other.GetType());
   }
+
+  AidlConstantValue* result =
+      Integral(AIDL_LOCATION_HERE, other.ValueString(type, AidlConstantValueDecorator));
+  if (result == nullptr) {
+    AIDL_FATAL(other) << "Unable to perform ShallowIntegralCopy.";
+  }
+  return result;
 }
 
 string AidlConstantValue::ValueString(const AidlTypeSpecifier& type,
