@@ -636,18 +636,20 @@ annotation
  : ANNOTATION
   {
     $$ = AidlAnnotation::Parse(loc(@1), $1->GetText(), nullptr);
-    if ($$ == nullptr) {
+    if ($$) {
+      $$->SetComments($1->GetComments());
+    } else {
       ps->AddError();
     }
-    $$->SetComments($1->GetComments());
     delete $1;
   };
  | ANNOTATION '(' parameter_list ')' {
     $$ = AidlAnnotation::Parse(loc(@1), $1->GetText(), $3);
-    if ($$ == nullptr) {
+    if ($$) {
+      $$->SetComments($1->GetComments());
+    } else {
       ps->AddError();
     }
-    $$->SetComments($1->GetComments());
     delete $1;
     delete $3;
  }
