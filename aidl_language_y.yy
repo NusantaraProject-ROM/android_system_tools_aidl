@@ -311,7 +311,6 @@ interface_decl
     ps->AddError();
     $$ = nullptr;
     delete $1;
-    delete $2;
     delete $4;
   };
 
