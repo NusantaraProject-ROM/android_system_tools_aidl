@@ -144,6 +144,31 @@ cc_test {
     },
 }
 
+cc_fuzz {
+    name: "aidl_parser_fuzzer",
+    host_supported: true,
+    dictionary: "tests/aidl_parser_fuzzer.dict",
+    srcs: [
+        "tests/aidl_parser_fuzzer.cpp",
+        "tests/fake_io_delegate.cpp",
+        "tests/test_util.cpp",
+    ],
+    static_libs: [
+        "libaidl-common",
+        "libbase",
+        "libcutils",
+    ],
+    target: {
+        android: {
+            static_libs: [
+                "liblog",
+            ],
+        },
+    },
+    // Enable this to show additional information about what is being parsed during fuzzing.
+    // cflags: ["-DFUZZ_LOG"],
+}
+
 //
 // Everything below here is used for integration testing of generated AIDL code.
 //
