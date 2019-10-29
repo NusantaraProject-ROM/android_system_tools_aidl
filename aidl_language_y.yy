@@ -158,7 +158,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<annotation_list>annotation_list
 %type<type> type
 %type<type> unannotated_type
-%type<arg_list> arg_list
+%type<arg_list> arg_list arg_non_empty_list
 %type<arg> arg
 %type<direction> direction
 %type<type_args> type_args
@@ -531,17 +531,21 @@ method_decl
     delete $9;
   };
 
-arg_list
- :
-  { $$ = new std::vector<std::unique_ptr<AidlArgument>>(); }
- | arg {
+arg_non_empty_list
+ : arg {
     $$ = new std::vector<std::unique_ptr<AidlArgument>>();
     $$->push_back(std::unique_ptr<AidlArgument>($1));
   }
- | arg_list ',' arg {
+ | arg_non_empty_list ',' arg {
     $$ = $1;
     $$->push_back(std::unique_ptr<AidlArgument>($3));
   };
+
+arg_list
+ : /*empty*/
+   { $$ = new std::vector<std::unique_ptr<AidlArgument>>(); }
+ | arg_non_empty_list { $$ = $1; }
+ ;
 
 arg
  : direction type identifier {
