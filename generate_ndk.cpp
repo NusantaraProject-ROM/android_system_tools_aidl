@@ -170,7 +170,11 @@ static void StatusCheckReturn(CodeWriter& out) {
 
 static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& defined_type) {
-  out << "#include <android/binder_parcel_utils.h>\n";
+  out << "#include <cstdint>\n";
+  out << "#include <memory>\n";
+  out << "#include <optional>\n";
+  out << "#include <string>\n";
+  out << "#include <vector>\n";
   out << "#ifdef BINDER_STABILITY_SUPPORT\n";
   out << "#include <android/binder_stability.h>\n";
   out << "#endif  // BINDER_STABILITY_SUPPORT\n";
@@ -196,6 +200,8 @@ static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
 }
 static void GenerateSourceIncludes(CodeWriter& out, const AidlTypenames& types,
                                    const AidlDefinedType& /*defined_type*/) {
+  out << "#include <android/binder_parcel_utils.h>\n";
+
   types.IterateTypes([&](const AidlDefinedType& a_defined_type) {
     if (a_defined_type.AsInterface() != nullptr) {
       out << "#include <" << NdkHeaderFile(a_defined_type, ClassNames::CLIENT, false /*use_os_sep*/)
