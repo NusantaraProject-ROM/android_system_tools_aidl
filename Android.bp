@@ -148,6 +148,15 @@ cc_fuzz {
     name: "aidl_parser_fuzzer",
     host_supported: true,
     dictionary: "tests/aidl_parser_fuzzer.dict",
+
+    fuzz_config: {
+        cc: [
+            "smoreland@google.com",
+            "jiyong@google.com",
+            "jeongik@google.com",
+        ],
+    },
+
     srcs: [
         "tests/aidl_parser_fuzzer.cpp",
         "tests/fake_io_delegate.cpp",
