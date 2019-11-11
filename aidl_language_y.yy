@@ -18,6 +18,7 @@
 #include "aidl_language.h"
 #include "aidl_language_y.h"
 #include "logging.h"
+#include <android-base/parseint.h>
 #include <set>
 #include <map>
 #include <stdio.h>
@@ -517,13 +518,23 @@ method_decl
     delete $4;
   }
  | type identifier '(' arg_list ')' '=' INTVALUE ';' {
-    $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments(), std::stoi($7->GetText()));
+    int32_t serial;
+    if (!android::base::ParseInt($7->GetText(), &serial)) {
+        AIDL_ERROR(loc(@7)) << "Could not parse int value: " << $7->GetText();
+        ps->AddError();
+    }
+    $$ = new AidlMethod(loc(@2), false, $1, $2->GetText(), $4, $1->GetComments(), serial);
     delete $2;
     delete $7;
   }
  | annotation_list ONEWAY type identifier '(' arg_list ')' '=' INTVALUE ';' {
     const std::string& comments = ($1->size() > 0) ? $1->begin()->GetComments() : $2->GetComments();
-    $$ = new AidlMethod(loc(@4), true, $3, $4->GetText(), $6, comments, std::stoi($9->GetText()));
+    int32_t serial;
+    if (!android::base::ParseInt($9->GetText(), &serial)) {
+        AIDL_ERROR(loc(@9)) << "Could not parse int value: " << $9->GetText();
+        ps->AddError();
+    }
+    $$ = new AidlMethod(loc(@4), true, $3, $4->GetText(), $6, comments, serial);
     $3->Annotate(std::move(*$1));
     delete $1;
     delete $2;
