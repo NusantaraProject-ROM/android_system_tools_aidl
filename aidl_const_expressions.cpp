@@ -309,6 +309,10 @@ AidlConstantValue* AidlConstantValue::String(const AidlLocation& location, const
 AidlConstantValue* AidlConstantValue::ShallowIntegralCopy(const AidlConstantValue& other) {
   // TODO(b/142894901): Perform full proper copy
   AidlTypeSpecifier type = AidlTypeSpecifier(AIDL_LOCATION_HERE, "long", false, nullptr, "");
+  // TODO(b/142722772) CheckValid() should be called before ValueString()
+  if (!other.CheckValid()) {
+    AIDL_FATAL(other) << "Invalid value for ShallowIntegralCopy";
+  }
   if (!other.evaluate(type)) {
     AIDL_FATAL(other) << "Unsupported type for ShallowIntegralCopy: " << ToString(other.GetType());
   }
