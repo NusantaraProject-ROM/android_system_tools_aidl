@@ -745,6 +745,9 @@ func (i *aidlInterface) currentVersion(ctx android.BaseModuleContext) string {
 }
 
 func (i *aidlInterface) latestVersion() string {
+	if !i.hasVersion() {
+		return "0"
+	}
 	return i.properties.Versions[len(i.properties.Versions)-1]
 }
 func (i *aidlInterface) isLatestVersion(version string) bool {
@@ -778,12 +781,23 @@ func (i *aidlInterface) versionedName(ctx android.BaseModuleContext, version str
 	return name + "-V" + version
 }
 
-// The only difference between versionedName and cppOutputName is about unstable version
+// This function returns C++ artifact's name. Mostly, it returns same as versionedName(),
+// But, it returns different value only if it is the case below.
+// Assume that there is foo of which latest version is 2
 // foo-unstable -> foo-V3
+// foo -> foo-V2 (latest frozen version)
+// Assume that there is bar of which version hasn't been defined yet.
+// bar -> bar-V1
 func (i *aidlInterface) cppOutputName(version string) string {
 	name := i.ModuleBase.Name()
+	// Even if the module doesn't have version, it returns with version(-V1)
 	if !i.hasVersion() {
-		return name
+		// latestVersion() always returns "0"
+		i, err := strconv.Atoi(i.latestVersion())
+		if err != nil {
+			panic(err)
+		}
+		return name + "-V" + strconv.Itoa(i+1)
 	}
 	if version == "" {
 		version = i.latestVersion()
