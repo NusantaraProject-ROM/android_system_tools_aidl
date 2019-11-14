@@ -255,8 +255,7 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 		ext = "cpp"
 	}
 	relPath, _ := filepath.Rel(baseDir, src.String())
-	relPath = pathtools.ReplaceExtension(relPath, ext)
-	outFile := android.PathForModuleGen(ctx, relPath)
+	outFile := android.PathForModuleGen(ctx, pathtools.ReplaceExtension(relPath, ext))
 
 	var optionalFlags []string
 	if g.properties.Version != "" {
@@ -277,8 +276,8 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 			},
 		})
 	} else {
-		typeName := strings.TrimSuffix(filepath.Base(src.Rel()), ".aidl")
-		packagePath := filepath.Dir(src.Rel())
+		typeName := strings.TrimSuffix(filepath.Base(relPath), ".aidl")
+		packagePath := filepath.Dir(relPath)
 		baseName := typeName
 		// TODO(b/111362593): aidl_to_cpp_common.cpp uses heuristics to figure out if
 		//   an interface name has a leading I. Those same heuristics have been
