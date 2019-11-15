@@ -1129,6 +1129,32 @@ std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
                     NestInNamespaces(std::move(file_decls), parcel.GetSplitPackage())}};
 }
 
+std::string GenerateEnumToString(const AidlTypenames& typenames,
+                                 const AidlEnumDeclaration& enum_decl) {
+  std::ostringstream code;
+  code << "static inline std::string toString(" << enum_decl.GetName() << " val) {\n";
+  code << "  switch(val) {\n";
+  std::set<std::string> unique_cases;
+  for (const auto& enumerator : enum_decl.GetEnumerators()) {
+    std::string c = enumerator->ValueString(enum_decl.GetBackingType(), ConstantValueDecorator);
+    // Only add a case if its value has not yet been used in the switch
+    // statement. C++ does not allow multiple cases with the same value, but
+    // enums does allow this. In this scenario, the first declared
+    // enumerator with the given value is printed.
+    if (unique_cases.count(c) == 0) {
+      unique_cases.insert(c);
+      code << "  case " << enum_decl.GetName() << "::" << enumerator->GetName() << ":\n";
+      code << "    return \"" << enumerator->GetName() << "\";\n";
+    }
+  }
+  code << "  default:\n";
+  code << "    return std::to_string(static_cast<"
+       << CppNameOf(enum_decl.GetBackingType(), typenames) << ">(val));\n";
+  code << "  }\n";
+  code << "}\n";
+  return code.str();
+}
+
 std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
                                           const AidlEnumDeclaration& enum_decl) {
   unique_ptr<Enum> generated_enum{
@@ -1139,13 +1165,18 @@ std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
         enumerator->ValueString(enum_decl.GetBackingType(), ConstantValueDecorator));
   }
 
-  set<string> includes = {};
+  set<string> includes = {"string"};
   AddHeaders(enum_decl.GetBackingType(), typenames, includes);
+
+  vector<unique_ptr<Declaration>> decls;
+  decls.emplace_back(std::move(generated_enum));
+  decls.emplace_back(
+      unique_ptr<Declaration>(new LiteralDecl(GenerateEnumToString(typenames, enum_decl))));
 
   return unique_ptr<Document>{
       new CppHeader{BuildHeaderGuard(enum_decl, ClassNames::BASE),
                     vector<string>(includes.begin(), includes.end()),
-                    NestInNamespaces(std::move(generated_enum), enum_decl.GetSplitPackage())}};
+                    NestInNamespaces(std::move(decls), enum_decl.GetSplitPackage())}};
 }
 
 bool WriteHeader(const Options& options, const AidlTypenames& typenames,
