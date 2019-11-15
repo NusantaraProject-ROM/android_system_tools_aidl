@@ -32,7 +32,7 @@
 %option bison-bridge
 %option bison-locations
 
-%x COPYING LONG_COMMENT
+%x LONG_COMMENT
 
 identifier  [_a-zA-Z][_a-zA-Z0-9]*
 whitespace  ([ \t\r]+)
@@ -46,12 +46,6 @@ floatvalue  [0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?f?
   std::string extra_text;
   yylloc->step();
 %}
-
-
-\%\%\{                { extra_text += "/**"; BEGIN(COPYING); }
-<COPYING>\}\%\%       { extra_text += "**/"; yylloc->step(); BEGIN(INITIAL); }
-<COPYING>.*           { extra_text += yytext; }
-<COPYING>\n+          { extra_text += yytext; yylloc->lines(yyleng); }
 
 \/\*                  { extra_text += yytext; BEGIN(LONG_COMMENT); }
 <LONG_COMMENT>\*+\/   { extra_text += yytext; yylloc->step(); BEGIN(INITIAL);  }
