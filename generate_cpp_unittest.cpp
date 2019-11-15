@@ -1397,6 +1397,7 @@ const char kExpectedEnumHeaderOutput[] =
 #define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 
 #include <cstdint>
+#include <string>
 
 namespace android {
 
@@ -1414,6 +1415,33 @@ enum class TestEnum : int8_t {
   NINE = 9,
   TEN = 10,
 };
+
+static inline std::string toString(TestEnum val) {
+  switch(val) {
+  case TestEnum::ZERO:
+    return "ZERO";
+  case TestEnum::ONE:
+    return "ONE";
+  case TestEnum::THREE:
+    return "THREE";
+  case TestEnum::FOUR:
+    return "FOUR";
+  case TestEnum::FIVE:
+    return "FIVE";
+  case TestEnum::SIX:
+    return "SIX";
+  case TestEnum::SEVEN:
+    return "SEVEN";
+  case TestEnum::EIGHT:
+    return "EIGHT";
+  case TestEnum::NINE:
+    return "NINE";
+  case TestEnum::TEN:
+    return "TEN";
+  default:
+    return std::to_string(static_cast<int8_t>(val));
+  }
+}
 
 }  // namespace os
 
@@ -1434,6 +1462,7 @@ const char kExpectedEnumWithBackingTypeHeaderOutput[] =
 #define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 
 #include <cstdint>
+#include <string>
 
 namespace android {
 
@@ -1443,6 +1472,17 @@ enum class TestEnum : int64_t {
   FOO = 1L,
   BAR = 2L,
 };
+
+static inline std::string toString(TestEnum val) {
+  switch(val) {
+  case TestEnum::FOO:
+    return "FOO";
+  case TestEnum::BAR:
+    return "BAR";
+  default:
+    return std::to_string(static_cast<int64_t>(val));
+  }
+}
 
 }  // namespace os
 
