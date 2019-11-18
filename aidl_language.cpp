@@ -678,9 +678,6 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
           AIDL_ERROR(this) << "List in cpp supports only string and IBinder for now.";
           return false;
         }
-      } else if (lang == Options::Language::NDK) {
-        AIDL_ERROR(this) << "NDK backend does not support List yet.";
-        return false;
       }
 
     } else if (this->GetName() == "Map") {
