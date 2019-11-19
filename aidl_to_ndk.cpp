@@ -301,7 +301,12 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
                  .read_func = StandardRead("::ndk::AParcel_readRequiredParcelFileDescriptor"),
                  .write_func = StandardRead("::ndk::AParcel_writeRequiredParcelFileDescriptor"),
              },
-         .array = nullptr,
+         .array = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+             .cpp_name = "std::vector<::ndk::ScopedFileDescriptor>",
+             .value_is_cheap = false,
+             .read_func = StandardRead("::ndk::AParcel_readVector"),
+             .write_func = StandardWrite("::ndk::AParcel_writeVector"),
+         }),
          .nullable = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
              .cpp_name = "::ndk::ScopedFileDescriptor",
              .value_is_cheap = false,
