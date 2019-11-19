@@ -10,5 +10,5 @@ interface ILoggableInterfaceNdk {
                    double doubleValue, inout double[] doubleArray,
                    String stringValue, inout String[] stringArray,
                    IBinder binderValue,
-                   inout ParcelFileDescriptor pfdValue);
+                   inout ParcelFileDescriptor pfdValue, inout ParcelFileDescriptor[] pfdArray);
 }
