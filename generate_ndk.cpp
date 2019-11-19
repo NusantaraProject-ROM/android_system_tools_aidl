@@ -926,6 +926,32 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
   LeaveNdkNamespace(out, defined_type);
 }
 
+std::string GenerateEnumToString(const AidlTypenames& typenames,
+                                 const AidlEnumDeclaration& enum_decl) {
+  std::ostringstream code;
+  code << "static inline std::string toString(" << enum_decl.GetName() << " val) {\n";
+  code << "  switch(val) {\n";
+  std::set<std::string> unique_cases;
+  for (const auto& enumerator : enum_decl.GetEnumerators()) {
+    std::string c = enumerator->ValueString(enum_decl.GetBackingType(), ConstantValueDecorator);
+    // Only add a case if its value has not yet been used in the switch
+    // statement. C++ does not allow multiple cases with the same value, but
+    // enums does allow this. In this scenario, the first declared
+    // enumerator with the given value is printed.
+    if (unique_cases.count(c) == 0) {
+      unique_cases.insert(c);
+      code << "  case " << enum_decl.GetName() << "::" << enumerator->GetName() << ":\n";
+      code << "    return \"" << enumerator->GetName() << "\";\n";
+    }
+  }
+  code << "  default:\n";
+  code << "    return std::to_string(static_cast<"
+       << NdkNameOf(typenames, enum_decl.GetBackingType(), StorageMode::STACK) << ">(val));\n";
+  code << "  }\n";
+  code << "}\n";
+  return code.str();
+}
+
 void GenerateEnumHeader(CodeWriter& out, const AidlTypenames& types,
                         const AidlEnumDeclaration& enum_decl, const Options& /*options*/) {
   out << "#pragma once\n";
@@ -943,6 +969,8 @@ void GenerateEnumHeader(CodeWriter& out, const AidlTypenames& types,
   }
   out.Dedent();
   out << "};\n";
+  out << "\n";
+  out << GenerateEnumToString(types, enum_decl);
   LeaveNdkNamespace(out, enum_decl);
 }
 
