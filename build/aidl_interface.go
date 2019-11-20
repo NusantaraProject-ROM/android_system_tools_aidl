@@ -587,8 +587,24 @@ func aidlApiFactory() android.Module {
 	return m
 }
 
+type CommonBackendProperties struct {
+	// Whether to generate code in the corresponding backend.
+	// Default: true
+	Enabled *bool
+}
+
+type CommonNativeBackendProperties struct {
+	// Whether to generate additional code for gathering information
+	// about the transactions.
+	// Default: false
+	Gen_log *bool
+
+	// VNDK properties for correspdoning backend.
+	cc.VndkProperties
+}
+
 type aidlInterfaceProperties struct {
-	// Vndk properties for interface library only.
+	// Vndk properties for C++/NDK libraries only (preferred to use backend-specific settings)
 	cc.VndkProperties
 
 	// Whether the library can be installed on the vendor image.
@@ -630,31 +646,24 @@ type aidlInterfaceProperties struct {
 	Versions []string
 
 	Backend struct {
+		// Backend of the compiler generating code for Java clients.
 		Java struct {
-			// Whether to generate Java code using Java binder APIs
-			// Default: true
-			Enabled *bool
+			CommonBackendProperties
 			// Set to the version of the sdk to compile against
 			// Default: system_current
 			Sdk_version *string
 		}
+		// Backend of the compiler generating code for C++ clients using
+		// libbinder (unstable C++ interface)
 		Cpp struct {
-			// Whether to generate C++ code using C++ binder APIs
-			// Default: true
-			Enabled *bool
-			// Whether to generate additional code for gathering information
-			// about the transactions
-			// Default: false
-			Gen_log *bool
+			CommonBackendProperties
+			CommonNativeBackendProperties
 		}
+		// Backend of the compiler generating code for C++ clients using
+		// libbinder_ndk (stable C interface to system's libbinder)
 		Ndk struct {
-			// Whether to generate C++ code using NDK binder APIs
-			// Default: true
-			Enabled *bool
-			// Whether to generate additional code for gathering information
-			// about the transactions
-			// Default: false
-			Gen_log *bool
+			CommonBackendProperties
+			CommonNativeBackendProperties
 		}
 	}
 }
@@ -906,12 +915,14 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		return ""
 	}
 
-	genLog := false
+	var commonProperties *CommonNativeBackendProperties
 	if lang == langCpp {
-		genLog = proptools.Bool(i.properties.Backend.Cpp.Gen_log)
+		commonProperties = &i.properties.Backend.Cpp.CommonNativeBackendProperties
 	} else if lang == langNdk || lang == langNdkPlatform {
-		genLog = proptools.Bool(i.properties.Backend.Ndk.Gen_log)
+		commonProperties = &i.properties.Backend.Ndk.CommonNativeBackendProperties
 	}
+
+	genLog := proptools.Bool(commonProperties.Gen_log)
 
 	mctx.CreateModule(aidlGenFactory, &nameProperties{
 		Name: proptools.StringPtr(cppSourceGen),
@@ -977,7 +988,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Cpp_std:                   cpp_std,
 		Cflags:                    append(addCflags, "-Wextra", "-Wall", "-Werror"),
 		Stem:                      proptools.StringPtr(cppOutputGen),
-	}, &i.properties.VndkProperties)
+	}, &i.properties.VndkProperties, &commonProperties.VndkProperties)
 
 	return cppModuleGen
 }
