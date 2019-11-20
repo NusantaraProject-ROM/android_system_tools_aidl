@@ -261,6 +261,9 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 	if g.properties.Version != "" {
 		optionalFlags = append(optionalFlags, "--version "+g.properties.Version)
 	}
+	if g.properties.Stability != nil {
+		optionalFlags = append(optionalFlags, "--stability", *g.properties.Stability)
+	}
 
 	var headers android.WritablePaths
 	if g.properties.Lang == langJava {
@@ -301,10 +304,6 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 
 		if g.properties.GenLog {
 			optionalFlags = append(optionalFlags, "--log")
-		}
-
-		if g.properties.Stability != nil {
-			optionalFlags = append(optionalFlags, "--stability", *g.properties.Stability)
 		}
 
 		aidlLang := g.properties.Lang
@@ -709,10 +708,6 @@ func (i *aidlInterface) checkImports(mctx android.LoadHookContext) {
 func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 	if i.properties.Stability == nil {
 		return
-	}
-
-	if i.shouldGenerateJavaBackend() {
-		mctx.PropertyErrorf("stability", "Java backend does not yet support stability.")
 	}
 
 	// TODO(b/136027762): should we allow more types of stability (e.g. for APEX) or
