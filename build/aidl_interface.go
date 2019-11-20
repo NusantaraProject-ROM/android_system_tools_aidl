@@ -362,6 +362,7 @@ func aidlGenFactory() android.Module {
 type aidlApiProperties struct {
 	BaseName string
 	Srcs     []string `android:"path"`
+	AidlRoot string   // base directory for the input aidl file
 	Imports  []string
 	Versions []string
 }
@@ -416,7 +417,13 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 
 	apiDir = android.PathForModuleOut(ctx, "dump")
 	for _, src := range srcs {
-		apiFiles = append(apiFiles, android.PathForModuleOut(ctx, "dump", src.Rel()))
+		baseDir := strings.TrimSuffix(src.String(), src.Rel())
+		if aidlRoot := android.PathForModuleSrc(ctx, m.properties.AidlRoot).String(); strings.HasPrefix(aidlRoot, baseDir) {
+			baseDir = aidlRoot
+		}
+		relPath, _ := filepath.Rel(baseDir, src.String())
+		outFile := android.PathForModuleOut(ctx, "dump", relPath)
+		apiFiles = append(apiFiles, outFile)
 	}
 	hashFile = android.PathForModuleOut(ctx, "dump", ".hash")
 	latestVersion := "latest-version"
@@ -1022,11 +1029,13 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 
 func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 	apiModule := i.ModuleBase.Name() + aidlApiSuffix
+	srcs, aidlRoot := i.srcsForVersion(mctx, i.currentVersion(mctx))
 	mctx.CreateModule(aidlApiFactory, &nameProperties{
 		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
 		BaseName: i.ModuleBase.Name(),
-		Srcs:     i.properties.Srcs,
+		Srcs:     srcs,
+		AidlRoot: aidlRoot,
 		Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
 		Versions: i.properties.Versions,
 	})
