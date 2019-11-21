@@ -782,6 +782,26 @@ Options::Language::CPP));
 }
 */
 
+// TODO(b/136048684)
+TEST_F(AidlTest, PrimitiveList) {
+  string primitive_interface =
+      "package a; interface IFoo {\n"
+      "  List<int> foo(); }";
+  string primitive_parcelable =
+      "package a; parcelable IData {\n"
+      "  List<int> foo;}";
+  EXPECT_EQ(nullptr,
+            Parse("a/IFoo.aidl", primitive_interface, typenames_, Options::Language::JAVA));
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", primitive_interface, typenames_, Options::Language::CPP));
+  EXPECT_EQ(nullptr, Parse("a/IFoo.aidl", primitive_interface, typenames_, Options::Language::NDK));
+  EXPECT_EQ(nullptr,
+            Parse("a/IFoo.aidl", primitive_parcelable, typenames_, Options::Language::JAVA));
+  EXPECT_EQ(nullptr,
+            Parse("a/IFoo.aidl", primitive_parcelable, typenames_, Options::Language::CPP));
+  EXPECT_EQ(nullptr,
+            Parse("a/IFoo.aidl", primitive_parcelable, typenames_, Options::Language::NDK));
+}
+
 TEST_F(AidlTest, ApiDump) {
   io_delegate_.SetFileContents(
       "foo/bar/IFoo.aidl",
