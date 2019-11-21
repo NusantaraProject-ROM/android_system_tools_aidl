@@ -138,6 +138,7 @@ class AidlError {
 
 #define AIDL_ERROR(CONTEXT) ::AidlError(false /*fatal*/, (CONTEXT)).os_
 #define AIDL_FATAL(CONTEXT) ::AidlError(true /*fatal*/, (CONTEXT)).os_
+#define AIDL_FATAL_IF_NOT(CONDITION, CONTEXT) AIDL_FATAL_IF(!(CONDITION), CONTEXT)
 #define AIDL_FATAL_IF(CONDITION, CONTEXT) \
   if (CONDITION) AIDL_FATAL(CONTEXT) << "Bad internal state: " << #CONDITION << ": "
 
