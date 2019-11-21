@@ -271,8 +271,7 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
              .write_func = StandardWrite("::ndk::AParcel_writeVector"),
          }),
      }},
-    // TODO(b/111445392) {"List", ""},
-    // TODO(b/111445392) {"Map", ""},
+    // TODO(b/136048684) {"Map", ""},
     {"IBinder",
      TypeInfo{
          .raw =
@@ -320,13 +319,31 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
 
 static TypeInfo::Aspect GetTypeAspect(const AidlTypenames& types, const AidlTypeSpecifier& aidl) {
   CHECK(aidl.IsResolved()) << aidl.ToString();
-
-  const string aidl_name = aidl.GetName();
-
-  // TODO(b/112664205): this is okay for some types
-  AIDL_FATAL_IF(aidl.IsGeneric(), aidl) << aidl.ToString();
+  auto& aidl_name = aidl.GetName();
 
   TypeInfo info;
+
+  // TODO(b/136048684): For now, List<T> is converted to T[].(Both are using vector<T>)
+  if (aidl_name == "List") {
+    AIDL_FATAL_IF_NOT(aidl.IsGeneric(), aidl) << "List must be generic type.";
+    AIDL_FATAL_IF_NOT(aidl.GetTypeParameters().size() == 1, aidl)
+        << "List can accept only one type parameter.";
+    auto& type_param = aidl.GetTypeParameters()[0];
+    // TODO(b/136048684) AIDL doesn't support nested type parameter yet.
+    AIDL_FATAL_IF(type_param->IsGeneric(), aidl) << "AIDL doesn't support nested type parameter";
+
+    AidlTypeSpecifier array_type =
+        AidlTypeSpecifier(AIDL_LOCATION_HERE, type_param->GetUnresolvedName(), true /* isArray */,
+                          nullptr /* type_params */, aidl.GetComments());
+    if (!(array_type.Resolve(types) && array_type.CheckValid(types))) {
+      AIDL_FATAL(aidl) << "The type parameter is wrong.";
+    }
+    return GetTypeAspect(types, array_type);
+  }
+
+  // TODO(b/112664205): this is okay for some types
+  AIDL_FATAL_IF(aidl.IsGeneric(), aidl);
+
   if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
     auto it = kNdkTypeInfoMap.find(aidl_name);
     CHECK(it != kNdkTypeInfoMap.end());
