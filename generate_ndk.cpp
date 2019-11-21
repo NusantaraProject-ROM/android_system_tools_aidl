@@ -187,12 +187,12 @@ static void GenerateHeaderIncludes(CodeWriter& out, const AidlTypenames& types,
           << NdkHeaderFile(other_defined_type, ClassNames::RAW, false /*use_os_sep*/) << ">\n";
     } else if (other_defined_type.AsStructuredParcelable() != nullptr) {
       out << "#include <"
-          << NdkHeaderFile(other_defined_type, ClassNames::BASE, false /*use_os_sep*/) << ">\n";
+          << NdkHeaderFile(other_defined_type, ClassNames::RAW, false /*use_os_sep*/) << ">\n";
     } else if (other_defined_type.AsParcelable() != nullptr) {
       out << "#include \"" << other_defined_type.AsParcelable()->GetCppHeader() << "\"\n";
     } else if (other_defined_type.AsEnumDeclaration() != nullptr) {
       out << "#include <"
-          << NdkHeaderFile(other_defined_type, ClassNames::BASE, false /*use_os_sep*/) << ">\n";
+          << NdkHeaderFile(other_defined_type, ClassNames::RAW, false /*use_os_sep*/) << ">\n";
     } else {
       AIDL_FATAL(defined_type) << "Unrecognized type.";
     }
@@ -821,7 +821,7 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
 void GenerateParcelHeader(CodeWriter& out, const AidlTypenames& types,
                           const AidlStructuredParcelable& defined_type,
                           const Options& /*options*/) {
-  const std::string clazz = ClassName(defined_type, ClassNames::BASE);
+  const std::string clazz = ClassName(defined_type, ClassNames::RAW);
 
   out << "#pragma once\n";
   out << "#include <android/binder_interface_utils.h>\n";
@@ -852,7 +852,7 @@ void GenerateParcelHeader(CodeWriter& out, const AidlTypenames& types,
 void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
                           const AidlStructuredParcelable& defined_type,
                           const Options& /*options*/) {
-  const std::string clazz = ClassName(defined_type, ClassNames::BASE);
+  const std::string clazz = ClassName(defined_type, ClassNames::RAW);
 
   out << "#include \"" << NdkHeaderFile(defined_type, ClassNames::RAW, false /*use_os_sep*/)
       << "\"\n";

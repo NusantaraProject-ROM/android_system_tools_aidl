@@ -1054,7 +1054,7 @@ std::unique_ptr<Document> BuildParcelHeader(const AidlTypenames& typenames,
   parcel_class->AddPublic(std::move(write));
 
   return unique_ptr<Document>{new CppHeader{
-      BuildHeaderGuard(parcel, ClassNames::BASE), vector<string>(includes.begin(), includes.end()),
+      BuildHeaderGuard(parcel, ClassNames::RAW), vector<string>(includes.begin(), includes.end()),
       NestInNamespaces(std::move(parcel_class), parcel.GetSplitPackage())}};
 }
 std::unique_ptr<Document> BuildParcelSource(const AidlTypenames& typenames,
@@ -1174,7 +1174,7 @@ std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
       unique_ptr<Declaration>(new LiteralDecl(GenerateEnumToString(typenames, enum_decl))));
 
   return unique_ptr<Document>{
-      new CppHeader{BuildHeaderGuard(enum_decl, ClassNames::BASE),
+      new CppHeader{BuildHeaderGuard(enum_decl, ClassNames::RAW),
                     vector<string>(includes.begin(), includes.end()),
                     NestInNamespaces(std::move(decls), enum_decl.GetSplitPackage())}};
 }

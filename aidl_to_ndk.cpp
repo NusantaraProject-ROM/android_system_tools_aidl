@@ -136,7 +136,7 @@ TypeInfo InterfaceTypeInfo(const AidlInterface& type) {
 }
 
 TypeInfo ParcelableTypeInfo(const AidlParcelable& type) {
-  const std::string clazz = NdkFullClassName(type, cpp::ClassNames::BASE);
+  const std::string clazz = NdkFullClassName(type, cpp::ClassNames::RAW);
 
   return TypeInfo{
       .raw =
@@ -164,7 +164,7 @@ TypeInfo ParcelableTypeInfo(const AidlParcelable& type) {
 }
 
 TypeInfo EnumDeclarationTypeInfo(const AidlEnumDeclaration& enum_decl) {
-  const std::string clazz = NdkFullClassName(enum_decl, cpp::ClassNames::BASE);
+  const std::string clazz = NdkFullClassName(enum_decl, cpp::ClassNames::RAW);
 
   static map<std::string, std::string> kAParcelTypeNameMap = {
       {"byte", "Byte"},
