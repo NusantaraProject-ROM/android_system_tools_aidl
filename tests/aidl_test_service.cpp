@@ -317,7 +317,7 @@ class NativeService : public BnTestService {
     return ReverseArray(input, repeated, _aidl_return);
   }
 
-  Status RepeatFileDescriptor(const unique_fd& read,
+  Status RepeatFileDescriptor(unique_fd read,
                               unique_fd* _aidl_return) override {
     ALOGE("Repeating file descriptor");
     *_aidl_return = unique_fd(dup(read.get()));

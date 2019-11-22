@@ -39,6 +39,8 @@ std::string GetTransactionIdFor(const AidlMethod& method);
 
 std::string CppNameOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
 
+bool IsNonCopyableType(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
+
 // Returns the name of the Parcel method suitable for reading data of the
 // given type.
 std::string ParcelReadMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames);
