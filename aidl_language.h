@@ -827,10 +827,6 @@ class Parser {
   const std::vector<std::unique_ptr<AidlImport>>& GetImports() {
     return imports_;
   }
-  void ReleaseImports(std::vector<std::unique_ptr<AidlImport>>* ret) {
-    *ret = std::move(imports_);
-    imports_.clear();
-  }
 
   void SetPackage(unique_ptr<AidlQualifiedName> name) { package_ = std::move(name); }
   std::vector<std::string> Package() const;
