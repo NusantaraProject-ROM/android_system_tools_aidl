@@ -35,6 +35,7 @@ import (
 
 var (
 	aidlInterfaceSuffix = "_interface"
+	aidlApiDir          = "aidl_api"
 	aidlApiSuffix       = "-api"
 	langCpp             = "cpp"
 	langJava            = "java"
@@ -363,7 +364,6 @@ type aidlApiProperties struct {
 	Srcs     []string `android:"path"`
 	AidlRoot string   // base directory for the input aidl file
 	Imports  []string
-	Api_dir  *string
 	Versions []string
 }
 
@@ -380,11 +380,7 @@ type aidlApi struct {
 }
 
 func (m *aidlApi) apiDir() string {
-	if m.properties.Api_dir != nil {
-		return *(m.properties.Api_dir)
-	} else {
-		return "api"
-	}
+	return filepath.Join(aidlApiDir, m.properties.BaseName)
 }
 
 // Version of the interface at ToT if it is frozen
@@ -637,9 +633,6 @@ type aidlInterfaceProperties struct {
 	// Used by gen dependency to fill out aidl include path
 	Full_import_paths []string `blueprint:"mutated"`
 
-	// Directory where API dumps are. Default is "api".
-	Api_dir *string
-
 	// Stability promise. Currently only supports "vintf".
 	// If this is unset, this corresponds to an interface with stability within
 	// this compilation context (so an interface loaded here can only be used
@@ -819,13 +812,7 @@ func (i *aidlInterface) srcsForVersion(mctx android.LoadHookContext, version str
 	if i.isCurrentVersion(mctx, version) {
 		return i.properties.Srcs, i.properties.Local_include_dir
 	} else {
-		var apiDir string
-		if i.properties.Api_dir != nil {
-			apiDir = *(i.properties.Api_dir)
-		} else {
-			apiDir = "api"
-		}
-		aidlRoot = filepath.Join(apiDir, version)
+		aidlRoot = filepath.Join(aidlApiDir, i.ModuleBase.Name(), version)
 		full_paths, err := mctx.GlobWithDeps(filepath.Join(mctx.ModuleDir(), aidlRoot, "**/*.aidl"), nil)
 		if err != nil {
 			panic(err)
@@ -1050,7 +1037,6 @@ func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 		Srcs:     srcs,
 		AidlRoot: aidlRoot,
 		Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-		Api_dir:  i.properties.Api_dir,
 		Versions: i.properties.Versions,
 	})
 	return apiModule
