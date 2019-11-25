@@ -79,7 +79,6 @@ aidl_interface {
         "tests_1/some_package/Thing.aidl",
         "tests_1/some_package/sub_package/*.aidl", // testing glob w/o filegroup
     ],
-    api_dir: "api/test-piece-1",
     versions: ["1"],
 }
 
@@ -93,7 +92,6 @@ aidl_interface {
     imports: [
         "test-piece-1",
     ],
-    api_dir: "api/test-piece-2",
     versions: ["1"],
 }
 
@@ -106,7 +104,6 @@ aidl_interface {
     imports: [
         "test-piece-2",
     ],
-    api_dir: "api/test-piece-3",
     versions: ["1"],
 }
 
@@ -119,7 +116,6 @@ aidl_interface {
     imports: [
         "test-piece-1",
     ],
-    api_dir: "api/test-piece-4",
     versions: ["1"],
 }
 
