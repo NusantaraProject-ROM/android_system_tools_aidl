@@ -923,6 +923,35 @@ TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
   EXPECT_NE(0, ::android::aidl::compile_aidl(options2, io_delegate_));
 }
 
+TEST_F(AidlTest, WrongGenericType) {
+  Options options = Options::From("aidl p/IFoo.aidl IFoo.java");
+  io_delegate_.SetFileContents(options.InputFiles().front(),
+                               "package p; interface IFoo {"
+                               "String<String> foo(); }");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
+TEST_F(AidlTest, UserDefinedUnstructuredGenericParcelableType) {
+  Options optionsForParcelable = Options::From("aidl -I p p/Bar.aidl");
+  io_delegate_.SetFileContents("p/Bar.aidl", "package p; parcelable Bar<T, T>;");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(optionsForParcelable, io_delegate_));
+
+  Options options = Options::From("aidl -I p p/IFoo.aidl");
+  io_delegate_.SetFileContents("p/Bar.aidl", "package p; parcelable Bar;");
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Bar<String, String> foo();}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  io_delegate_.SetFileContents("p/Bar.aidl", "package p; parcelable Bar<T>;");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  io_delegate_.SetFileContents("p/Bar.aidl", "package p; parcelable Bar<T, V>;");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Bar<String, ParcelFileDescriptor> foo();}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
 TEST_F(AidlTest, FailOnMultipleTypesInSingleFile) {
   std::vector<std::string> rawOptions{"aidl --lang=java -o out foo/bar/Foo.aidl",
                                       "aidl --lang=cpp -o out -h out/include foo/bar/Foo.aidl"};

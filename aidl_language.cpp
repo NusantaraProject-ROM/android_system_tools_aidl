@@ -320,14 +320,16 @@ AidlTypeSpecifier::AidlTypeSpecifier(const AidlLocation& location, const string&
                                      vector<unique_ptr<AidlTypeSpecifier>>* type_params,
                                      const string& comments)
     : AidlAnnotatable(location),
+      AidlParameterizable<unique_ptr<AidlTypeSpecifier>>(type_params),
       unresolved_name_(unresolved_name),
       is_array_(is_array),
-      type_params_(type_params),
       comments_(comments),
       split_name_(Split(unresolved_name, ".")) {}
 
 AidlTypeSpecifier AidlTypeSpecifier::ArrayBase() const {
   AIDL_FATAL_IF(!is_array_, this);
+  // Declaring array of generic type cannot happen, it is grammar error.
+  AIDL_FATAL_IF(IsGeneric(), this);
 
   AidlTypeSpecifier arrayBase = *this;
   arrayBase.is_array_ = false;
@@ -382,7 +384,12 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
       return false;
     }
     const string& type_name = GetName();
-    const int num = GetTypeParameters().size();
+    const auto definedType = typenames.TryGetDefinedType(type_name);
+    const auto parameterizable =
+        definedType != nullptr ? definedType->AsParameterizable() : nullptr;
+    const bool isUserDefinedGenericType =
+        parameterizable != nullptr && parameterizable->IsGeneric();
+    const size_t num = GetTypeParameters().size();
     if (type_name == "List") {
       if (num > 1) {
         AIDL_ERROR(this) << " List cannot have type parameters more than one, but got "
@@ -395,6 +402,16 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
                          << "'" << ToString() << "'";
         return false;
       }
+    } else if (isUserDefinedGenericType) {
+      const size_t allowed = parameterizable->GetTypeParameters().size();
+      if (num != allowed) {
+        AIDL_ERROR(this) << type_name << " must have " << allowed << " type parameters, but got "
+                         << num;
+        return false;
+      }
+    } else {
+      AIDL_ERROR(this) << type_name << " is not a generic type.";
+      return false;
     }
   }
 
@@ -620,8 +637,9 @@ std::string AidlDefinedType::GetCanonicalName() const {
 
 AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
                                const std::vector<std::string>& package, const std::string& comments,
-                               const std::string& cpp_header)
+                               const std::string& cpp_header, std::vector<std::string>* type_params)
     : AidlDefinedType(location, name->GetDotName(), comments, package),
+      AidlParameterizable<std::string>(type_params),
       name_(name),
       cpp_header_(cpp_header) {
   // Strip off quotation marks if we actually have a cpp header.
@@ -629,10 +647,38 @@ AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* 
     cpp_header_ = cpp_header_.substr(1, cpp_header_.length() - 2);
   }
 }
+template <typename T>
+AidlParameterizable<T>::AidlParameterizable(const AidlParameterizable& other) {
+  // Copying is not supported if it has type parameters.
+  // It doesn't make a problem because only ArrayBase() makes a copy,
+  // and it can be called only if a type is not generic.
+  CHECK(!other.IsGeneric());
+}
+
+template <typename T>
+bool AidlParameterizable<T>::CheckValid() const {
+  return true;
+};
+
+template <>
+bool AidlParameterizable<std::string>::CheckValid() const {
+  if (!IsGeneric()) {
+    return true;
+  }
+  std::unordered_set<std::string> set(GetTypeParameters().begin(), GetTypeParameters().end());
+  if (set.size() != GetTypeParameters().size()) {
+    AIDL_ERROR(this->AsAidlNode()) << "Every type parameter should be unique.";
+    return false;
+  }
+  return true;
+}
 
 bool AidlParcelable::CheckValid(const AidlTypenames&) const {
   static const std::set<string> allowed{kStableParcelable};
   if (!CheckValidAnnotations()) {
+    return false;
+  }
+  if (!AidlParameterizable<std::string>::CheckValid()) {
     return false;
   }
   for (const auto& v : GetAnnotations()) {
