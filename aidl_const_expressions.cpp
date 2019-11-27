@@ -314,11 +314,15 @@ AidlConstantValue* AidlConstantValue::ShallowIntegralCopy(const AidlConstantValu
     AIDL_FATAL(other) << "Invalid value for ShallowIntegralCopy";
   }
   if (!other.evaluate(type)) {
-    AIDL_FATAL(other) << "Unsupported type for ShallowIntegralCopy: " << ToString(other.GetType());
+    AIDL_ERROR(other) << "Failed to parse expression as integer: " << other.value_;
+    return nullptr;
+  }
+  const std::string& value = other.ValueString(type, AidlConstantValueDecorator);
+  if (value.empty()) {
+    return nullptr;  // error already logged
   }
 
-  AidlConstantValue* result =
-      Integral(AIDL_LOCATION_HERE, other.ValueString(type, AidlConstantValueDecorator));
+  AidlConstantValue* result = Integral(AIDL_LOCATION_HERE, value);
   if (result == nullptr) {
     AIDL_FATAL(other) << "Unable to perform ShallowIntegralCopy.";
   }
