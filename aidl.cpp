@@ -538,9 +538,14 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
         enum_decl->SetBackingType(std::move(byte_type));
       }
 
-      enum_decl->Autofill();
+      if (!enum_decl->Autofill()) {
+        err = AidlError::BAD_TYPE;
+      }
     }
   });
+  if (err != AidlError::OK) {
+    return err;
+  }
 
   //////////////////////////////////////////////////////////////////////////
   // Validation phase
