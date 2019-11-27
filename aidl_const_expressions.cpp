@@ -740,10 +740,10 @@ bool AidlBinaryConstExpression::evaluate(const AidlTypeSpecifier& type) const {
 
   // CASE: + - *  / % | ^ & < > <= >= == !=
   if (isArithmeticOrBitflip || OP_IS_BIN_COMP) {
-    if (op_ == "/" && right_val_->final_value_ == 0) {
+    if ((op_ == "/" || op_ == "%") && right_val_->final_value_ == 0) {
       final_type_ = Type::ERROR;
       is_valid_ = false;
-      AIDL_ERROR(this) << "Divide by 0! const_expr: " + value_;
+      AIDL_ERROR(this) << "Cannot do division operation with zero for expression: " + value_;
       return false;
     }
 
