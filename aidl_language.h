@@ -402,6 +402,7 @@ class AidlConstantValue : public AidlNode {
 
   // Construct an AidlConstantValue by evaluating the other integral constant's
   // value string. This does not preserve the structure of the copied constant.
+  // Returns nullptr and logs if value cannot be copied.
   static AidlConstantValue* ShallowIntegralCopy(const AidlConstantValue& other);
 
   Type GetType() const { return final_type_; }
@@ -748,7 +749,7 @@ class AidlEnumDeclaration : public AidlDefinedType {
   const std::vector<std::unique_ptr<AidlEnumerator>>& GetEnumerators() const {
     return enumerators_;
   }
-  void Autofill();
+  bool Autofill();
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language) const override { return true; }
   std::string GetPreprocessDeclarationName() const override { return "enum"; }
