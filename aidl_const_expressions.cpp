@@ -548,27 +548,29 @@ bool AidlConstantValue::evaluate(const AidlTypeSpecifier& type) const {
 
 string AidlConstantValue::ToString(Type type) {
   switch (type) {
-    case Type::ARRAY:
-      return "a literal array";
     case Type::BOOLEAN:
       return "a literal boolean";
-    case Type::CHARACTER:
-      return "a literal char";
     case Type::INT8:
       return "an int8 literal";
     case Type::INT32:
       return "an int32 literal";
     case Type::INT64:
       return "an int64 literal";
+    case Type::ARRAY:
+      return "a literal array";
+    case Type::CHARACTER:
+      return "a literal char";
     case Type::STRING:
       return "a literal string";
-    case Type::ERROR:
-      LOG(FATAL) << "aidl internal error: error type failed to halt program";
-      return "";
+    case Type::FLOATING:
+      return "a literal float";
     case Type::UNARY:
       return "a unary expression";
     case Type::BINARY:
       return "a binary expression";
+    case Type::ERROR:
+      LOG(FATAL) << "aidl internal error: error type failed to halt program";
+      return "";
     default:
       LOG(FATAL) << "aidl internal error: unknown constant type: " << static_cast<int>(type);
       return "";  // not reached
