@@ -366,6 +366,14 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
     return false;
   }
   if (IsGeneric()) {
+    auto& types = GetTypeParameters();
+    // TODO(b/136048684) Allow them when it supports primitive type somewhere.
+    if (std::any_of(types.begin(), types.end(), [](auto& type_ptr) {
+          return AidlTypenames::IsPrimitiveTypename(type_ptr->GetName());
+        })) {
+      AIDL_ERROR(this) << "A generic type cannot has any primitive type parameters.";
+      return false;
+    }
     const string& type_name = GetName();
     const int num = GetTypeParameters().size();
     if (type_name == "List") {
@@ -678,8 +686,16 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
           AIDL_ERROR(this) << "List in cpp supports only string and IBinder for now.";
           return false;
         }
+      } else if (lang == Options::Language::JAVA) {
+        const string& contained_type = this->GetTypeParameters()[0]->GetName();
+        if (AidlTypenames::IsBuiltinTypename(contained_type)) {
+          if (contained_type != "String" && contained_type != "IBinder" &&
+              contained_type != "ParcelFileDescriptor") {
+            AIDL_ERROR(this) << "List<" << contained_type << "> isn't supported in Java";
+            return false;
+          }
+        }
       }
-
     } else if (this->GetName() == "Map") {
       if (lang != Options::Language::JAVA) {
         AIDL_ERROR(this) << "Currently, only Java backend supports Map.";
@@ -687,6 +703,17 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
       }
     }
   }
+  if (lang == Options::Language::JAVA) {
+    const string name = this->GetName();
+    // List[], Map[], CharSequence[] are not supported.
+    if (AidlTypenames::IsBuiltinTypename(name) && this->IsArray()) {
+      if (name == "List" || name == "Map" || name == "CharSequence") {
+        AIDL_ERROR(this) << "List[], Map[], CharSequence[] are not supported.";
+        return false;
+      }
+    }
+  }
+
   return true;
 }
 
