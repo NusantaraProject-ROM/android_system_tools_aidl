@@ -169,51 +169,6 @@ string DefaultJavaValueOf(const AidlTypeSpecifier& aidl, const AidlTypenames& ty
   }
 }
 
-// These are supported by AIDL syntax, but are unsupported by the AIDL compiler
-static bool IsMarshallingUnsupportedFor(const AidlTypeSpecifier& aidl,
-                                        const AidlTypenames& typenames) {
-  const string name = aidl.GetName();
-
-  // List<T> is support only for String, Binder, ParcelFileDescriptor and Parcelable.
-  if (name == "List" && aidl.IsGeneric()) {
-    const string& contained_type = aidl.GetTypeParameters().at(0)->GetName();
-    if (AidlTypenames::IsBuiltinTypename(contained_type)) {
-      if (contained_type != "String" && contained_type != "IBinder" &&
-          contained_type != "ParcelFileDescriptor") {
-        return true;
-      }
-    } else {
-      const AidlDefinedType* t = typenames.TryGetDefinedType(contained_type);
-      if (t != nullptr && t->AsInterface() != nullptr) {
-        return true;
-      }
-    }
-  }
-
-  // List[], Map[], CharSequence[] are not supported.
-  if (AidlTypenames::IsBuiltinTypename(name) && aidl.IsArray()) {
-    if (name == "List" || name == "Map" || name == "CharSequence") {
-      return true;
-    }
-  }
-
-  // T[] is not supported for interfaces
-  const AidlDefinedType* t = typenames.TryGetDefinedType(name);
-  if (aidl.IsArray() && t != nullptr && t->AsInterface() != nullptr) {
-    return true;
-  }
-
-  return false;
-}
-
-static bool EnsureCodegenIsSupported(const CodeGeneratorContext& c) {
-  if (IsMarshallingUnsupportedFor(c.type, c.typenames)) {
-    AIDL_ERROR(c.type) << c.type.ToString() << "' is not yet supported.";
-    return false;
-  }
-  return true;
-}
-
 static string GetFlagFor(const CodeGeneratorContext& c) {
   if (c.is_return_value) {
     return "android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE";
@@ -223,9 +178,6 @@ static string GetFlagFor(const CodeGeneratorContext& c) {
 }
 
 bool WriteToParcelFor(const CodeGeneratorContext& c) {
-  if (!EnsureCodegenIsSupported(c)) {
-    return false;
-  }
   static map<string, function<void(const CodeGeneratorContext&)>> method_map{
       {"boolean",
        [](const CodeGeneratorContext& c) {
@@ -420,9 +372,6 @@ static string EnsureAndGetClassloader(CodeGeneratorContext& c) {
 }
 
 bool CreateFromParcelFor(const CodeGeneratorContext& c) {
-  if (!EnsureCodegenIsSupported(c)) {
-    return false;
-  }
   static map<string, function<void(const CodeGeneratorContext&)>> method_map{
       {"boolean",
        [](const CodeGeneratorContext& c) {
@@ -606,9 +555,6 @@ bool CreateFromParcelFor(const CodeGeneratorContext& c) {
 }
 
 bool ReadFromParcelFor(const CodeGeneratorContext& c) {
-  if (!EnsureCodegenIsSupported(c)) {
-    return false;
-  }
   static map<string, function<void(const CodeGeneratorContext&)>> method_map{
       {"boolean[]",
        [](const CodeGeneratorContext& c) {
