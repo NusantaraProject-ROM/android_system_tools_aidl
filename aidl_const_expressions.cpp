@@ -467,6 +467,8 @@ bool AidlConstantValue::CheckValid() const {
     case Type::BINARY:
       is_valid_ = true;
       break;
+    case Type::ERROR:
+      return false;
     default:
       AIDL_FATAL(this) << "Unrecognized constant value type: " << ToString(type_);
       return false;
