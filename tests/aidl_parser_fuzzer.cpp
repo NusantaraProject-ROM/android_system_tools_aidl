@@ -80,6 +80,12 @@ void fuzz(uint8_t options, const std::string& content) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   if (size <= 1) return 0;  // no use
 
+  // b/145447540, large nested expressions sometimes hit the stack depth limit.
+  // Fuzzing things of this size don't provide any additional meaningful
+  // coverage. This is an approximate value which should allow us to explore all
+  // of the language w/o hitting a stack overflow.
+  if (size > 2000) return 0;
+
   uint8_t options = *data;
   data++;
   size--;
