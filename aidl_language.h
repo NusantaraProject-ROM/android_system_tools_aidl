@@ -409,8 +409,7 @@ class AidlConstantValue : public AidlNode {
   virtual bool CheckValid() const;
 
   // Raw value of type (currently valid in C++ and Java). Empty string on error.
-  virtual string ValueString(const AidlTypeSpecifier& type,
-                             const ConstantValueDecorator& decorator) const;
+  string ValueString(const AidlTypeSpecifier& type, const ConstantValueDecorator& decorator) const;
 
  private:
   AidlConstantValue(const AidlLocation& location, Type parsed_type, int64_t parsed_value,
@@ -421,6 +420,7 @@ class AidlConstantValue : public AidlNode {
   static string ToString(Type type);
   static bool ParseIntegral(const string& value, int64_t* parsed_value, Type* parsed_type);
   static bool IsHex(const string& value);
+
   virtual bool evaluate(const AidlTypeSpecifier& type) const;
 
   const Type type_ = Type::ERROR;
@@ -428,8 +428,8 @@ class AidlConstantValue : public AidlNode {
   const string value_;                                  // otherwise
 
   // State for tracking evaluation of expressions
-  mutable bool is_valid_;
-  mutable bool is_evaluated_;
+  mutable bool is_valid_ = false;      // cache of CheckValid, but may be marked false in evaluate
+  mutable bool is_evaluated_ = false;  // whether evaluate has been called
   mutable Type final_type_;
   mutable int64_t final_value_;
   mutable string final_string_value_ = "";
@@ -447,9 +447,6 @@ class AidlUnaryConstExpression : public AidlConstantValue {
 
   static bool IsCompatibleType(Type type, const string& op);
   bool CheckValid() const override;
-  string ValueString(const AidlTypeSpecifier& type,
-                     const ConstantValueDecorator& decorator) const override;
-
  private:
   bool evaluate(const AidlTypeSpecifier& type) const override;
 
@@ -463,8 +460,6 @@ class AidlBinaryConstExpression : public AidlConstantValue {
                             const string& op, std::unique_ptr<AidlConstantValue> rval);
 
   bool CheckValid() const override;
-  string ValueString(const AidlTypeSpecifier& type,
-                     const ConstantValueDecorator& decorator) const override;
 
   static bool AreCompatibleTypes(Type t1, Type t2);
   // Returns the promoted kind for both operands
