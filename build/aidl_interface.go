@@ -652,6 +652,9 @@ type aidlInterfaceProperties struct {
 			// Set to the version of the sdk to compile against
 			// Default: system_current
 			Sdk_version *string
+			// Whether to compile against platform APIs instead of
+			// an SDK.
+			Platform_apis *bool
 		}
 		// Backend of the compiler generating code for C++ clients using
 		// libbinder (unstable C++ interface)
@@ -1001,7 +1004,11 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		return ""
 	}
 
-	sdkVersion := proptools.StringDefault(i.properties.Backend.Java.Sdk_version, "system_current")
+	sdkVersion := i.properties.Backend.Java.Sdk_version
+	if !proptools.Bool(i.properties.Backend.Java.Platform_apis) && sdkVersion == nil {
+		// platform apis requires no default
+		sdkVersion = proptools.StringPtr("system_current")
+	}
 
 	mctx.CreateModule(aidlGenFactory, &nameProperties{
 		Name: proptools.StringPtr(javaSourceGen),
@@ -1016,12 +1023,13 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 	})
 
 	mctx.CreateModule(java.LibraryFactory, &javaProperties{
-		Name:        proptools.StringPtr(javaModuleGen),
-		Installable: proptools.BoolPtr(true),
-		Defaults:    []string{"aidl-java-module-defaults"},
-		Sdk_version: proptools.StringPtr(sdkVersion),
-		Static_libs: wrap("", i.properties.Imports, "-java"),
-		Srcs:        []string{":" + javaSourceGen},
+		Name:          proptools.StringPtr(javaModuleGen),
+		Installable:   proptools.BoolPtr(true),
+		Defaults:      []string{"aidl-java-module-defaults"},
+		Sdk_version:   sdkVersion,
+		Platform_apis: i.properties.Backend.Java.Platform_apis,
+		Static_libs:   wrap("", i.properties.Imports, "-java"),
+		Srcs:          []string{":" + javaSourceGen},
 	})
 
 	return javaModuleGen

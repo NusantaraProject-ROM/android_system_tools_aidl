@@ -47,13 +47,14 @@ type ccProperties struct {
 }
 
 type javaProperties struct {
-	Name        *string
-	Owner       *string
-	Defaults    []string
-	Installable *bool
-	Sdk_version *string
-	Srcs        []string
-	Static_libs []string
+	Name          *string
+	Owner         *string
+	Defaults      []string
+	Installable   *bool
+	Sdk_version   *string
+	Platform_apis *bool
+	Srcs          []string
+	Static_libs   []string
 }
 
 type phonyProperties struct {
