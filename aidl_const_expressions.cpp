@@ -196,11 +196,12 @@ AidlConstantValue* AidlConstantValue::Boolean(const AidlLocation& location, bool
 }
 
 AidlConstantValue* AidlConstantValue::Character(const AidlLocation& location, char value) {
+  const std::string explicit_value = string("'") + value + "'";
   if (!isValidLiteralChar(value)) {
     AIDL_ERROR(location) << "Invalid character literal " << value;
-    return new AidlConstantValue(location, Type::ERROR, "");
+    return new AidlConstantValue(location, Type::ERROR, explicit_value);
   }
-  return new AidlConstantValue(location, Type::CHARACTER, string("'") + value + "'");
+  return new AidlConstantValue(location, Type::CHARACTER, explicit_value);
 }
 
 AidlConstantValue* AidlConstantValue::Floating(const AidlLocation& location,
@@ -300,7 +301,7 @@ AidlConstantValue* AidlConstantValue::String(const AidlLocation& location, const
     if (!isValidLiteralChar(value[i])) {
       AIDL_ERROR(location) << "Found invalid character at index " << i << " in string constant '"
                            << value << "'";
-      return new AidlConstantValue(location, Type::ERROR, "");
+      return new AidlConstantValue(location, Type::ERROR, value);
     }
   }
 
@@ -311,10 +312,7 @@ AidlConstantValue* AidlConstantValue::ShallowIntegralCopy(const AidlConstantValu
   // TODO(b/142894901): Perform full proper copy
   AidlTypeSpecifier type = AidlTypeSpecifier(AIDL_LOCATION_HERE, "long", false, nullptr, "");
   // TODO(b/142722772) CheckValid() should be called before ValueString()
-  if (!other.CheckValid()) {
-    AIDL_FATAL(other) << "Invalid value for ShallowIntegralCopy";
-  }
-  if (!other.evaluate(type)) {
+  if (!other.CheckValid() || !other.evaluate(type)) {
     AIDL_ERROR(other) << "Failed to parse expression as integer: " << other.value_;
     return nullptr;
   }
