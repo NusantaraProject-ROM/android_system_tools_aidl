@@ -129,6 +129,10 @@ StubClass::StubClass(const AidlInterface* interfaceType, const Options& options)
       "interface. */";
   ctor->name = "Stub";
   ctor->statements = std::make_shared<StatementBlock>();
+  if (interfaceType->IsVintfStability()) {
+    auto stability = std::make_shared<LiteralStatement>("this.markVintfStability();\n");
+    ctor->statements->Add(stability);
+  }
   auto attach = std::make_shared<MethodCall>(
       THIS_VALUE, "attachInterface",
       std::vector<std::shared_ptr<Expression>>{THIS_VALUE,
