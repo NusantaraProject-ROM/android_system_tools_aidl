@@ -325,8 +325,8 @@ static TypeInfo::Aspect GetTypeAspect(const AidlTypenames& types, const AidlType
 
   // TODO(b/136048684): For now, List<T> is converted to T[].(Both are using vector<T>)
   if (aidl_name == "List") {
-    AIDL_FATAL_IF_NOT(aidl.IsGeneric(), aidl) << "List must be generic type.";
-    AIDL_FATAL_IF_NOT(aidl.GetTypeParameters().size() == 1, aidl)
+    AIDL_FATAL_IF(!aidl.IsGeneric(), aidl) << "List must be generic type.";
+    AIDL_FATAL_IF(aidl.GetTypeParameters().size() != 1, aidl)
         << "List can accept only one type parameter.";
     auto& type_param = aidl.GetTypeParameters()[0];
     // TODO(b/136048684) AIDL doesn't support nested type parameter yet.
