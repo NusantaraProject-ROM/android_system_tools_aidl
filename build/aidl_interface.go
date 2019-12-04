@@ -727,13 +727,6 @@ func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 	if *i.properties.Stability != "vintf" {
 		mctx.PropertyErrorf("stability", "must be empty or \"vintf\"")
 	}
-
-	// TODO(b/136027762): need some global way to understand AOSP interfaces. Also,
-	// need the implementation for vendor extensions to be merged. For now, restrict
-	// where this can be defined
-	if !filepath.HasPrefix(mctx.ModuleDir(), "hardware/interfaces/") {
-		mctx.PropertyErrorf("stability", "can only be set in hardware/interfaces")
-	}
 }
 
 func (i *aidlInterface) currentVersion(ctx android.BaseModuleContext) string {
