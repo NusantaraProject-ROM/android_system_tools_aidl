@@ -95,9 +95,16 @@ std::ostream& operator<<(std::ostream& os, const AidlLocation& l) {
 
 AidlNode::AidlNode(const AidlLocation& location) : location_(location) {}
 
-std::string AidlNode::PrintLocation() const {
+std::string AidlNode::PrintLine() const {
   std::stringstream ss;
   ss << location_.file_ << ":" << location_.begin_.line;
+  return ss.str();
+}
+
+std::string AidlNode::PrintLocation() const {
+  std::stringstream ss;
+  ss << location_.file_ << ":" << location_.begin_.line << ":" << location_.begin_.column << ":"
+     << location_.end_.line << ":" << location_.end_.column;
   return ss.str();
 }
 
