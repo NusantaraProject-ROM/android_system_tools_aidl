@@ -24,7 +24,7 @@ namespace aidl {
 namespace mappings {
 
 std::string dump_location(const AidlNode& method) {
-  return method.PrintLocation();
+  return method.PrintLine();
 }
 
 SignatureMap generate_mappings(const AidlDefinedType* defined_type,
