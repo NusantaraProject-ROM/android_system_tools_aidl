@@ -45,6 +45,9 @@ namespace aidl {
 namespace mappings {
 std::string dump_location(const AidlNode& method);
 }  // namespace mappings
+namespace java {
+std::string dump_location(const AidlNode& method);
+}  // namespace java
 }  // namespace aidl
 }  // namespace android
 
@@ -103,8 +106,10 @@ class AidlNode {
   // To be able to print AidlLocation (nothing else should use this information)
   friend class AidlError;
   friend std::string android::aidl::mappings::dump_location(const AidlNode&);
+  friend std::string android::aidl::java::dump_location(const AidlNode&);
 
  private:
+  std::string PrintLine() const;
   std::string PrintLocation() const;
   const AidlLocation location_;
 };

@@ -27,17 +27,23 @@
 
 int yylex(yy::parser::semantic_type *, yy::parser::location_type *, void *);
 
+AidlLocation loc(const yy::parser::location_type& begin, const yy::parser::location_type& end) {
+  CHECK(begin.begin.filename == begin.end.filename);
+  CHECK(begin.end.filename == end.begin.filename);
+  CHECK(end.begin.filename == end.end.filename);
+  AidlLocation::Point begin_point {
+    .line = begin.begin.line,
+    .column = begin.begin.column,
+  };
+  AidlLocation::Point end_point {
+    .line = end.end.line,
+    .column = end.end.column,
+  };
+  return AidlLocation(*begin.begin.filename, begin_point, end_point);
+}
+
 AidlLocation loc(const yy::parser::location_type& l) {
-  CHECK(l.begin.filename == l.end.filename);
-  AidlLocation::Point begin {
-    .line = l.begin.line,
-    .column = l.begin.column,
-  };
-  AidlLocation::Point end {
-    .line = l.end.line,
-    .column = l.end.column,
-  };
-  return AidlLocation(*l.begin.filename, begin, end);
+  return loc(l, l);
 }
 
 #define lex_scanner ps->Scanner()
@@ -661,7 +667,7 @@ annotation
     delete $1;
   };
  | ANNOTATION '(' parameter_list ')' {
-    $$ = AidlAnnotation::Parse(loc(@1), $1->GetText(), $3);
+    $$ = AidlAnnotation::Parse(loc(@1, @4), $1->GetText(), $3);
     if ($$) {
       $$->SetComments($1->GetComments());
     } else {
