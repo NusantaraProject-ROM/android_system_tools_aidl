@@ -776,8 +776,13 @@ int compile_aidl(const Options& options, const IoDelegate& io_delegate) {
                          io_delegate);
         success = true;
       } else if (lang == Options::Language::JAVA) {
-        success =
-            java::generate_java(output_file_name, defined_type, &java_types, io_delegate, options);
+        if (defined_type->AsUnstructuredParcelable() != nullptr) {
+          // Legacy behavior. For parcelable declarations in Java, don't generate output file.
+          success = true;
+        } else {
+          success =
+              java::generate_java(output_file_name, defined_type, &java_types, io_delegate, options);
+        }
       } else {
         LOG(FATAL) << "Should not reach here" << endl;
         return 1;
