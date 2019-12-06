@@ -445,6 +445,12 @@ bool AidlVariableDeclaration::CheckValid(const AidlTypenames& typenames) const {
   bool valid = true;
   valid &= type_->CheckValid(typenames);
 
+  if (type_->GetName() == "void") {
+    AIDL_ERROR(this) << "Declaration " << name_
+                     << " is void, but declarations cannot be of void type.";
+    valid = false;
+  }
+
   if (default_value_ == nullptr) return valid;
   valid &= default_value_->CheckValid();
 
