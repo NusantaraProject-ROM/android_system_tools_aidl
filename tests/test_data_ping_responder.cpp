@@ -82,7 +82,7 @@ namespace android {
 
 namespace os {
 
-IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
 
 ::android::IBinder* IPingResponderDefault::onAsBinder() {
   return nullptr;
@@ -507,7 +507,7 @@ namespace android {
 
 namespace os {
 
-IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
 
 ::android::IBinder* IPingResponderDefault::onAsBinder() {
   return nullptr;
