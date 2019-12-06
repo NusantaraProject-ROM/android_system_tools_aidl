@@ -166,7 +166,7 @@ namespace android {
 
 namespace os {
 
-IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
 
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
   static const ::android::String16 value(::android::String16("foo"));
@@ -407,7 +407,7 @@ namespace android {
 
 namespace os {
 
-IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(StringConstants, "android.os.IStringConstants")
 
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
   static const ::android::String16 value(::android::String16("foo"));
