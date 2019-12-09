@@ -221,7 +221,9 @@ android_app {
     manifest: "tests/java_app/AndroidManifest.xml",
     resource_dirs: ["tests/java_app/resources"],
     srcs: [
-        "tests/android/aidl/tests/*.aidl",
+        "tests/android/aidl/tests/ITestService.aidl",
+        "tests/android/aidl/tests/INamedCallback.aidl",
+        "tests/android/aidl/tests/StructuredParcelable.aidl",
         "tests/java_app/src/android/aidl/tests/NullableTests.java",
         "tests/java_app/src/android/aidl/tests/SimpleParcelable.java",
         "tests/java_app/src/android/aidl/tests/TestFailException.java",
