@@ -122,7 +122,7 @@ const char kExpectedJavaOutput[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -564,7 +564,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
@@ -584,7 +584,7 @@ const char kExpectedJavaOutputWithTransactionNames[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -1078,7 +1078,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
@@ -1098,7 +1098,7 @@ const char kExpectedJavaOutputWithTrace[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 @android.annotation.SystemApi
 public interface IExampleInterface extends android.os.IInterface
 {
@@ -1620,7 +1620,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @dalvik.annotation.compat.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:18:1:18:25")
   @android.annotation.SystemApi
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
