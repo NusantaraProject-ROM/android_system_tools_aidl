@@ -93,6 +93,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
     AidlParcelable* parcelable;
     AidlDefinedType* declaration;
     std::vector<std::unique_ptr<AidlTypeSpecifier>>* type_args;
+    std::vector<std::string>* type_params;
 }
 
 %destructor { } <character>
@@ -169,6 +170,7 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %type<arg> arg
 %type<direction> direction
 %type<type_args> type_args
+%type<type_params> type_params
 %type<qname> qualified_name
 %type<const_expr> const_expr
 %type<constant_value_list> constant_value_list
@@ -253,11 +255,26 @@ unannotated_decl
   { $$ = $1; }
  ;
 
+type_params
+ : identifier {
+    $$ = new std::vector<std::string>();
+    $$->emplace_back($1->GetText());
+  }
+ | type_params ',' identifier {
+    $1->emplace_back($3->GetText());
+    $$ = $1;
+  };
+
+
 parcelable_decl
  : PARCELABLE qualified_name ';' {
     $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $1->GetComments());
     delete $1;
   }
+ | PARCELABLE qualified_name '<' type_params '>' ';' {
+    $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $1->GetComments(), "", $4);
+    delete $1;
+ }
  | PARCELABLE qualified_name CPP_HEADER C_STR ';' {
     $$ = new AidlParcelable(loc(@2), $2, ps->Package(), $1->GetComments(), $4->GetText());
     delete $1;

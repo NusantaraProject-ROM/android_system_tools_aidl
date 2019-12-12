@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <android-base/macros.h>
@@ -154,6 +155,30 @@ class AidlTypenames;
 }  // namespace aidl
 }  // namespace android
 
+// unique_ptr<AidlTypeSpecifier> for type arugment,
+// std::string for type parameter(T, U, and so on).
+template <typename T>
+class AidlParameterizable {
+ public:
+  AidlParameterizable(std::vector<T>* type_params) : type_params_(type_params) {}
+  virtual ~AidlParameterizable() = default;
+  bool IsGeneric() const { return type_params_ != nullptr; }
+  const std::vector<T>& GetTypeParameters() const { return *type_params_; }
+  bool CheckValid() const;
+
+  virtual const AidlNode& AsAidlNode() const = 0;
+
+ protected:
+  AidlParameterizable(const AidlParameterizable&);
+
+ private:
+  const unique_ptr<std::vector<T>> type_params_;
+  static_assert(std::is_same<T, unique_ptr<AidlTypeSpecifier>>::value ||
+                std::is_same<T, std::string>::value);
+};
+template <>
+bool AidlParameterizable<std::string>::CheckValid() const;
+
 class AidlConstantValue;
 class AidlConstantDeclaration;
 
@@ -230,7 +255,8 @@ class AidlQualifiedName;
 
 // AidlTypeSpecifier represents a reference to either a built-in type,
 // a defined type, or a variant (e.g., array of generic) of a type.
-class AidlTypeSpecifier final : public AidlAnnotatable {
+class AidlTypeSpecifier final : public AidlAnnotatable,
+                                public AidlParameterizable<unique_ptr<AidlTypeSpecifier>> {
  public:
   AidlTypeSpecifier(const AidlLocation& location, const string& unresolved_name, bool is_array,
                     vector<unique_ptr<AidlTypeSpecifier>>* type_params, const string& comments);
@@ -270,16 +296,13 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
 
   bool IsArray() const { return is_array_; }
 
-  bool IsGeneric() const { return type_params_ != nullptr; }
-
-  const vector<unique_ptr<AidlTypeSpecifier>>& GetTypeParameters() const { return *type_params_; }
-
   // Resolve the base type name to a fully-qualified name. Return false if the
   // resolution fails.
   bool Resolve(const AidlTypenames& typenames);
 
   bool CheckValid(const AidlTypenames& typenames) const;
   bool LanguageSpecificCheckValid(Options::Language lang) const;
+  const AidlNode& AsAidlNode() const override { return *this; }
 
  private:
   AidlTypeSpecifier(const AidlTypeSpecifier&) = default;
@@ -287,11 +310,9 @@ class AidlTypeSpecifier final : public AidlAnnotatable {
   const string unresolved_name_;
   string fully_qualified_name_;
   bool is_array_;
-  const shared_ptr<vector<unique_ptr<AidlTypeSpecifier>>> type_params_;
   string comments_;
   vector<string> split_name_;
 };
-
 
 // Returns the universal value unaltered.
 std::string AidlConstantValueDecorator(const AidlTypeSpecifier& type, const std::string& raw_value);
@@ -627,6 +648,7 @@ class AidlDefinedType : public AidlAnnotatable {
   virtual const AidlParcelable* AsParcelable() const { return nullptr; }
   virtual const AidlEnumDeclaration* AsEnumDeclaration() const { return nullptr; }
   virtual const AidlInterface* AsInterface() const { return nullptr; }
+  virtual const AidlParameterizable<std::string>* AsParameterizable() const { return nullptr; }
   virtual bool CheckValid(const AidlTypenames&) const { return CheckValidAnnotations(); }
   virtual bool LanguageSpecificCheckValid(Options::Language lang) const = 0;
   AidlStructuredParcelable* AsStructuredParcelable() {
@@ -642,6 +664,11 @@ class AidlDefinedType : public AidlAnnotatable {
   }
   AidlInterface* AsInterface() {
     return const_cast<AidlInterface*>(const_cast<const AidlDefinedType*>(this)->AsInterface());
+  }
+
+  AidlParameterizable<std::string>* AsParameterizable() {
+    return const_cast<AidlParameterizable<std::string>*>(
+        const_cast<const AidlDefinedType*>(this)->AsParameterizable());
   }
 
   const AidlParcelable* AsUnstructuredParcelable() const {
@@ -663,11 +690,12 @@ class AidlDefinedType : public AidlAnnotatable {
   DISALLOW_COPY_AND_ASSIGN(AidlDefinedType);
 };
 
-class AidlParcelable : public AidlDefinedType {
+class AidlParcelable : public AidlDefinedType, public AidlParameterizable<std::string> {
  public:
   AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
                  const std::vector<std::string>& package, const std::string& comments,
-                 const std::string& cpp_header = "");
+                 const std::string& cpp_header = "",
+                 std::vector<std::string>* type_params = nullptr);
   virtual ~AidlParcelable() = default;
 
   // C++ uses "::" instead of "." to refer to a inner class.
@@ -677,6 +705,8 @@ class AidlParcelable : public AidlDefinedType {
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language lang) const override;
   const AidlParcelable* AsParcelable() const override { return this; }
+  const AidlParameterizable<std::string>* AsParameterizable() const override { return this; }
+  const AidlNode& AsAidlNode() const override { return *this; }
   std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
 
   void Write(CodeWriter* writer) const override;
