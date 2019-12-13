@@ -692,9 +692,16 @@ func (i *aidlInterface) shouldGenerateNdkBackend() bool {
 	return i.properties.Backend.Ndk.Enabled == nil || *i.properties.Backend.Ndk.Enabled
 }
 
-func (i *aidlInterface) checkImports(mctx android.LoadHookContext) {
+func (i *aidlInterface) gatherInterface(mctx android.BaseModuleContext) {
+	aidlInterfaces := aidlInterfaces(mctx.Config())
+	aidlInterfaceMutex.Lock()
+	defer aidlInterfaceMutex.Unlock()
+	*aidlInterfaces = append(*aidlInterfaces, i)
+}
+
+func (i *aidlInterface) checkImports(mctx android.BaseModuleContext) {
 	for _, anImport := range i.properties.Imports {
-		other := lookupInterface(anImport)
+		other := lookupInterface(anImport, mctx.Config())
 
 		if other == nil {
 			mctx.PropertyErrorf("imports", "Import does not exist: "+anImport)
@@ -831,7 +838,7 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 
 	i.properties.Full_import_paths = importPaths
 
-	i.checkImports(mctx)
+	i.gatherInterface(mctx)
 	i.checkStability(mctx)
 
 	if mctx.Failed() {
@@ -1049,26 +1056,30 @@ func (i *aidlInterface) Name() string {
 func (i *aidlInterface) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 }
 func (i *aidlInterface) DepsMutator(ctx android.BottomUpMutatorContext) {
+	i.checkImports(ctx)
 }
 
-var aidlInterfaceMutex sync.Mutex
-var aidlInterfaces []*aidlInterface
+var (
+	aidlInterfacesKey  = android.NewOnceKey("aidlInterfaces")
+	aidlInterfaceMutex sync.Mutex
+)
+
+func aidlInterfaces(config android.Config) *[]*aidlInterface {
+	return config.Once(aidlInterfacesKey, func() interface{} {
+		return &[]*aidlInterface{}
+	}).(*[]*aidlInterface)
+}
 
 func aidlInterfaceFactory() android.Module {
 	i := &aidlInterface{}
 	i.AddProperties(&i.properties)
 	android.InitAndroidModule(i)
 	android.AddLoadHook(i, func(ctx android.LoadHookContext) { aidlInterfaceHook(ctx, i) })
-
-	aidlInterfaceMutex.Lock()
-	aidlInterfaces = append(aidlInterfaces, i)
-	aidlInterfaceMutex.Unlock()
-
 	return i
 }
 
-func lookupInterface(name string) *aidlInterface {
-	for _, i := range aidlInterfaces {
+func lookupInterface(name string, config android.Config) *aidlInterface {
+	for _, i := range *aidlInterfaces(config) {
 		if i.ModuleBase.Name() == name {
 			return i
 		}
