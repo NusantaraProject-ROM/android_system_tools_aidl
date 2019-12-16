@@ -293,7 +293,7 @@ func TestCreatesModulesWithFrozenVersions(t *testing.T) {
 
 const (
 	androidVariant = "android_common"
-	nativeVariant  = "android_arm_armv7-a-neon_core_shared"
+	nativeVariant  = "android_arm_armv7-a-neon_shared"
 )
 
 func TestNativeOutputIsAlwaysVersioned(t *testing.T) {
