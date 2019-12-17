@@ -17,7 +17,6 @@
 #include "aidl_test_client_primitives.h"
 
 #include <iostream>
-#include <iterator>
 #include <vector>
 
 #include <utils/String16.h>
@@ -118,9 +117,6 @@ bool ConfirmReverseArrays(const sp<ITestService>& s) {
                     {String16{"f"}, String16{"a"}, String16{"b"}}) ||
       !ReverseArray(s, &ITestService::ReverseByteEnum,
                     {ByteEnum::FOO, ByteEnum::BAR, ByteEnum::BAR}) ||
-      !ReverseArray(s, &ITestService::ReverseByteEnum,
-                    {std::begin(::android::enum_range<ByteEnum>()),
-                     std::end(::android::enum_range<ByteEnum>())}) ||
       !ReverseArray(s, &ITestService::ReverseIntEnum, {IntEnum::FOO, IntEnum::BAR, IntEnum::BAR}) ||
       !ReverseArray(s, &ITestService::ReverseLongEnum,
                     {LongEnum::FOO, LongEnum::BAR, LongEnum::BAR})) {

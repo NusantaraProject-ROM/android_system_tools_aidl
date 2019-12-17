@@ -1392,13 +1392,10 @@ enum TestEnum {
   TEN,
 })";
 
-// clang-format off
 const char kExpectedEnumHeaderOutput[] =
     R"(#ifndef AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 #define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 
-#include <array>
-#include <binder/Enums.h>
 #include <cstdint>
 #include <string>
 
@@ -1449,31 +1446,9 @@ static inline std::string toString(TestEnum val) {
 }  // namespace os
 
 }  // namespace android
-namespace android {
-
-namespace internal {
-
-template <>
-constexpr inline std::array<::android::os::TestEnum, 10> enum_values<::android::os::TestEnum> = {
-  ::android::os::TestEnum::ZERO,
-  ::android::os::TestEnum::ONE,
-  ::android::os::TestEnum::THREE,
-  ::android::os::TestEnum::FOUR,
-  ::android::os::TestEnum::FIVE,
-  ::android::os::TestEnum::SIX,
-  ::android::os::TestEnum::SEVEN,
-  ::android::os::TestEnum::EIGHT,
-  ::android::os::TestEnum::NINE,
-  ::android::os::TestEnum::TEN,
-};
-
-}  // namespace internal
-
-}  // namespace android
 
 #endif  // AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 )";
-// clang-format on
 
 const string kEnumWithBackingTypeAIDL = R"(package android.os;
 @Backing(type="long")
@@ -1482,13 +1457,10 @@ enum TestEnum {
   BAR = 2,
 })";
 
-// clang-format off
 const char kExpectedEnumWithBackingTypeHeaderOutput[] =
     R"(#ifndef AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 #define AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 
-#include <array>
-#include <binder/Enums.h>
 #include <cstdint>
 #include <string>
 
@@ -1515,23 +1487,9 @@ static inline std::string toString(TestEnum val) {
 }  // namespace os
 
 }  // namespace android
-namespace android {
-
-namespace internal {
-
-template <>
-constexpr inline std::array<::android::os::TestEnum, 2> enum_values<::android::os::TestEnum> = {
-  ::android::os::TestEnum::FOO,
-  ::android::os::TestEnum::BAR,
-};
-
-}  // namespace internal
-
-}  // namespace android
 
 #endif  // AIDL_GENERATED_ANDROID_OS_TEST_ENUM_H_
 )";
-// clang-format on
 
 }  // namespace
 

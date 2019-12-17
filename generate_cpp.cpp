@@ -1156,7 +1156,7 @@ std::string GenerateEnumToString(const AidlTypenames& typenames,
 
 std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
                                           const AidlEnumDeclaration& enum_decl) {
-  std::unique_ptr<Enum> generated_enum{
+  unique_ptr<Enum> generated_enum{
       new Enum{enum_decl.GetName(), CppNameOf(enum_decl.GetBackingType(), typenames), true}};
   for (const auto& enumerator : enum_decl.GetEnumerators()) {
     generated_enum->AddValue(
@@ -1164,25 +1164,18 @@ std::unique_ptr<Document> BuildEnumHeader(const AidlTypenames& typenames,
         enumerator->ValueString(enum_decl.GetBackingType(), ConstantValueDecorator));
   }
 
-  std::set<std::string> includes = {
-      "array",
-      "binder/Enums.h",
-      "string",
-  };
+  set<string> includes = {"string"};
   AddHeaders(enum_decl.GetBackingType(), typenames, includes);
 
-  std::vector<std::unique_ptr<Declaration>> decls1;
-  decls1.push_back(std::move(generated_enum));
-  decls1.push_back(std::make_unique<LiteralDecl>(GenerateEnumToString(typenames, enum_decl)));
-
-  std::vector<std::unique_ptr<Declaration>> decls2;
-  decls2.push_back(std::make_unique<LiteralDecl>(GenerateEnumValues(enum_decl, {""})));
+  vector<unique_ptr<Declaration>> decls;
+  decls.emplace_back(std::move(generated_enum));
+  decls.emplace_back(
+      unique_ptr<Declaration>(new LiteralDecl(GenerateEnumToString(typenames, enum_decl))));
 
   return unique_ptr<Document>{
       new CppHeader{BuildHeaderGuard(enum_decl, ClassNames::RAW),
                     vector<string>(includes.begin(), includes.end()),
-                    Append(NestInNamespaces(std::move(decls1), enum_decl.GetSplitPackage()),
-                           NestInNamespaces(std::move(decls2), {"android", "internal"}))}};
+                    NestInNamespaces(std::move(decls), enum_decl.GetSplitPackage())}};
 }
 
 bool WriteHeader(const Options& options, const AidlTypenames& typenames,
