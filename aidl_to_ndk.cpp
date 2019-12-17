@@ -143,14 +143,8 @@ TypeInfo ParcelableTypeInfo(const AidlParcelable& type) {
           TypeInfo::Aspect{
               .cpp_name = clazz,
               .value_is_cheap = false,
-              .read_func =
-                  [](const CodeGeneratorContext& c) {
-                    c.writer << "(" << c.var << ")->readFromParcel(" << c.parcel << ")";
-                  },
-              .write_func =
-                  [](const CodeGeneratorContext& c) {
-                    c.writer << "(" << c.var << ").writeToParcel(" << c.parcel << ")";
-                  },
+              .read_func = StandardRead("::ndk::AParcel_readParcelable"),
+              .write_func = StandardWrite("::ndk::AParcel_writeParcelable"),
           },
       .array = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
           .cpp_name = "std::vector<" + clazz + ">",
