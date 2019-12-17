@@ -13,16 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "aidl_to_cpp_common.h"
 
-#include <android-base/strings.h>
 #include <unordered_map>
 
-#include "ast_cpp.h"
+#include "aidl_to_cpp_common.h"
 #include "logging.h"
 #include "os.h"
-
-using ::android::base::Join;
 
 namespace android {
 namespace aidl {
@@ -354,23 +350,6 @@ const string GenLogAfterExecute(const string className, const AidlInterface& int
 
   writer->Close();
   return code;
-}
-
-std::string GenerateEnumValues(const AidlEnumDeclaration& enum_decl,
-                               const std::vector<std::string>& enclosing_namespaces_of_enum_decl) {
-  const auto fq_name =
-      Join(Append(enclosing_namespaces_of_enum_decl, enum_decl.GetSplitPackage()), "::") +
-      "::" + enum_decl.GetName();
-  const auto size = enum_decl.GetEnumerators().size();
-  std::ostringstream code;
-  code << "template <>\n";
-  code << "constexpr inline std::array<" << fq_name << ", " << size << "> enum_values<" << fq_name
-       << "> = {\n";
-  for (const auto& enumerator : enum_decl.GetEnumerators()) {
-    code << "  " << fq_name << "::" << enumerator->GetName() << ",\n";
-  }
-  code << "};\n";
-  return code.str();
 }
 
 }  // namespace cpp

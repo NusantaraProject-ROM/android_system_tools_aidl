@@ -957,9 +957,6 @@ void GenerateEnumHeader(CodeWriter& out, const AidlTypenames& types,
   out << "\n";
 
   GenerateHeaderIncludes(out, types, enum_decl);
-  // enum specific headers
-  out << "#include <array>\n";
-  out << "#include <android/binder_enums.h>\n";
 
   EnterNdkNamespace(out, enum_decl);
   out << "enum class " << enum_decl.GetName() << " : "
@@ -974,12 +971,6 @@ void GenerateEnumHeader(CodeWriter& out, const AidlTypenames& types,
   out << "\n";
   out << GenerateEnumToString(types, enum_decl);
   LeaveNdkNamespace(out, enum_decl);
-
-  out << "namespace ndk {\n";
-  out << "namespace internal {\n";
-  out << cpp::GenerateEnumValues(enum_decl, {"aidl"});
-  out << "}  // namespace internal\n";
-  out << "}  // namespace android\n";
 }
 
 }  // namespace internals
