@@ -866,7 +866,6 @@ void GenerateParcelSource(CodeWriter& out, const AidlTypenames& types,
 
   out << "binder_status_t " << clazz << "::readFromParcel(const AParcel* parcel) {\n";
   out.Indent();
-  out << "std::string _aidl_descriptor;\n";
   out << "binder_status_t _aidl_ret_status;\n";
 
   out << "int32_t _aidl_null;\n";
