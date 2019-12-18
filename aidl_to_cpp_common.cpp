@@ -363,6 +363,8 @@ std::string GenerateEnumValues(const AidlEnumDeclaration& enum_decl,
       "::" + enum_decl.GetName();
   const auto size = enum_decl.GetEnumerators().size();
   std::ostringstream code;
+  code << "#pragma clang diagnostic push\n";
+  code << "#pragma clang diagnostic ignored \"-Wc++17-extensions\"\n";
   code << "template <>\n";
   code << "constexpr inline std::array<" << fq_name << ", " << size << "> enum_values<" << fq_name
        << "> = {\n";
@@ -370,6 +372,7 @@ std::string GenerateEnumValues(const AidlEnumDeclaration& enum_decl,
     code << "  " << fq_name << "::" << enumerator->GetName() << ",\n";
   }
   code << "};\n";
+  code << "#pragma clang diagnostic pop\n";
   return code.str();
 }
 
