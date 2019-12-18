@@ -21,11 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/blueprint"
+
 	"android/soong/android"
 	"android/soong/cc"
 	"android/soong/java"
-
-	"github.com/google/blueprint"
 )
 
 var buildDir string
@@ -65,40 +65,6 @@ func withFiles(files map[string][]byte) testCustomizer {
 
 func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android.TestContext, android.Config) {
 	t.Helper()
-	config := android.TestArchConfig(buildDir, nil)
-	ctx := android.NewTestArchContext()
-
-	ctx.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
-	ctx.RegisterModuleType("android_app", java.AndroidAppFactory)
-	ctx.RegisterModuleType("cc_defaults", func() android.Module {
-		return cc.DefaultsFactory()
-	})
-	ctx.RegisterModuleType("cc_library", cc.LibraryFactory)
-	ctx.RegisterModuleType("cc_object", cc.ObjectFactory)
-	ctx.RegisterModuleType("java_defaults", func() android.Module {
-		return java.DefaultsFactory()
-	})
-	ctx.RegisterModuleType("java_library_static", java.LibraryStaticFactory)
-	ctx.RegisterModuleType("java_library", java.LibraryFactory)
-	ctx.RegisterModuleType("java_system_modules", java.SystemModulesFactory)
-	ctx.RegisterModuleType("llndk_library", cc.LlndkLibraryFactory)
-	ctx.RegisterModuleType("ndk_library", cc.NdkLibraryFactory)
-	ctx.RegisterModuleType("ndk_prebuilt_object", cc.NdkPrebuiltObjectFactory)
-	ctx.RegisterModuleType("ndk_prebuilt_shared_stl", cc.NdkPrebuiltSharedStlFactory)
-	ctx.RegisterModuleType("ndk_prebuilt_static_stl", cc.NdkPrebuiltStaticStlFactory)
-	ctx.RegisterModuleType("toolchain_library", cc.ToolchainLibraryFactory)
-
-	ctx.PreArchMutators(android.RegisterDefaultsPreArchMutators)
-	ctx.PreDepsMutators(func(ctx android.RegisterMutatorsContext) {
-		ctx.BottomUp("link", cc.LinkageMutator).Parallel()
-		ctx.BottomUp("vndk", cc.VndkMutator).Parallel()
-		ctx.BottomUp("ndk_api", cc.NdkApiMutator).Parallel()
-		ctx.BottomUp("version", cc.VersionMutator).Parallel()
-		ctx.BottomUp("begin", cc.BeginMutator).Parallel()
-	})
-	ctx.PostDepsMutators(android.RegisterOverridePostDepsMutators)
-
-	ctx.Register()
 
 	bp = bp + java.GatherRequiredDepsForTest()
 	bp = bp + cc.GatherRequiredDepsForTest(android.Android)
@@ -167,7 +133,6 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 	`
 	fs := map[string][]byte{
 		"a.java":              nil,
-		"Android.bp":          []byte(bp),
 		"AndroidManifest.xml": nil,
 		"build/make/target/product/security/testkey": nil,
 		"framework/aidl/a.aidl":                      nil,
@@ -187,10 +152,57 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 	}
 
 	for _, c := range customizers {
-		c(fs, config)
+		// The fs now needs to be populated before creating the config, call customizers twice
+		// for now, once to get any fs changes, and later after the config was created to
+		// set product variables or targets.
+		tempConfig := android.TestArchConfig(buildDir, nil, bp, fs)
+		c(fs, tempConfig)
 	}
 
-	ctx.MockFileSystem(fs)
+	config := android.TestArchConfig(buildDir, nil, bp, fs)
+
+	for _, c := range customizers {
+		// The fs now needs to be populated before creating the config, call customizers twice
+		// for now, earlier to get any fs changes, and now after the config was created to
+		// set product variables or targets.
+		tempFS := map[string][]byte{}
+		c(tempFS, config)
+	}
+
+	ctx := android.NewTestArchContext()
+
+	ctx.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
+	ctx.RegisterModuleType("android_app", java.AndroidAppFactory)
+	ctx.RegisterModuleType("cc_defaults", func() android.Module {
+		return cc.DefaultsFactory()
+	})
+	ctx.RegisterModuleType("cc_library", cc.LibraryFactory)
+	ctx.RegisterModuleType("cc_object", cc.ObjectFactory)
+	ctx.RegisterModuleType("java_defaults", func() android.Module {
+		return java.DefaultsFactory()
+	})
+	ctx.RegisterModuleType("java_library_static", java.LibraryStaticFactory)
+	ctx.RegisterModuleType("java_library", java.LibraryFactory)
+	ctx.RegisterModuleType("java_system_modules", java.SystemModulesFactory)
+	ctx.RegisterModuleType("llndk_library", cc.LlndkLibraryFactory)
+	ctx.RegisterModuleType("ndk_library", cc.NdkLibraryFactory)
+	ctx.RegisterModuleType("ndk_prebuilt_object", cc.NdkPrebuiltObjectFactory)
+	ctx.RegisterModuleType("ndk_prebuilt_shared_stl", cc.NdkPrebuiltSharedStlFactory)
+	ctx.RegisterModuleType("ndk_prebuilt_static_stl", cc.NdkPrebuiltStaticStlFactory)
+	ctx.RegisterModuleType("toolchain_library", cc.ToolchainLibraryFactory)
+
+	ctx.PreArchMutators(android.RegisterDefaultsPreArchMutators)
+	ctx.PreDepsMutators(func(ctx android.RegisterMutatorsContext) {
+		ctx.BottomUp("link", cc.LinkageMutator).Parallel()
+		ctx.BottomUp("vndk", cc.VndkMutator).Parallel()
+		ctx.BottomUp("ndk_api", cc.NdkApiMutator).Parallel()
+		ctx.BottomUp("version", cc.VersionMutator).Parallel()
+		ctx.BottomUp("begin", cc.BeginMutator).Parallel()
+	})
+	ctx.PostDepsMutators(android.RegisterOverridePostDepsMutators)
+
+	ctx.Register(config)
+
 	return ctx, config
 }
 
