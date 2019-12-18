@@ -219,6 +219,18 @@ std::string CppNameOf(const AidlTypeSpecifier& type, const AidlTypenames& typena
   return GetCppName(type, typenames);
 }
 
+bool IsNonCopyableType(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
+  if (type.IsArray() || type.IsGeneric()) {
+    return false;
+  }
+
+  const std::string cpp_name = GetCppName(type, typenames);
+  if (cpp_name == "::android::base::unique_fd") {
+    return true;
+  }
+  return false;
+}
+
 std::string ParcelReadMethodOf(const AidlTypeSpecifier& type, const AidlTypenames& typenames) {
   return "read" + RawParcelMethod(type, typenames, true /* readMethod */);
 }
