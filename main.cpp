@@ -15,7 +15,7 @@
  */
 
 #include "aidl.h"
-#include "aidl_apicheck.h"
+#include "aidl_checkapi.h"
 #include "io_delegate.h"
 #include "logging.h"
 #include "options.h"

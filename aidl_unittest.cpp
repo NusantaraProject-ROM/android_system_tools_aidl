@@ -23,7 +23,7 @@
 #include <gtest/gtest.h>
 
 #include "aidl.h"
-#include "aidl_apicheck.h"
+#include "aidl_checkapi.h"
 #include "aidl_language.h"
 #include "aidl_to_cpp.h"
 #include "aidl_to_java.h"
