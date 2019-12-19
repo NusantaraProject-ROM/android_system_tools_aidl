@@ -88,8 +88,8 @@ var (
 			Command: `mkdir -p ${to} && rm -rf ${to}/* && ` +
 				`${bpmodifyCmd} -w -m ${name} -parameter versions -a ${version} ${bp} && ` +
 				`cp -rf ${apiDir}/. ${to} && ` +
-				`find ${to} -type f -exec bash -c ` +
-				`"cat ${apiPreamble} {} > {}.temp; mv {}.temp {}" \; && ` +
+				`find ${to} -type f -name "*.aidl" | xargs -n 1 bash -c ` +
+				`'cat ${apiPreamble} $$0 > $$0.temp && mv $$0.temp $$0' && ` +
 				`touch ${out}`,
 			CommandDeps: []string{"${bpmodifyCmd}"},
 		}, "to", "name", "version", "bp", "apiDir", "apiPreamble")
