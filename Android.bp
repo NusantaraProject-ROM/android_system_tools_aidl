@@ -148,6 +148,9 @@ cc_fuzz {
     name: "aidl_parser_fuzzer",
     host_supported: true,
     dictionary: "tests/aidl_parser_fuzzer.dict",
+    corpus: [
+        "tests/corpus/*",
+    ],
 
     fuzz_config: {
         cc: [
