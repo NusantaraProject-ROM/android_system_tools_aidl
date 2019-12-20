@@ -173,9 +173,6 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 	cc.RegisterRequiredBuildComponentsForTest(ctx)
 	ctx.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
 	ctx.RegisterModuleType("android_app", java.AndroidAppFactory)
-	ctx.RegisterModuleType("cc_defaults", func() android.Module {
-		return cc.DefaultsFactory()
-	})
 	ctx.RegisterModuleType("java_defaults", func() android.Module {
 		return java.DefaultsFactory()
 	})
