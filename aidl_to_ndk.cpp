@@ -152,7 +152,12 @@ TypeInfo ParcelableTypeInfo(const AidlParcelable& type) {
           .read_func = StandardRead("::ndk::AParcel_readVector"),
           .write_func = StandardWrite("::ndk::AParcel_writeVector"),
       }),
-      .nullable = nullptr,
+      .nullable = std::shared_ptr<TypeInfo::Aspect>(new TypeInfo::Aspect{
+          .cpp_name = "std::optional<" + clazz + ">",
+          .value_is_cheap = false,
+          .read_func = StandardRead("::ndk::AParcel_readNullableParcelable"),
+          .write_func = StandardWrite("::ndk::AParcel_writeNullableParcelable"),
+      }),
       .nullable_array = nullptr,
   };
 }
