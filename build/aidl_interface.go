@@ -46,7 +46,7 @@ var (
 
 	aidlDirPrepareRule = pctx.StaticRule("aidlDirPrepareRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
-			`touch ${out}`,
+			`touch ${out} # ${in}`,
 		Description: "create ${out}",
 	}, "outDir")
 
@@ -227,9 +227,9 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 
 	// This is to clean genOutDir before generating any file
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
-		Rule:      aidlDirPrepareRule,
-		Implicits: srcs,
-		Output:    genDirTimestamp,
+		Rule:   aidlDirPrepareRule,
+		Inputs: srcs,
+		Output: genDirTimestamp,
 		Args: map[string]string{
 			"outDir": g.genOutDir.String(),
 		},
