@@ -16,7 +16,7 @@
 
 %{
 #include "aidl_language.h"
-#include "aidl_language_y.h"
+#include "aidl_language_y-module.h"
 #include "logging.h"
 #include <android-base/parseint.h>
 #include <set>
@@ -58,13 +58,13 @@ AidlLocation loc(const yy::parser::location_type& l) {
 %parse-param { Parser* ps }
 %lex-param { void *lex_scanner }
 
-%pure-parser
 %glr-parser
 %skeleton "glr.cc"
 
 %expect-rr 0
 
-%error-verbose
+%define parse.error verbose
+%locations
 
 %union {
     AidlToken* token;

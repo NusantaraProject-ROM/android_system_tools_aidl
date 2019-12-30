@@ -357,7 +357,7 @@ bool parse_preprocessed_file(const IoDelegate& io_delegate, const string& filena
   }
 
   string line;
-  unsigned lineno = 1;
+  int lineno = 1;
   for ( ; line_reader->ReadLine(&line); ++lineno) {
     if (line.empty() || line.compare(0, 2, "//") == 0) {
       // skip comments and empty lines
