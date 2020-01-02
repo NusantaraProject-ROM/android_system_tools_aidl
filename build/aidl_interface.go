@@ -692,7 +692,7 @@ func (i *aidlInterface) shouldGenerateNdkBackend() bool {
 	return i.properties.Backend.Ndk.Enabled == nil || *i.properties.Backend.Ndk.Enabled
 }
 
-func (i *aidlInterface) gatherInterface(mctx android.BaseModuleContext) {
+func (i *aidlInterface) gatherInterface(mctx android.LoadHookContext) {
 	aidlInterfaces := aidlInterfaces(mctx.Config())
 	aidlInterfaceMutex.Lock()
 	defer aidlInterfaceMutex.Unlock()
@@ -736,7 +736,7 @@ func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 	}
 }
 
-func (i *aidlInterface) currentVersion(ctx android.BaseModuleContext) string {
+func (i *aidlInterface) currentVersion(ctx android.LoadHookContext) string {
 	if !i.hasVersion() {
 		return ""
 	} else {
@@ -766,7 +766,7 @@ func (i *aidlInterface) hasVersion() bool {
 	return len(i.properties.Versions) > 0
 }
 
-func (i *aidlInterface) isCurrentVersion(ctx android.BaseModuleContext, version string) bool {
+func (i *aidlInterface) isCurrentVersion(ctx android.LoadHookContext, version string) bool {
 	return version == i.currentVersion(ctx)
 }
 
@@ -776,7 +776,7 @@ func (i *aidlInterface) isCurrentVersion(ctx android.BaseModuleContext, version 
 // "2"->foo-V2
 // "3"(unfrozen)->foo-unstable
 // ""-> foo
-func (i *aidlInterface) versionedName(ctx android.BaseModuleContext, version string) string {
+func (i *aidlInterface) versionedName(ctx android.LoadHookContext, version string) string {
 	name := i.ModuleBase.Name()
 	if version == "" {
 		return name
