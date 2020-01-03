@@ -33,14 +33,14 @@ using ::android::IPCThreadState;
 using ::android::IServiceManager;
 using ::android::sp;
 
-static android::String16 gServiceName;
+std::vector<android::String16> gServiceNames;
 
-sp<IBinder> waitForService() {
+sp<IBinder> waitForService(size_t inx) {
   sp<IServiceManager> manager;
   manager = android::defaultServiceManager();
   EXPECT_TRUE(manager != nullptr);
 
-  return manager->waitForService(gServiceName);
+  return manager->waitForService(gServiceNames.at(inx));
 }
 
 class AidlLazyTest : public ::testing::Test {
@@ -51,10 +51,12 @@ class AidlLazyTest : public ::testing::Test {
     manager = android::defaultServiceManager();
     ASSERT_NE(manager, nullptr);
 
-    ASSERT_FALSE(isServiceRunning())
-        << "Service '" << gServiceName << "' is already running. Please ensure this "
-        << "is implemented as a lazy service, then kill all "
-        << "clients of this service and try again.";
+    for (size_t i = 0; i < gServiceNames.size(); i++) {
+      ASSERT_FALSE(isServiceRunning(i))
+          << "Service '" << android::String8(gServiceNames.at(i)) << "' is already running. "
+          << "Please ensure this is implemented as a lazy service, then kill all "
+          << "clients of this service and try again.";
+    }
   }
 
   static constexpr size_t SHUTDOWN_WAIT_TIME = 10;
@@ -63,13 +65,15 @@ class AidlLazyTest : public ::testing::Test {
               << "service has shut down." << std::endl;
     IPCThreadState::self()->flushCommands();
     sleep(SHUTDOWN_WAIT_TIME);
-    ASSERT_FALSE(isServiceRunning()) << "Service failed to shut down.";
+    for (size_t i = 0; i < gServiceNames.size(); i++) {
+      ASSERT_FALSE(isServiceRunning(i)) << "Service failed to shut down.";
+    }
   }
 
-  bool isServiceRunning() {
+  bool isServiceRunning(size_t inx) {
     auto services = manager->listServices();
     for (size_t i = 0; i < services.size(); i++) {
-      if (services[i] == gServiceName) return true;
+      if (services[i] == gServiceNames.at(inx)) return true;
     }
     return false;
   }
@@ -77,9 +81,11 @@ class AidlLazyTest : public ::testing::Test {
 
 static constexpr size_t NUM_IMMEDIATE_GETS = 100;
 TEST_F(AidlLazyTest, GetRelease) {
-  for (size_t i = 0; i < NUM_IMMEDIATE_GETS; i++) {
+  size_t nServices = gServiceNames.size();
+
+  for (size_t i = 0; i < nServices * NUM_IMMEDIATE_GETS; i++) {
     IPCThreadState::self()->flushCommands();
-    sp<IBinder> service = waitForService();
+    sp<IBinder> service = waitForService(i % nServices);
     ASSERT_NE(service.get(), nullptr);
     EXPECT_TRUE(service->pingBinder() == android::NO_ERROR);
   }
@@ -88,24 +94,26 @@ TEST_F(AidlLazyTest, GetRelease) {
 static std::vector<size_t> waitTimes(size_t numTimes, size_t maxWait) {
   std::vector<size_t> times(numTimes);
   for (size_t i = 0; i < numTimes; i++) {
-    times[i] = (size_t)(rand() % (maxWait + 1));
+    times.at(i) = (size_t)(rand() % (maxWait + 1));
   }
   return times;
 }
 
 static void testWithTimes(const std::vector<size_t>& waitTimes, bool beforeGet) {
-  for (size_t sleepTime : waitTimes) {
+  size_t nServices = gServiceNames.size();
+  for (size_t i = 0; i < waitTimes.size(); i++) {
     IPCThreadState::self()->flushCommands();
     if (beforeGet) {
-      std::cout << "Thread waiting " << sleepTime << " while not holding service." << std::endl;
-      sleep(sleepTime);
+      std::cout << "Thread waiting " << waitTimes.at(i) << " while not holding service."
+                << std::endl;
+      sleep(waitTimes.at(i));
     }
 
-    sp<IBinder> service = waitForService();
+    sp<IBinder> service = waitForService(i % nServices);
 
     if (!beforeGet) {
-      std::cout << "Thread waiting " << sleepTime << " while holding service." << std::endl;
-      sleep(sleepTime);
+      std::cout << "Thread waiting " << waitTimes.at(i) << " while holding service." << std::endl;
+      sleep(waitTimes.at(i));
     }
 
     ASSERT_NE(service.get(), nullptr);
@@ -115,21 +123,21 @@ static void testWithTimes(const std::vector<size_t>& waitTimes, bool beforeGet) 
 
 static constexpr size_t NUM_TIMES_GET_RELEASE = 5;
 static constexpr size_t MAX_WAITING_DURATION = 10;
-static constexpr size_t NUM_CONCURRENT_THREADS = 5;
+static constexpr size_t NUM_CONCURRENT_THREADS = 3;
 static void testConcurrentThreadsWithDelays(bool delayBeforeGet) {
+  size_t nServices = gServiceNames.size();
   std::vector<std::vector<size_t>> threadWaitTimes(NUM_CONCURRENT_THREADS);
-
   int maxWait = 0;
   for (size_t i = 0; i < threadWaitTimes.size(); i++) {
-    threadWaitTimes[i] = waitTimes(NUM_TIMES_GET_RELEASE, MAX_WAITING_DURATION);
-    int totalWait = std::accumulate(threadWaitTimes[i].begin(), threadWaitTimes[i].end(), 0);
+    threadWaitTimes.at(i) = waitTimes(NUM_TIMES_GET_RELEASE * nServices, MAX_WAITING_DURATION);
+    int totalWait = std::accumulate(threadWaitTimes.at(i).begin(), threadWaitTimes.at(i).end(), 0);
     maxWait = std::max(maxWait, totalWait);
   }
   std::cout << "Additional runtime expected from sleeps: " << maxWait << " second(s)." << std::endl;
 
   std::vector<std::thread> threads(NUM_CONCURRENT_THREADS);
   for (size_t i = 0; i < threads.size(); i++) {
-    threads[i] = std::thread(testWithTimes, threadWaitTimes[i], delayBeforeGet);
+    threads.at(i) = std::thread(testWithTimes, threadWaitTimes.at(i), delayBeforeGet);
   }
 
   for (auto& thread : threads) {
@@ -150,12 +158,14 @@ int main(int argc, char** argv) {
 
   srand(time(nullptr));
 
-  if (argc != 2) {
-    std::cerr << "Usage: aidl_lazy_test serviceName" << std::endl;
+  if (argc < 2) {
+    std::cerr << "Usage: aidl_lazy_test serviceName..." << std::endl;
     return 1;
   }
 
-  gServiceName = android::String16(argv[1]);
+  for (int i = 1; i < argc; i++) {
+    gServiceNames.push_back(android::String16(argv[i]));
+  }
 
   android::ProcessState::self()->startThreadPool();
 
