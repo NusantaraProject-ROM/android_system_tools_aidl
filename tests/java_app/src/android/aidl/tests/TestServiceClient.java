@@ -972,6 +972,7 @@ public class TestServiceClient extends Activity {
           checkUtf8Strings(service);
           checkStructuredParcelable(service);
           new NullableTests(service, mLog).runTests();
+          new MapTests(mLog).runTests();
           checkDefaultImpl(service);
 
           mLog.log(mSuccessSentinel);
