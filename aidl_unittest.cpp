@@ -923,6 +923,31 @@ TEST_F(AidlTest, CheckNumGenericTypeSecifier) {
   EXPECT_NE(0, ::android::aidl::compile_aidl(options2, io_delegate_));
 }
 
+TEST_F(AidlTest, CheckTypeParameterInMapType) {
+  Options options = Options::From("aidl -I p p/IFoo.aidl");
+  io_delegate_.SetFileContents("p/Bar.aidl", "package p; parcelable Bar { String s; }");
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Map<String, Bar> foo();}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Map<Bar, Bar> foo();}");
+  EXPECT_NE(0, ::android::aidl::compile_aidl(options, io_delegate_));
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Map<String, String> foo();}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Map<String, ParcelFileDescriptor> foo();}");
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+}
+
 TEST_F(AidlTest, WrongGenericType) {
   Options options = Options::From("aidl p/IFoo.aidl IFoo.java");
   io_delegate_.SetFileContents(options.InputFiles().front(),

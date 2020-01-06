@@ -270,6 +270,8 @@ android_app {
     resource_dirs: ["tests/java_app/resources"],
     srcs: [
         "tests/android/aidl/tests/*.aidl",
+        "tests/android/aidl/tests/map/*.aidl",
+        "tests/java_app/src/android/aidl/tests/MapTests.java",
         "tests/java_app/src/android/aidl/tests/NullableTests.java",
         "tests/java_app/src/android/aidl/tests/SimpleParcelable.java",
         "tests/java_app/src/android/aidl/tests/TestFailException.java",

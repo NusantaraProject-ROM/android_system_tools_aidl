@@ -402,6 +402,14 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
                          << "'" << ToString() << "'";
         return false;
       }
+      if (num == 2) {
+        const string& key_type = GetTypeParameters()[0]->GetName();
+        if (key_type != "String") {
+          AIDL_ERROR(this) << "The type of key in map must be String, but it is "
+                           << "'" << key_type << "'";
+          return false;
+        }
+      }
     } else if (isUserDefinedGenericType) {
       const size_t allowed = parameterizable->GetTypeParameters().size();
       if (num != allowed) {

@@ -266,7 +266,37 @@ bool WriteToParcelFor(const CodeGeneratorContext& c) {
        }},
       {"Map",
        [](const CodeGeneratorContext& c) {
-         c.writer << c.parcel << ".writeMap(" << c.var << ");\n";
+         if (c.type.IsGeneric()) {
+           c.writer << "if (" << c.var << " == null) {\n";
+           c.writer.Indent();
+           c.writer << c.parcel << ".writeInt(-1);\n";
+           c.writer.Dedent();
+           c.writer << "} else {\n";
+           c.writer.Indent();
+           c.writer << c.parcel << ".writeInt(" << c.var << ".size());\n";
+           c.writer << c.var << ".forEach((k, v) -> {\n";
+           c.writer.Indent();
+           c.writer << c.parcel << ".writeString(k);\n";
+
+           CodeGeneratorContext value_context{
+               c.writer,
+               c.typenames,
+               *c.type.GetTypeParameters()[1].get(),
+               c.parcel,
+               "v",
+               c.is_return_value,
+               c.is_classloader_created,
+               c.filename,
+           };
+           WriteToParcelFor(value_context);
+           c.writer.Dedent();
+           c.writer << "});\n";
+
+           c.writer.Dedent();
+           c.writer << "}\n";
+         } else {
+           c.writer << c.parcel << ".writeMap(" << c.var << ");\n";
+         }
        }},
       {"IBinder",
        [](const CodeGeneratorContext& c) {
@@ -463,8 +493,39 @@ bool CreateFromParcelFor(const CodeGeneratorContext& c) {
        }},
       {"Map",
        [](const CodeGeneratorContext& c) {
-         const string classloader = EnsureAndGetClassloader(const_cast<CodeGeneratorContext&>(c));
-         c.writer << c.var << " = " << c.parcel << ".readHashMap(" << classloader << ");\n";
+         if (c.type.IsGeneric()) {
+           c.writer << "{\n";
+           c.writer.Indent();
+           c.writer << "int N = " << c.parcel << ".readInt();\n";
+           c.writer << c.var << " = N < 0 ? null : new java.util.HashMap<>();\n";
+
+           auto creator = JavaNameOf(*(c.type.GetTypeParameters().at(1)), c.typenames) + ".CREATOR";
+           c.writer << "java.util.stream.IntStream.range(0, N).forEach(i -> {\n";
+           c.writer.Indent();
+           c.writer << "String k = " << c.parcel << ".readString();\n";
+           c.writer << JavaNameOf(*(c.type.GetTypeParameters().at(1)), c.typenames) << " v;\n";
+           CodeGeneratorContext value_context{
+               c.writer,
+               c.typenames,
+               *c.type.GetTypeParameters()[1].get(),
+               c.parcel,
+               "v",
+               c.is_return_value,
+               c.is_classloader_created,
+               c.filename,
+           };
+           CreateFromParcelFor(value_context);
+           c.writer << c.var << ".put(k, v);\n";
+
+           c.writer.Dedent();
+           c.writer << "});\n";
+
+           c.writer.Dedent();
+           c.writer << "}\n";
+         } else {
+           const string classloader = EnsureAndGetClassloader(const_cast<CodeGeneratorContext&>(c));
+           c.writer << c.var << " = " << c.parcel << ".readHashMap(" << classloader << ");\n";
+         }
        }},
       {"IBinder",
        [](const CodeGeneratorContext& c) {
@@ -614,8 +675,35 @@ bool ReadFromParcelFor(const CodeGeneratorContext& c) {
        }},
       {"Map",
        [](const CodeGeneratorContext& c) {
-         const string classloader = EnsureAndGetClassloader(const_cast<CodeGeneratorContext&>(c));
-         c.writer << c.var << " = " << c.parcel << ".readHashMap(" << classloader << ");\n";
+         if (c.type.IsGeneric()) {
+           c.writer << "if (" << c.var << " != null) " << c.var << ".clear();\n";
+           c.writer << "java.util.stream.IntStream.range(0, " << c.parcel
+                    << ".readInt()).forEach(i -> {\n";
+           c.writer.Indent();
+           c.writer << "String k = " << c.parcel << ".readString();\n";
+           c.writer << JavaNameOf(*(c.type.GetTypeParameters().at(1)), c.typenames) << " v;\n";
+           CodeGeneratorContext value_context{
+               c.writer,
+               c.typenames,
+               *c.type.GetTypeParameters()[1].get(),
+               c.parcel,
+               "v",
+               c.is_return_value,
+               c.is_classloader_created,
+               c.filename,
+           };
+           CreateFromParcelFor(value_context);
+           c.writer << c.var << ".put(k, v);\n";
+
+           c.writer.Dedent();
+           c.writer << "});\n";
+
+           c.writer.Dedent();
+           c.writer << "}\n";
+         } else {
+           const string classloader = EnsureAndGetClassloader(const_cast<CodeGeneratorContext&>(c));
+           c.writer << c.var << " = " << c.parcel << ".readHashMap(" << classloader << ");\n";
+         }
        }},
       {"IBinder[]",
        [](const CodeGeneratorContext& c) {
