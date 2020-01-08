@@ -84,6 +84,7 @@ cc_binary_host {
     static_libs: [
         "libaidl-common",
         "libbase",
+        "liblog",
     ],
 }
 
@@ -96,6 +97,7 @@ cc_binary_host {
     static_libs: [
         "libaidl-common",
         "libbase",
+        "liblog",
     ],
 }
 
@@ -135,14 +137,8 @@ cc_test {
         "libbase",
         "libcutils",
         "libgmock",
+        "liblog",
     ],
-    target: {
-        android: {
-            static_libs: [
-                "liblog",
-            ],
-        },
-    },
 }
 
 cc_fuzz {
@@ -170,14 +166,8 @@ cc_fuzz {
         "libaidl-common",
         "libbase",
         "libcutils",
+        "liblog",
     ],
-    target: {
-        android: {
-            static_libs: [
-                "liblog",
-            ],
-        },
-    },
     // Enable this to show additional information about what is being parsed during fuzzing.
     // cflags: ["-DFUZZ_LOG"],
 }
