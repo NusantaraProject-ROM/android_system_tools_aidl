@@ -9,3 +9,15 @@ cc_test {
         "libbinder",
     ],
 }
+
+cc_binary {
+    name: "aidl_lazy_test_server",
+    srcs: ["server.cpp"],
+    init_rc: ["aidl_lazy_test_server.rc"],
+
+    shared_libs: [
+        "libbinder",
+        "liblog",
+        "libutils",
+    ],
+}
