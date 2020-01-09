@@ -21,14 +21,20 @@
 #include "options.h"
 
 #include <iostream>
-#include <memory>
+
+#ifdef AIDL_CPP_BUILD
+constexpr Options::Language kDefaultLang = Options::Language::CPP;
+#else
+constexpr Options::Language kDefaultLang = Options::Language::JAVA;
+#endif
 
 using android::aidl::Options;
 
 int main(int argc, char* argv[]) {
   android::base::InitLogging(argv);
   LOG(DEBUG) << "aidl starting";
-  Options options(argc, argv, Options::Language::JAVA);
+
+  Options options(argc, argv, kDefaultLang);
   if (!options.Ok()) {
     std::cerr << options.GetErrorMessage();
     std::cerr << options.GetUsage();
