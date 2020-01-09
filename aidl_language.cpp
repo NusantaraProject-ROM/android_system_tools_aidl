@@ -109,8 +109,12 @@ std::string AidlNode::PrintLocation() const {
 }
 
 AidlError::AidlError(bool fatal) : os_(std::cerr), fatal_(fatal) {
+  sHadError = true;
+
   os_ << "ERROR: ";
 }
+
+bool AidlError::sHadError = false;
 
 static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
