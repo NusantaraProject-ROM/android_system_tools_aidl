@@ -30,17 +30,7 @@ constexpr Options::Language kDefaultLang = Options::Language::JAVA;
 
 using android::aidl::Options;
 
-int main(int argc, char* argv[]) {
-  android::base::InitLogging(argv);
-  LOG(DEBUG) << "aidl starting";
-
-  Options options(argc, argv, kDefaultLang);
-  if (!options.Ok()) {
-    std::cerr << options.GetErrorMessage();
-    std::cerr << options.GetUsage();
-    return 1;
-  }
-
+int process_options(const Options& options) {
   android::aidl::IoDelegate io_delegate;
   switch (options.GetTask()) {
     case Options::Task::COMPILE:
@@ -57,4 +47,28 @@ int main(int argc, char* argv[]) {
       LOG(FATAL) << "aidl: internal error" << std::endl;
       return 1;
   }
+}
+
+int main(int argc, char* argv[]) {
+  android::base::InitLogging(argv);
+  LOG(DEBUG) << "aidl starting";
+
+  Options options(argc, argv, kDefaultLang);
+  if (!options.Ok()) {
+    std::cerr << options.GetErrorMessage();
+    std::cerr << options.GetUsage();
+    return 1;
+  }
+
+  int ret = process_options(options);
+
+  // compiler invariants
+
+  // once AIDL_ERROR/AIDL_FATAL are used everywhere instead of std::cerr/LOG, we
+  // can make this assertion in both directions.
+  if (ret == 0) {
+    AIDL_FATAL_IF(AidlError::hadError(), "Compiler success, but error emitted");
+  }
+
+  return ret;
 }
