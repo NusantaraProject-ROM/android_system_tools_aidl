@@ -763,11 +763,12 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
           }
         }
       }
-    } else if (this->GetName() == "Map") {
-      if (lang != Options::Language::JAVA) {
-        AIDL_ERROR(this) << "Currently, only Java backend supports Map.";
-        return false;
-      }
+    }
+  }
+  if (this->GetName() == "Map") {
+    if (lang != Options::Language::JAVA) {
+      AIDL_ERROR(this) << "Currently, only Java backend supports Map.";
+      return false;
     }
   }
   if (lang == Options::Language::JAVA) {
