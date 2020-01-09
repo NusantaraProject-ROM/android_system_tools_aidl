@@ -87,11 +87,12 @@ cc_binary_host {
     ],
 }
 
-// aidl-cpp executable
+// aidl-cpp legacy executable, please use 'aidl' instead
 cc_binary_host {
     name: "aidl-cpp",
     defaults: ["aidl_defaults"],
-    srcs: ["main_cpp.cpp"],
+    srcs: ["main.cpp"],
+    cflags: ["-DAIDL_CPP_BUILD"],
     static_libs: [
         "libaidl-common",
         "libbase",
