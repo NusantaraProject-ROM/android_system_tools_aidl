@@ -769,9 +769,9 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
       }
     }
   }
-  if (this->GetName() == "Map") {
+  if (this->GetName() == "Map" || this->GetName() == "CharSequence") {
     if (lang != Options::Language::JAVA) {
-      AIDL_ERROR(this) << "Currently, only Java backend supports Map.";
+      AIDL_ERROR(this) << "Currently, only Java backend supports " << this->GetName() << ".";
       return false;
     }
   }
