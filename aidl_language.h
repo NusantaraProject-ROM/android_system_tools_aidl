@@ -69,8 +69,8 @@ class AidlToken {
 class AidlLocation {
  public:
   struct Point {
-    unsigned int line;
-    unsigned int column;
+    int line;
+    int column;
   };
 
   AidlLocation(const std::string& file, Point begin, Point end);
