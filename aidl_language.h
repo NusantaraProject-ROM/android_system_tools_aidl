@@ -242,7 +242,7 @@ class AidlAnnotatable : public AidlNode {
   bool IsUtf8InCpp() const;
   bool IsVintfStability() const;
   bool IsSystemApi() const;
-  bool IsStableParcelable() const;
+  bool IsStableApiParcelable(Options::Language lang) const;
 
   const AidlAnnotation* UnsupportedAppUsage() const;
   const AidlTypeSpecifier* BackingType(const AidlTypenames& typenames) const;
