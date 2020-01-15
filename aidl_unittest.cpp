@@ -82,7 +82,7 @@ public class Rect implements android.os.Parcelable
   @android.annotation.SystemApi
   public int x = 5;
 
-  @dalvik.annotation.compat.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42L, overrideSourcePosition="Rect.aidl:7:1:10:14")
+  @android.compat.annotation.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42L, overrideSourcePosition="Rect.aidl:7:1:10:14")
   @android.annotation.SystemApi
   public int y;
 
