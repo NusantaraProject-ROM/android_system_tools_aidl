@@ -22,6 +22,7 @@
 #include "options.h"
 
 #include <memory>
+#include <regex>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -290,6 +291,8 @@ class AidlTypeSpecifier final : public AidlAnnotatable,
 
   const string& GetUnresolvedName() const { return unresolved_name_; }
 
+  bool IsHidden() const;
+
   const string& GetComments() const { return comments_; }
 
   const std::vector<std::string> GetSplitName() const { return split_name_; }
@@ -548,7 +551,7 @@ class AidlMethod : public AidlMember {
   virtual ~AidlMethod() = default;
 
   AidlMethod* AsMethod() override { return this; }
-
+  bool IsHidden() const;
   const string& GetComments() const { return comments_; }
   const AidlTypeSpecifier& GetType() const { return *type_; }
   AidlTypeSpecifier* GetMutableType() { return type_.get(); }
@@ -637,6 +640,7 @@ class AidlDefinedType : public AidlAnnotatable {
   virtual ~AidlDefinedType() = default;
 
   const std::string& GetName() const { return name_; };
+  bool IsHidden() const;
   const std::string& GetComments() const { return comments_; }
   void SetComments(const std::string comments) { comments_ = comments; }
 
@@ -684,7 +688,7 @@ class AidlDefinedType : public AidlAnnotatable {
         const_cast<const AidlDefinedType*>(this)->AsUnstructuredParcelable());
   }
 
-  virtual void Write(CodeWriter* writer) const = 0;
+  virtual void Dump(CodeWriter* writer) const = 0;
 
  private:
   std::string name_;
@@ -713,7 +717,7 @@ class AidlParcelable : public AidlDefinedType, public AidlParameterizable<std::s
   const AidlNode& AsAidlNode() const override { return *this; }
   std::string GetPreprocessDeclarationName() const override { return "parcelable"; }
 
-  void Write(CodeWriter* writer) const override;
+  void Dump(CodeWriter* writer) const override;
 
  private:
   std::unique_ptr<AidlQualifiedName> name_;
@@ -735,7 +739,7 @@ class AidlStructuredParcelable : public AidlParcelable {
   const AidlStructuredParcelable* AsStructuredParcelable() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "structured_parcelable"; }
 
-  void Write(CodeWriter* writer) const override;
+  void Dump(CodeWriter* writer) const override;
 
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language lang) const override;
@@ -786,7 +790,7 @@ class AidlEnumDeclaration : public AidlDefinedType {
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language) const override { return true; }
   std::string GetPreprocessDeclarationName() const override { return "enum"; }
-  void Write(CodeWriter*) const override;
+  void Dump(CodeWriter* writer) const override;
 
   const AidlEnumDeclaration* AsEnumDeclaration() const override { return this; }
 
@@ -815,7 +819,7 @@ class AidlInterface final : public AidlDefinedType {
   const AidlInterface* AsInterface() const override { return this; }
   std::string GetPreprocessDeclarationName() const override { return "interface"; }
 
-  void Write(CodeWriter* writer) const override;
+  void Dump(CodeWriter* writer) const override;
 
   bool CheckValid(const AidlTypenames& typenames) const override;
   bool LanguageSpecificCheckValid(Options::Language lang) const override;
