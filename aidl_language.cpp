@@ -379,15 +379,18 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
     return false;
   }
   if (IsGeneric()) {
-    auto& types = GetTypeParameters();
-    // TODO(b/136048684) Allow them when it supports primitive type somewhere.
-    if (std::any_of(types.begin(), types.end(), [](auto& type_ptr) {
-          return AidlTypenames::IsPrimitiveTypename(type_ptr->GetName());
-        })) {
-      AIDL_ERROR(this) << "A generic type cannot has any primitive type parameters.";
-      return false;
-    }
     const string& type_name = GetName();
+
+    auto& types = GetTypeParameters();
+    // TODO(b/136048684) Disallow to use primitive types only if it is List or Map.
+    if (type_name == "List" || type_name == "Map") {
+      if (std::any_of(types.begin(), types.end(), [](auto& type_ptr) {
+            return AidlTypenames::IsPrimitiveTypename(type_ptr->GetName());
+          })) {
+        AIDL_ERROR(this) << "A generic type cannot has any primitive type parameters.";
+        return false;
+      }
+    }
     const auto definedType = typenames.TryGetDefinedType(type_name);
     const auto parameterizable =
         definedType != nullptr ? definedType->AsParameterizable() : nullptr;
