@@ -620,7 +620,6 @@ type aidlInterfaceProperties struct {
 	// TODO(b/128940869): remove it if aidl_interface can depend on framework.aidl
 	Include_dirs []string
 	// Relative path for includes. By default assumes AIDL path is relative to current directory.
-	// TODO(b/111117220): automatically compute by letting AIDL parse multiple files simultaneously
 	Local_include_dir string
 
 	// List of .aidl files which compose this interface.
