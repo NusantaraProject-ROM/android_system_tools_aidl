@@ -979,6 +979,16 @@ TEST_F(AidlTest, UserDefinedUnstructuredGenericParcelableType) {
                                "package p; interface IFoo {"
                                "Bar<String, ParcelFileDescriptor> foo();}");
   EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Bar<int, long> foo();}");
+
+  io_delegate_.SetFileContents("p/IFoo.aidl",
+                               "package p; interface IFoo {"
+                               "Bar<int[], long[]> foo();}");
+
+  EXPECT_EQ(0, ::android::aidl::compile_aidl(options, io_delegate_));
 }
 
 TEST_F(AidlTest, FailOnMultipleTypesInSingleFile) {
