@@ -543,7 +543,7 @@ method_decl
     delete $4;
   }
  | type identifier '(' arg_list ')' '=' INTVALUE ';' {
-    int32_t serial;
+    int32_t serial = 0;
     if (!android::base::ParseInt($7->GetText(), &serial)) {
         AIDL_ERROR(loc(@7)) << "Could not parse int value: " << $7->GetText();
         ps->AddError();
@@ -554,7 +554,7 @@ method_decl
   }
  | annotation_list ONEWAY type identifier '(' arg_list ')' '=' INTVALUE ';' {
     const std::string& comments = ($1->size() > 0) ? $1->begin()->GetComments() : $2->GetComments();
-    int32_t serial;
+    int32_t serial = 0;
     if (!android::base::ParseInt($9->GetText(), &serial)) {
         AIDL_ERROR(loc(@9)) << "Could not parse int value: " << $9->GetText();
         ps->AddError();
