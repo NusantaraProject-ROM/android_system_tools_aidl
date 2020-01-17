@@ -340,7 +340,7 @@ static TypeInfo::Aspect GetTypeAspect(const AidlTypenames& types, const AidlType
     return GetTypeAspect(types, array_type);
   }
 
-  // TODO(b/112664205): this is okay for some types
+  // All generic types should be handled above.
   AIDL_FATAL_IF(aidl.IsGeneric(), aidl);
 
   if (AidlTypenames::IsBuiltinTypename(aidl_name)) {
