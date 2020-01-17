@@ -120,7 +120,6 @@ TypeInfo InterfaceTypeInfo(const AidlInterface& type) {
           TypeInfo::Aspect{
               .cpp_name = "std::shared_ptr<" + clazz + ">",
               .value_is_cheap = false,
-              // TODO(b/111445392): these should be non-null
               .read_func = StandardRead(clazz + "::readFromParcel"),
               .write_func = StandardWrite(clazz + "::writeToParcel"),
           },
@@ -289,7 +288,6 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
          }),
          .nullable_array = nullptr,
      }},
-    // TODO(b/111445392) {"FileDescriptor", ""},
     {"ParcelFileDescriptor",
      TypeInfo{
          .raw =
@@ -313,7 +311,6 @@ static map<std::string, TypeInfo> kNdkTypeInfoMap = {
          }),
          .nullable_array = nullptr,
      }},
-    // TODO(b/111445392) {"CharSequence", ""},
 };
 
 static TypeInfo::Aspect GetTypeAspect(const AidlTypenames& types, const AidlTypeSpecifier& aidl) {
