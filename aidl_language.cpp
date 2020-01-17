@@ -121,7 +121,7 @@ static const string kUtf8InCpp("utf8InCpp");
 static const string kVintfStability("VintfStability");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 static const string kSystemApi("SystemApi");
-static const string kStableParcelable("JavaOnlyStableParcelable");
+static const string kJavaStableParcelable("JavaOnlyStableParcelable");
 static const string kBacking("Backing");
 
 static const std::map<string, std::map<std::string, std::string>> kAnnotationParameters{
@@ -135,7 +135,7 @@ static const std::map<string, std::map<std::string, std::string>> kAnnotationPar
       {"publicAlternatives", "String"},
       {"trackingBug", "long"}}},
     {kSystemApi, {}},
-    {kStableParcelable, {}},
+    {kJavaStableParcelable, {}},
     {kBacking, {{"type", "String"}}}};
 
 AidlAnnotation* AidlAnnotation::Parse(
@@ -296,8 +296,8 @@ bool AidlAnnotatable::IsSystemApi() const {
   return HasAnnotation(annotations_, kSystemApi);
 }
 
-bool AidlAnnotatable::IsStableParcelable() const {
-  return HasAnnotation(annotations_, kStableParcelable);
+bool AidlAnnotatable::IsStableApiParcelable(Options::Language lang) const {
+  return HasAnnotation(annotations_, kJavaStableParcelable) && lang == Options::Language::JAVA;
 }
 
 bool AidlAnnotatable::CheckValidAnnotations() const {
@@ -686,7 +686,7 @@ bool AidlParameterizable<std::string>::CheckValid() const {
 }
 
 bool AidlParcelable::CheckValid(const AidlTypenames&) const {
-  static const std::set<string> allowed{kStableParcelable};
+  static const std::set<string> allowed{kJavaStableParcelable};
   if (!CheckValidAnnotations()) {
     return false;
   }
@@ -792,10 +792,6 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
 // TODO: we should treat every backend all the same in future.
 bool AidlParcelable::LanguageSpecificCheckValid(Options::Language lang) const {
   if (lang != Options::Language::JAVA) {
-    if (this->IsStableParcelable()) {
-      AIDL_ERROR(this) << "@JavaOnlyStableParcelable supports only Java target.";
-      return false;
-    }
     const AidlParcelable* unstructuredParcelable = this->AsUnstructuredParcelable();
     if (unstructuredParcelable != nullptr) {
       if (unstructuredParcelable->GetCppHeader().empty()) {
