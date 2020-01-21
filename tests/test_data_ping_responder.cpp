@@ -499,7 +499,7 @@ public:
 #endif  // AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 )";
 
-const char kExpectedCppOutputWithVersion[] =
+const char kExpectedCppOutputWithVersionAndHash[] =
     R"(#include <android/os/IPingResponder.h>
 #include <android/os/BpPingResponder.h>
 
@@ -531,6 +531,10 @@ DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPing
 
 int32_t IPingResponderDefault::getInterfaceVersion() {
   return 0;
+}
+
+std::string IPingResponderDefault::getInterfaceHash() {
+  return "";
 }
 
 }  // namespace os
@@ -709,6 +713,24 @@ int32_t BpPingResponder::getInterfaceVersion() {
   return cached_version_;
 }
 
+std::string BpPingResponder::getInterfaceHash() {
+  std::lock_guard<std::mutex> lockGuard(cached_hash_mutex_);
+  if (cached_hash_ == "-1") {
+    ::android::Parcel data;
+    ::android::Parcel reply;
+    data.writeInterfaceToken(getInterfaceDescriptor());
+    ::android::status_t err = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 16777213 /* getInterfaceHash */, data, &reply);
+    if (err == ::android::OK) {
+      ::android::binder::Status _aidl_status;
+      err = _aidl_status.readFromParcel(reply);
+      if (err == ::android::OK && _aidl_status.isOk()) {
+        cached_hash_ = reply.readString8().c_str();
+      }
+    }
+  }
+  return cached_hash_;
+}
+
 }  // namespace os
 
 }  // namespace android
@@ -839,6 +861,13 @@ BnPingResponder::BnPingResponder()
     _aidl_reply->writeInt32(IPingResponder::VERSION);
   }
   break;
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 16777213 /* getInterfaceHash */:
+  {
+    _aidl_data.checkInterface(this);
+    _aidl_reply->writeNoException();
+    _aidl_reply->writeString8(android::String8(IPingResponder::HASH.c_str()));
+  }
+  break;
   default:
   {
     _aidl_ret_status = ::android::BBinder::onTransact(_aidl_code, _aidl_data, _aidl_reply, _aidl_flags);
@@ -855,12 +884,16 @@ int32_t BnPingResponder::getInterfaceVersion() {
   return IPingResponder::VERSION;
 }
 
+std::string BnPingResponder::getInterfaceHash() {
+  return IPingResponder::HASH;
+}
+
 }  // namespace os
 
 }  // namespace android
 )";
 
-const char kExpectedIHeaderOutputWithVersion[] =
+const char kExpectedIHeaderOutputWithVersionAndHash[] =
 R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 
@@ -881,11 +914,13 @@ class IPingResponder : public ::android::IInterface {
 public:
   DECLARE_META_INTERFACE(PingResponder)
   const int32_t VERSION = 10;
+  const std::string HASH = "abcdefg";
   virtual ::android::binder::Status Ping(const ::android::String16& input, ::android::String16* _aidl_return) = 0;
   virtual ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>& input, ::std::unique_ptr<::android::String16>* _aidl_return) = 0;
   virtual ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) = 0;
   virtual ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) = 0;
   virtual int32_t getInterfaceVersion() = 0;
+  virtual std::string getInterfaceHash() = 0;
 };  // class IPingResponder
 
 class IPingResponderDefault : public IPingResponder {
@@ -896,6 +931,7 @@ public:
   ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) override;
   ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) override;
   int32_t getInterfaceVersion() override;
+  std::string getInterfaceHash() override;
 
 };
 
@@ -906,7 +942,7 @@ public:
 #endif  // AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 )";
 
-const char kExpectedBpHeaderOutputWithVersion[] =
+const char kExpectedBpHeaderOutputWithVersionAndHash[] =
 R"(#ifndef AIDL_GENERATED_ANDROID_OS_BP_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_BP_PING_RESPONDER_H_
 
@@ -928,8 +964,11 @@ public:
   ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) override;
   ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) override;
   int32_t getInterfaceVersion() override;
+  std::string getInterfaceHash() override;
 private:
   int32_t cached_version_ = -1;
+  std::string cached_hash_ = "-1";
+  std::mutex cached_hash_mutex_;
 };  // class BpPingResponder
 
 }  // namespace os
@@ -939,7 +978,7 @@ private:
 #endif  // AIDL_GENERATED_ANDROID_OS_BP_PING_RESPONDER_H_
 )";
 
-const char kExpectedBnHeaderOutputWithVersion[] =
+const char kExpectedBnHeaderOutputWithVersionAndHash[] =
     R"(#ifndef AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_BN_PING_RESPONDER_H_
 
@@ -955,6 +994,7 @@ public:
   explicit BnPingResponder();
   ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
   int32_t getInterfaceVersion() final override;
+  std::string getInterfaceHash();
 };  // class BnPingResponder
 
 }  // namespace os
