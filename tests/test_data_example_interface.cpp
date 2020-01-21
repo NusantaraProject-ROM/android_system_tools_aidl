@@ -2123,7 +2123,7 @@ public interface IExampleInterface extends android.os.IInterface
 }
 )";
 
-const char kExpectedJavaOutputWithVersion[] =
+const char kExpectedJavaOutputWithVersionAndHash[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
  */
@@ -2137,6 +2137,7 @@ public interface IExampleInterface extends android.os.IInterface
    * that the remote object is implementing.
    */
   public static final int VERSION = 10;
+  public static final String HASH = "abcdefg";
   /** Default implementation for IExampleInterface. */
   public static class Default implements android.test.IExampleInterface
   {
@@ -2182,7 +2183,11 @@ public interface IExampleInterface extends android.os.IInterface
     }
     @Override
     public int getInterfaceVersion() {
-      return -1;
+      return 0;
+    }
+    @Override
+    public String getInterfaceHash() {
+      return "";
     }
     @Override
     public android.os.IBinder asBinder() {
@@ -2282,6 +2287,13 @@ public interface IExampleInterface extends android.os.IInterface
           reply.writeInt(getInterfaceVersion());
           return true;
         }
+        case TRANSACTION_getInterfaceHash:
+        {
+          data.enforceInterface(descriptor);
+          reply.writeNoException();
+          reply.writeString(getInterfaceHash());
+          return true;
+        }
         default:
         {
           return super.onTransact(code, data, reply, flags);
@@ -2296,6 +2308,7 @@ public interface IExampleInterface extends android.os.IInterface
         mRemote = remote;
       }
       private int mCachedVersion = -1;
+      private String mCachedHash = "-1";
       @Override public android.os.IBinder asBinder()
       {
         return mRemote;
@@ -2532,6 +2545,28 @@ public interface IExampleInterface extends android.os.IInterface
         }
         return mCachedVersion;
       }
+      @Override
+      public synchronized String getInterfaceHash() throws android.os.RemoteException {
+        if (mCachedHash == "-1") {
+          android.os.Parcel data = android.os.Parcel.obtain();
+          android.os.Parcel reply = android.os.Parcel.obtain();
+          try {
+            data.writeInterfaceToken(DESCRIPTOR);
+            boolean _status = mRemote.transact(Stub.TRANSACTION_getInterfaceHash, data, reply, 0);
+            if (!_status) {
+              if (getDefaultImpl() != null) {
+                return getDefaultImpl().getInterfaceHash();
+              }
+            }
+            reply.readException();
+            mCachedHash = reply.readString();
+          } finally {
+            reply.recycle();
+            data.recycle();
+          }
+        }
+        return mCachedHash;
+      }
       public static android.test.IExampleInterface sDefaultImpl;
     }
     static final int TRANSACTION_isEnabled = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
@@ -2624,6 +2659,7 @@ public interface IExampleInterface extends android.os.IInterface
       return true;
     }
     static final int TRANSACTION_getInterfaceVersion = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777214);
+    static final int TRANSACTION_getInterfaceHash = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777213);
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
       if (Stub.Proxy.sDefaultImpl == null && impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
@@ -2651,6 +2687,7 @@ public interface IExampleInterface extends android.os.IInterface
   public int takesAnInterface(android.test.IAuxInterface2 arg) throws android.os.RemoteException;
   public int takesAParcelable(android.test.CompoundParcelable.Subclass1 arg, android.test.CompoundParcelable.Subclass2 arg2) throws android.os.RemoteException;
   public int getInterfaceVersion() throws android.os.RemoteException;
+  public String getInterfaceHash() throws android.os.RemoteException;
 }
 )";
 

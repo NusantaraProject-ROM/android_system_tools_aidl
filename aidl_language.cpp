@@ -1035,7 +1035,7 @@ bool AidlInterface::CheckValid(const AidlTypenames& typenames) const {
       return false;
     }
 
-    static set<string> reserved_methods{"asBinder()", "getInterfaceVersion()",
+    static set<string> reserved_methods{"asBinder()", "getInterfaceHash()", "getInterfaceVersion()",
                                         "getTransactionName(int)"};
 
     if (reserved_methods.find(m->Signature()) != reserved_methods.end()) {
