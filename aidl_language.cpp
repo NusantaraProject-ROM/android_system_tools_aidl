@@ -742,9 +742,9 @@ bool AidlStructuredParcelable::CheckValid(const AidlTypenames& typenames) const 
 
 // TODO: we should treat every backend all the same in future.
 bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const {
-  if (lang == Options::Language::CPP) {
+  if (lang != Options::Language::JAVA) {
     if (this->GetName() == "List" && !this->IsGeneric()) {
-      AIDL_ERROR(this) << "List without type isn't supported in cpp.";
+      AIDL_ERROR(this) << "Currently, only the Java backend supports non-generic List.";
       return false;
     }
   }
