@@ -748,6 +748,10 @@ bool AidlTypeSpecifier::LanguageSpecificCheckValid(Options::Language lang) const
       return false;
     }
   }
+  if (this->GetName() == "FileDescriptor" && lang == Options::Language::NDK) {
+    AIDL_ERROR(this) << "FileDescriptor isn't supported with the NDK.";
+    return false;
+  }
   if (this->IsGeneric()) {
     if (this->GetName() == "List") {
       if (this->GetTypeParameters().size() != 1) {
