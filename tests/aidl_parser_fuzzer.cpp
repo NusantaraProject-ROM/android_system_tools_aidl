@@ -28,23 +28,7 @@ constexpr bool kFuzzLog = false;
 
 using android::aidl::test::FakeIoDelegate;
 
-void fuzz(uint8_t options, const std::string& content) {
-  uint8_t lang = options & 0x3;
-  std::string langOpt;
-  switch (lang) {
-    case 1:
-      langOpt = "cpp";
-      break;
-    case 2:
-      langOpt = "ndk";
-      break;
-    case 3:
-      langOpt = "java";
-      break;
-    default:
-      return;
-  }
-
+void fuzz(const std::string& langOpt, const std::string& content) {
   // TODO: fuzz multiple files
   // TODO: fuzz arguments
   FakeIoDelegate io;
@@ -75,6 +59,22 @@ void fuzz(uint8_t options, const std::string& content) {
       }
     }
   }
+}
+
+void fuzz(uint8_t options, const std::string& content) {
+  // keeping a byte of options we can use for various flags in the future (do
+  // not remove or add unless absolutely necessary in order to preserve the
+  // corpus).
+  (void)options;
+
+  // Process for each backend.
+  //
+  // This is unfortunate because we are parsing multiple times, but we want to
+  // check generation of content for each backend. If output fails in one
+  // backend, it's likely to fail in another.
+  fuzz("ndk", content);
+  fuzz("cpp", content);
+  fuzz("java", content);
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
