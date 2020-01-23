@@ -452,6 +452,28 @@ TEST_F(AidlTest, PreferImportToPreprocessed) {
   EXPECT_EQ("one.IBar", ambiguous_type.GetName());
 }
 
+// Special case of PreferImportToPreprocessed. Imported type should be preferred
+// even when the preprocessed file already has the same type.
+TEST_F(AidlTest, B147918827) {
+  io_delegate_.SetFileContents("preprocessed", "interface another.IBar;\ninterface one.IBar;");
+  io_delegate_.SetFileContents("one/IBar.aidl",
+                               "package one; "
+                               "interface IBar {}");
+  preprocessed_files_.push_back("preprocessed");
+  import_paths_.emplace("");
+  auto parse_result = Parse("p/IFoo.aidl", "package p; import one.IBar; interface IFoo {}",
+                            typenames_, Options::Language::JAVA);
+  EXPECT_NE(nullptr, parse_result);
+
+  // We expect to know about both kinds of IBar
+  EXPECT_TRUE(typenames_.ResolveTypename("one.IBar").second);
+  EXPECT_TRUE(typenames_.ResolveTypename("another.IBar").second);
+  // But if we request just "IBar" we should get our imported one.
+  AidlTypeSpecifier ambiguous_type(AIDL_LOCATION_HERE, "IBar", false, nullptr, "");
+  ambiguous_type.Resolve(typenames_);
+  EXPECT_EQ("one.IBar", ambiguous_type.GetName());
+}
+
 TEST_F(AidlTest, WritePreprocessedFile) {
   io_delegate_.SetFileContents("p/Outer.aidl",
                                "package p; parcelable Outer.Inner;");
