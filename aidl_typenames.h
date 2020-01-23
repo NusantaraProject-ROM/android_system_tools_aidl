@@ -71,6 +71,13 @@ class AidlTypenames final {
   void IterateTypes(const std::function<void(const AidlDefinedType&)>& body) const;
 
  private:
+  struct DefinedImplResult {
+    DefinedImplResult(const AidlDefinedType* type, const bool from_preprocessed)
+        : type(type), from_preprocessed(from_preprocessed) {}
+    const AidlDefinedType* type;
+    const bool from_preprocessed;
+  };
+  DefinedImplResult TryGetDefinedTypeImpl(const string& type_name) const;
   map<string, unique_ptr<AidlDefinedType>> defined_types_;
   map<string, unique_ptr<AidlDefinedType>> preprocessed_types_;
 };
