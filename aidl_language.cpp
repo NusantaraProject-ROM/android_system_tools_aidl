@@ -1106,13 +1106,13 @@ std::vector<std::string> Parser::Package() const {
   return package_->GetTerms();
 }
 
-void Parser::AddImport(AidlImport* import) {
+void Parser::AddImport(std::unique_ptr<AidlImport>&& import) {
   for (const auto& i : imports_) {
     if (i->GetNeededClass() == import->GetNeededClass()) {
       return;
     }
   }
-  imports_.emplace_back(import);
+  imports_.emplace_back(std::move(import));
 }
 
 bool Parser::Resolve() {
