@@ -857,7 +857,7 @@ class Parser {
   const std::string& FileName() const { return filename_; }
   void* Scanner() const { return scanner_; }
 
-  void AddImport(AidlImport* import);
+  void AddImport(std::unique_ptr<AidlImport>&& import);
   const std::vector<std::unique_ptr<AidlImport>>& GetImports() {
     return imports_;
   }

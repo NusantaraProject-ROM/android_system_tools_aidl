@@ -204,7 +204,7 @@ imports
 
 import
  : IMPORT qualified_name ';'
-  { ps->AddImport(new AidlImport(loc(@2), $2->GetDotName()));
+  { ps->AddImport(std::make_unique<AidlImport>(loc(@2), $2->GetDotName()));
     delete $2;
   };
 
