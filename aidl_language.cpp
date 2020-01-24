@@ -430,6 +430,14 @@ bool AidlTypeSpecifier::CheckValid(const AidlTypenames& typenames) const {
     }
   }
 
+  const bool is_generic_string_list = GetName() == "List" && IsGeneric() &&
+                                      GetTypeParameters().size() == 1 &&
+                                      GetTypeParameters()[0]->GetName() == "String";
+  if (IsUtf8InCpp() && (GetName() != "String" && !is_generic_string_list)) {
+    AIDL_ERROR(this) << "@utf8InCpp can only be used on String, String[], and List<String>.";
+    return false;
+  }
+
   if (GetName() == "void") {
     if (IsArray() || IsNullable() || IsUtf8InCpp()) {
       AIDL_ERROR(this) << "void type cannot be an array or nullable or utf8 string";
