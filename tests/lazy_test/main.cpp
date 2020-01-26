@@ -159,13 +159,12 @@ int main(int argc, char** argv) {
   srand(time(nullptr));
 
   if (argc < 2) {
-    // If the user does not specify any service to test, default to these test interfaces
-    gServiceNames.push_back(android::String16("aidl_lazy_test_1"));
-    gServiceNames.push_back(android::String16("aidl_lazy_test_2"));
-  } else {
-    for (int i = 1; i < argc; i++) {
-      gServiceNames.push_back(android::String16(argv[i]));
-    }
+    std::cerr << "Usage: aidl_lazy_test serviceName..." << std::endl;
+    return 1;
+  }
+
+  for (int i = 1; i < argc; i++) {
+    gServiceNames.push_back(android::String16(argv[i]));
   }
 
   android::ProcessState::self()->startThreadPool();
