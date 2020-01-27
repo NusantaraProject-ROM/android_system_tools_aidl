@@ -1,4 +1,4 @@
-service aidl_lazy_test /system/bin/aidl_lazy_test_server
+service aidl_lazy_test /system_ext/bin/aidl_lazy_test_server
     interface aidl aidl_lazy_test_1
     interface aidl aidl_lazy_test_2
     user system
