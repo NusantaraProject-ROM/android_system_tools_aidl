@@ -51,6 +51,7 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate);
 bool dump_mappings(const Options& options, const IoDelegate& io_delegate);
 
 const string kGetInterfaceVersion("getInterfaceVersion");
+const string kGetInterfaceHash("getInterfaceHash");
 
 namespace internals {
 

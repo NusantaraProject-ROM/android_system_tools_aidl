@@ -228,7 +228,7 @@ BnStringConstants::BnStringConstants()
 }  // namespace android
 )";
 
-const char kExpectedJavaOutputWithVersion[] =
+const char kExpectedJavaOutputWithVersionAndHash[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
  */
@@ -242,12 +242,17 @@ public interface IStringConstants extends android.os.IInterface
    * that the remote object is implementing.
    */
   public static final int VERSION = 10;
+  public static final String HASH = "abcdefg";
   /** Default implementation for IStringConstants. */
   public static class Default implements android.os.IStringConstants
   {
     @Override
     public int getInterfaceVersion() {
-      return -1;
+      return 0;
+    }
+    @Override
+    public String getInterfaceHash() {
+      return "";
     }
     @Override
     public android.os.IBinder asBinder() {
@@ -299,6 +304,13 @@ public interface IStringConstants extends android.os.IInterface
           reply.writeInt(getInterfaceVersion());
           return true;
         }
+        case TRANSACTION_getInterfaceHash:
+        {
+          data.enforceInterface(descriptor);
+          reply.writeNoException();
+          reply.writeString(getInterfaceHash());
+          return true;
+        }
         default:
         {
           return super.onTransact(code, data, reply, flags);
@@ -313,6 +325,7 @@ public interface IStringConstants extends android.os.IInterface
         mRemote = remote;
       }
       private int mCachedVersion = -1;
+      private String mCachedHash = "-1";
       @Override public android.os.IBinder asBinder()
       {
         return mRemote;
@@ -343,9 +356,32 @@ public interface IStringConstants extends android.os.IInterface
         }
         return mCachedVersion;
       }
+      @Override
+      public synchronized String getInterfaceHash() throws android.os.RemoteException {
+        if (mCachedHash == "-1") {
+          android.os.Parcel data = android.os.Parcel.obtain();
+          android.os.Parcel reply = android.os.Parcel.obtain();
+          try {
+            data.writeInterfaceToken(DESCRIPTOR);
+            boolean _status = mRemote.transact(Stub.TRANSACTION_getInterfaceHash, data, reply, 0);
+            if (!_status) {
+              if (getDefaultImpl() != null) {
+                return getDefaultImpl().getInterfaceHash();
+              }
+            }
+            reply.readException();
+            mCachedHash = reply.readString();
+          } finally {
+            reply.recycle();
+            data.recycle();
+          }
+        }
+        return mCachedHash;
+      }
       public static android.os.IStringConstants sDefaultImpl;
     }
     static final int TRANSACTION_getInterfaceVersion = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777214);
+    static final int TRANSACTION_getInterfaceHash = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777213);
     public static boolean setDefaultImpl(android.os.IStringConstants impl) {
       if (Stub.Proxy.sDefaultImpl == null && impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
@@ -359,10 +395,11 @@ public interface IStringConstants extends android.os.IInterface
   }
   public static final String EXAMPLE_CONSTANT = "foo";
   public int getInterfaceVersion() throws android.os.RemoteException;
+  public String getInterfaceHash() throws android.os.RemoteException;
 }
 )";
 
-const char kExpectedIHeaderOutputWithVersion[] =
+const char kExpectedIHeaderOutputWithVersionAndHash[] =
 R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 #define AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 
@@ -381,14 +418,17 @@ class IStringConstants : public ::android::IInterface {
 public:
   DECLARE_META_INTERFACE(StringConstants)
   const int32_t VERSION = 10;
+  const std::string HASH = "abcdefg";
   static const ::android::String16& EXAMPLE_CONSTANT();
   virtual int32_t getInterfaceVersion() = 0;
+  virtual std::string getInterfaceHash() = 0;
 };  // class IStringConstants
 
 class IStringConstantsDefault : public IStringConstants {
 public:
   ::android::IBinder* onAsBinder() override;
   int32_t getInterfaceVersion() override;
+  std::string getInterfaceHash() override;
 
 };
 
@@ -399,7 +439,7 @@ public:
 #endif  // AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 )";
 
-const char kExpectedCppOutputWithVersion[] =
+const char kExpectedCppOutputWithVersionAndHash[] =
     R"(#include <android/os/IStringConstants.h>
 #include <android/os/BpStringConstants.h>
 
@@ -420,6 +460,10 @@ const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
 
 int32_t IStringConstantsDefault::getInterfaceVersion() {
   return 0;
+}
+
+std::string IStringConstantsDefault::getInterfaceHash() {
+  return "";
 }
 
 }  // namespace os
@@ -454,6 +498,24 @@ int32_t BpStringConstants::getInterfaceVersion() {
   return cached_version_;
 }
 
+std::string BpStringConstants::getInterfaceHash() {
+  std::lock_guard<std::mutex> lockGuard(cached_hash_mutex_);
+  if (cached_hash_ == "-1") {
+    ::android::Parcel data;
+    ::android::Parcel reply;
+    data.writeInterfaceToken(getInterfaceDescriptor());
+    ::android::status_t err = remote()->transact(::android::IBinder::FIRST_CALL_TRANSACTION + 16777213 /* getInterfaceHash */, data, &reply);
+    if (err == ::android::OK) {
+      ::android::binder::Status _aidl_status;
+      err = _aidl_status.readFromParcel(reply);
+      if (err == ::android::OK && _aidl_status.isOk()) {
+        cached_hash_ = reply.readString8().c_str();
+      }
+    }
+  }
+  return cached_hash_;
+}
+
 }  // namespace os
 
 }  // namespace android
@@ -480,6 +542,13 @@ BnStringConstants::BnStringConstants()
     _aidl_reply->writeInt32(IStringConstants::VERSION);
   }
   break;
+  case ::android::IBinder::FIRST_CALL_TRANSACTION + 16777213 /* getInterfaceHash */:
+  {
+    _aidl_data.checkInterface(this);
+    _aidl_reply->writeNoException();
+    _aidl_reply->writeString8(android::String8(IStringConstants::HASH.c_str()));
+  }
+  break;
   default:
   {
     _aidl_ret_status = ::android::BBinder::onTransact(_aidl_code, _aidl_data, _aidl_reply, _aidl_flags);
@@ -494,6 +563,10 @@ BnStringConstants::BnStringConstants()
 
 int32_t BnStringConstants::getInterfaceVersion() {
   return IStringConstants::VERSION;
+}
+
+std::string BnStringConstants::getInterfaceHash() {
+  return IStringConstants::HASH;
 }
 
 }  // namespace os
