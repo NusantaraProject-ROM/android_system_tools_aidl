@@ -75,6 +75,7 @@ const int kLastCallTransaction = 0x00ffffff;
 // are auto-implemented by the AIDL compiler.
 const int kFirstMetaMethodId = kLastCallTransaction - kFirstCallTransaction;
 const int kGetInterfaceVersionId = kFirstMetaMethodId;
+const int kGetInterfaceHashId = kFirstMetaMethodId - 1;
 // Additional meta transactions implemented by AIDL should use
 // kFirstMetaMethodId -1, -2, ...and so on.
 
@@ -637,6 +638,16 @@ AidlError load_and_validate_aidl(const std::string& input_file_name, const Optio
         AidlMethod* method =
             new AidlMethod(AIDL_LOCATION_HERE, false, ret, "getInterfaceVersion", args, "",
                            kGetInterfaceVersionId, false /* is_user_defined */);
+        interface->GetMutableMethods().emplace_back(method);
+      }
+      // add the meta-method 'string getInterfaceHash()' if hash is specified.
+      if (!options.Hash().empty()) {
+        AidlTypeSpecifier* ret =
+            new AidlTypeSpecifier(AIDL_LOCATION_HERE, "String", false, nullptr, "");
+        ret->Resolve(*typenames);
+        vector<unique_ptr<AidlArgument>>* args = new vector<unique_ptr<AidlArgument>>();
+        AidlMethod* method = new AidlMethod(AIDL_LOCATION_HERE, false, ret, kGetInterfaceHash, args,
+                                            "", kGetInterfaceHashId, false /* is_user_defined */);
         interface->GetMutableMethods().emplace_back(method);
       }
       if (!check_and_assign_method_ids(interface->GetMethods())) {

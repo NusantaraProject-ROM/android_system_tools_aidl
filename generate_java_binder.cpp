@@ -336,6 +336,11 @@ ProxyClass::ProxyClass(const AidlInterface* interfaceType, const Options& option
     code << "private int mCachedVersion = -1;\n";
     this->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
   }
+  if (!options.Hash().empty()) {
+    std::ostringstream code;
+    code << "private String mCachedHash = \"-1\";\n";
+    this->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
+  }
 
   // IBinder asBinder()
   auto asBinder = std::make_shared<Method>();
@@ -785,6 +790,12 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
            << "throws android.os.RemoteException;\n";
       decl = std::make_shared<LiteralClassElement>(code.str());
     }
+    if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+      std::ostringstream code;
+      code << "public String " << kGetInterfaceHash << "() "
+           << "throws android.os.RemoteException;\n";
+      decl = std::make_shared<LiteralClassElement>(code.str());
+    }
   }
   interface->elements.push_back(decl);
 
@@ -805,6 +816,16 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
       code << "data.enforceInterface(descriptor);\n"
            << "reply.writeNoException();\n"
            << "reply.writeInt(" << kGetInterfaceVersion << "());\n"
+           << "return true;\n";
+      c->statements->Add(std::make_shared<LiteralStatement>(code.str()));
+      stubClass->transact_switch->cases.push_back(c);
+    }
+    if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+      auto c = std::make_shared<Case>(transactCodeName);
+      std::ostringstream code;
+      code << "data.enforceInterface(descriptor);\n"
+           << "reply.writeNoException();\n"
+           << "reply.writeString(" << kGetInterfaceHash << "());\n"
            << "return true;\n";
       c->statements->Add(std::make_shared<LiteralStatement>(code.str()));
       stubClass->transact_switch->cases.push_back(c);
@@ -844,6 +865,35 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
            << "    }\n"
            << "  }\n"
            << "  return mCachedVersion;\n"
+           << "}\n";
+      proxy = std::make_shared<LiteralClassElement>(code.str());
+    }
+    if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+      std::ostringstream code;
+      code << "@Override\n"
+           << "public synchronized String " << kGetInterfaceHash << "()"
+           << " throws "
+           << "android.os.RemoteException {\n"
+           << "  if (mCachedHash == \"-1\") {\n"
+           << "    android.os.Parcel data = android.os.Parcel.obtain();\n"
+           << "    android.os.Parcel reply = android.os.Parcel.obtain();\n"
+           << "    try {\n"
+           << "      data.writeInterfaceToken(DESCRIPTOR);\n"
+           << "      boolean _status = mRemote.transact(Stub." << transactCodeName << ", "
+           << "data, reply, 0);\n"
+           << "      if (!_status) {\n"
+           << "        if (getDefaultImpl() != null) {\n"
+           << "          return getDefaultImpl().getInterfaceHash();\n"
+           << "        }\n"
+           << "      }\n"
+           << "      reply.readException();\n"
+           << "      mCachedHash = reply.readString();\n"
+           << "    } finally {\n"
+           << "      reply.recycle();\n"
+           << "      data.recycle();\n"
+           << "    }\n"
+           << "  }\n"
+           << "  return mCachedHash;\n"
            << "}\n";
       proxy = std::make_shared<LiteralClassElement>(code.str());
     }
@@ -947,17 +997,25 @@ static shared_ptr<Class> generate_default_impl_class(const AidlInterface& iface,
     if (m->IsUserDefined()) {
       default_class->elements.emplace_back(generate_default_impl_method(*m.get(), typenames));
     } else {
+      // These are called only when the remote side does not implement these
+      // methods, which is normally impossible, because these methods are
+      // automatically declared in the interface class and not implementing
+      // them on the remote side causes a compilation error. But if the remote
+      // side somehow managed to not implement it, that's an error and we
+      // report the case by returning an invalid value here.
       if (m->GetName() == kGetInterfaceVersion && options.Version() > 0) {
-        // This is called only when the remote side is not implementing this
-        // method, which is impossible in normal case, because this method is
-        // automatically declared in the interface class and not implementing
-        // it in the remote side is causing compilation error. But if the remote
-        // side somehow managed to not implement it, that's an error and we
-        // report the case by returning -1 here.
         std::ostringstream code;
         code << "@Override\n"
              << "public int " << kGetInterfaceVersion << "() {\n"
-             << "  return -1;\n"
+             << "  return 0;\n"
+             << "}\n";
+        default_class->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
+      }
+      if (m->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+        std::ostringstream code;
+        code << "@Override\n"
+             << "public String " << kGetInterfaceHash << "() {\n"
+             << "  return \"\";\n"
              << "}\n";
         default_class->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
       }
@@ -994,6 +1052,11 @@ std::unique_ptr<Class> generate_binder_interface_class(const AidlInterface* ifac
          << " * that the remote object is implementing.\n"
          << " */\n"
          << "public static final int VERSION = " << options.Version() << ";\n";
+    interface->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
+  }
+  if (!options.Hash().empty()) {
+    std::ostringstream code;
+    code << "public static final String HASH = \"" << options.Hash() << "\";\n";
     interface->elements.emplace_back(std::make_shared<LiteralClassElement>(code.str()));
   }
 

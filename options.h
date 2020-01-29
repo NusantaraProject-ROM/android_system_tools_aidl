@@ -121,6 +121,8 @@ class Options final {
 
   int Version() const { return version_; }
 
+  string Hash() const { return hash_; }
+
   bool GenLog() const { return gen_log_; }
 
   bool GenParcelableToString() const { return gen_parcelable_to_string_; }
@@ -161,6 +163,7 @@ class Options final {
   vector<string> input_files_;
   string output_file_;
   int version_ = 0;
+  string hash_ = "";
   bool gen_log_ = false;
   bool gen_parcelable_to_string_ = false;
   ErrorMessage error_message_;

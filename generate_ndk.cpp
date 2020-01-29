@@ -30,7 +30,10 @@ namespace ndk {
 static constexpr const char* kClazz = "_g_aidl_clazz";
 static constexpr const char* kDescriptor = "descriptor";
 static constexpr const char* kVersion = "version";
-static constexpr const char* kCacheVariable = "_aidl_cached_value";
+static constexpr const char* kHash = "hash";
+static constexpr const char* kCachedVersion = "_aidl_cached_version";
+static constexpr const char* kCachedHash = "_aidl_cached_hash";
+static constexpr const char* kCachedHashMutex = "_aidl_cached_hash_mutex";
 
 using namespace internals;
 using cpp::ClassNames;
@@ -288,7 +291,6 @@ static std::string MethodId(const AidlMethod& m) {
 static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames& types,
                                            const AidlInterface& defined_type,
                                            const AidlMethod& method,
-                                           const std::optional<std::string> return_value_cached_to,
                                            const Options& options) {
   const std::string clazz = ClassName(defined_type, ClassNames::CLIENT);
 
@@ -297,10 +299,19 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames&
   out << "binder_status_t _aidl_ret_status = STATUS_OK;\n";
   out << "::ndk::ScopedAStatus _aidl_status;\n";
 
-  if (return_value_cached_to) {
-    out << "if (" << *return_value_cached_to << " != -1) {\n";
+  if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+    out << "const std::lock_guard<std::mutex> lock(" << kCachedHashMutex << ");\n";
+    out << "if (" << kCachedHash << " != \"-1\") {\n";
     out.Indent();
-    out << "*_aidl_return = " << *return_value_cached_to << ";\n"
+    out << "*_aidl_return = " << kCachedHash << ";\n"
+        << "_aidl_status.set(AStatus_fromStatus(_aidl_ret_status));\n"
+        << "return _aidl_status;\n";
+    out.Dedent();
+    out << "}\n";
+  } else if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+    out << "if (" << kCachedVersion << " != -1) {\n";
+    out.Indent();
+    out << "*_aidl_return = " << kCachedVersion << ";\n"
         << "_aidl_status.set(AStatus_fromStatus(_aidl_ret_status));\n"
         << "return _aidl_status;\n";
     out.Dedent();
@@ -370,8 +381,10 @@ static void GenerateClientMethodDefinition(CodeWriter& out, const AidlTypenames&
     ReadFromParcelFor({out, types, method.GetType(), "_aidl_out.get()", "_aidl_return"});
     out << ";\n";
     StatusCheckGoto(out);
-    if (return_value_cached_to) {
-      out << *return_value_cached_to << " = *_aidl_return;\n";
+    if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+      out << kCachedHash << " = *_aidl_return;\n";
+    } else if (method.GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      out << kCachedVersion << " = *_aidl_return;\n";
     }
   }
   for (const AidlArgument* arg : method.GetOutArguments()) {
@@ -506,13 +519,7 @@ void GenerateClientSource(CodeWriter& out, const AidlTypenames& types,
   }
   out << "\n";
   for (const auto& method : defined_type.GetMethods()) {
-    // Only getInterfaceVersion can use cache.
-    const bool cacheable = !method->IsUserDefined() && method->GetName() == kGetInterfaceVersion &&
-                           options.Version() > 0;
-    const auto return_value_cached_to =
-        cacheable ? std::make_optional<std::string>(kCacheVariable) : std::nullopt;
-    GenerateClientMethodDefinition(out, types, defined_type, *method, return_value_cached_to,
-                                   options);
+    GenerateClientMethodDefinition(out, types, defined_type, *method, options);
   }
 }
 void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
@@ -551,6 +558,14 @@ void GenerateServerSource(CodeWriter& out, const AidlTypenames& types,
       out << NdkMethodDecl(types, *method, clazz) << " {\n";
       out.Indent();
       out << "*_aidl_return = " << iface << "::" << kVersion << ";\n";
+      out << "return ::ndk::ScopedAStatus(AStatus_newOk());\n";
+      out.Dedent();
+      out << "}\n";
+    }
+    if (method->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+      out << NdkMethodDecl(types, *method, clazz) << " {\n";
+      out.Indent();
+      out << "*_aidl_return = " << iface << "::" << kHash << ";\n";
       out << "return ::ndk::ScopedAStatus(AStatus_newOk());\n";
       out.Dedent();
       out << "}\n";
@@ -650,6 +665,15 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
         out.Dedent();
         out << "}\n";
       }
+      if (method->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+        out << "::ndk::ScopedAStatus " << defaultClazz << "::" << method->GetName() << "("
+            << "std::string* _aidl_return) {\n";
+        out.Indent();
+        out << "*_aidl_return = \"\";\n";
+        out << "return ::ndk::ScopedAStatus(AStatus_newOk());\n";
+        out.Dedent();
+        out << "}\n";
+      }
     }
   }
 
@@ -695,7 +719,12 @@ void GenerateClientHeader(CodeWriter& out, const AidlTypenames& types,
   }
 
   if (options.Version() > 0) {
-    out << "int32_t " << kCacheVariable << " = -1;\n";
+    out << "int32_t " << kCachedVersion << " = -1;\n";
+  }
+
+  if (!options.Hash().empty()) {
+    out << "std::string " << kCachedHash << " = \"-1\";\n";
+    out << "std::mutex " << kCachedHashMutex << ";\n";
   }
   if (options.GenLog()) {
     out << "static std::function<void(const Json::Value&)> logFunc;\n";
@@ -728,6 +757,8 @@ void GenerateServerHeader(CodeWriter& out, const AidlTypenames& types,
       continue;
     }
     if (method->GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      out << NdkMethodDecl(types, *method) << " final override;\n";
+    } else if (method->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
       out << NdkMethodDecl(types, *method) << " final override;\n";
     } else {
       AIDL_FATAL(defined_type) << "Meta method '" << method->GetName() << "' is unimplemented.";
@@ -777,6 +808,9 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
     out << "static const int32_t " << kVersion << " = " << std::to_string(options.Version())
         << ";\n";
   }
+  if (!options.Hash().empty()) {
+    out << "static inline const std::string " << kHash << " = \"" << options.Hash() << "\";\n";
+  }
   out << "\n";
   out << "static std::shared_ptr<" << clazz << "> fromBinder(const ::ndk::SpAIBinder& binder);\n";
   out << "static binder_status_t writeToParcel(AParcel* parcel, const std::shared_ptr<" << clazz
@@ -808,6 +842,8 @@ void GenerateInterfaceHeader(CodeWriter& out, const AidlTypenames& types,
     if (method->IsUserDefined()) {
       out << NdkMethodDecl(types, *method) << " override;\n";
     } else if (method->GetName() == kGetInterfaceVersion && options.Version() > 0) {
+      out << NdkMethodDecl(types, *method) << " override;\n";
+    } else if (method->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
       out << NdkMethodDecl(types, *method) << " override;\n";
     }
   }

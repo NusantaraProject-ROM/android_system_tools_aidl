@@ -184,6 +184,19 @@ unique_ptr<Declaration> BuildMetaMethodDecl(const AidlMethod& method, const Aidl
     }
     return unique_ptr<Declaration>(new LiteralDecl(code.str()));
   }
+  if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+    std::ostringstream code;
+    if (for_interface) {
+      code << "virtual ";
+    }
+    code << "std::string " << kGetInterfaceHash << "()";
+    if (for_interface) {
+      code << " = 0;\n";
+    } else {
+      code << " override;\n";
+    }
+    return unique_ptr<Declaration>(new LiteralDecl(code.str()));
+  }
   return nullptr;
 }
 
@@ -431,6 +444,30 @@ unique_ptr<Declaration> DefineClientMetaTransaction(const AidlTypenames& /* type
          << "}\n";
     return unique_ptr<Declaration>(new LiteralDecl(code.str()));
   }
+  if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+    const string iface = ClassName(interface, ClassNames::INTERFACE);
+    const string proxy = ClassName(interface, ClassNames::CLIENT);
+    std::ostringstream code;
+    code << "std::string " << proxy << "::" << kGetInterfaceHash << "() {\n"
+         << "  std::lock_guard<std::mutex> lockGuard(cached_hash_mutex_);\n"
+         << "  if (cached_hash_ == \"-1\") {\n"
+         << "    ::android::Parcel data;\n"
+         << "    ::android::Parcel reply;\n"
+         << "    data.writeInterfaceToken(getInterfaceDescriptor());\n"
+         << "    ::android::status_t err = remote()->transact(" << GetTransactionIdFor(method)
+         << ", data, &reply);\n"
+         << "    if (err == ::android::OK) {\n"
+         << "      ::android::binder::Status _aidl_status;\n"
+         << "      err = _aidl_status.readFromParcel(reply);\n"
+         << "      if (err == ::android::OK && _aidl_status.isOk()) {\n"
+         << "        cached_hash_ = reply.readString8().c_str();\n"
+         << "      }\n"
+         << "    }\n"
+         << "  }\n"
+         << "  return cached_hash_;\n"
+         << "}\n";
+    return unique_ptr<Declaration>(new LiteralDecl(code.str()));
+  }
   return nullptr;
 }
 
@@ -620,6 +657,15 @@ bool HandleServerMetaTransaction(const AidlTypenames&, const AidlInterface& inte
     b->AddLiteral(code.str());
     return true;
   }
+  if (method.GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+    std::ostringstream code;
+    code << "_aidl_data.checkInterface(this);\n"
+         << "_aidl_reply->writeNoException();\n"
+         << "_aidl_reply->writeString8(android::String8("
+         << ClassName(interface, ClassNames::INTERFACE) << "::HASH.c_str()))";
+    b->AddLiteral(code.str());
+    return true;
+  }
   return false;
 }
 
@@ -717,6 +763,13 @@ unique_ptr<Document> BuildServerSource(const AidlTypenames& typenames,
          << "}\n";
     decls.emplace_back(new LiteralDecl(code.str()));
   }
+  if (!options.Hash().empty()) {
+    std::ostringstream code;
+    code << "std::string " << bn_name << "::" << kGetInterfaceHash << "() {\n"
+         << "  return " << ClassName(interface, ClassNames::INTERFACE) << "::HASH;\n"
+         << "}\n";
+    decls.emplace_back(new LiteralDecl(code.str()));
+  }
 
   if (options.GenLog()) {
     string code;
@@ -795,6 +848,13 @@ unique_ptr<Document> BuildInterfaceSource(const AidlTypenames& typenames,
              << "}\n";
         decls.emplace_back(new LiteralDecl(code.str()));
       }
+      if (method->GetName() == kGetInterfaceHash && !options.Hash().empty()) {
+        std::ostringstream code;
+        code << "std::string " << default_impl << "::" << kGetInterfaceHash << "() {\n"
+             << "  return \"\";\n"
+             << "}\n";
+        decls.emplace_back(new LiteralDecl(code.str()));
+      }
     }
   }
 
@@ -847,6 +907,10 @@ unique_ptr<Document> BuildClientHeader(const AidlTypenames& typenames,
   if (options.Version() > 0) {
     privates.emplace_back(new LiteralDecl("int32_t cached_version_ = -1;\n"));
   }
+  if (!options.Hash().empty()) {
+    privates.emplace_back(new LiteralDecl("std::string cached_hash_ = \"-1\";\n"));
+    privates.emplace_back(new LiteralDecl("std::mutex cached_hash_mutex_;\n"));
+  }
 
   unique_ptr<ClassDecl> bp_class{new ClassDecl{
       bp_name,
@@ -886,6 +950,11 @@ unique_ptr<Document> BuildServerHeader(const AidlTypenames& /* typenames */,
   if (options.Version() > 0) {
     std::ostringstream code;
     code << "int32_t " << kGetInterfaceVersion << "() final override;\n";
+    publics.emplace_back(new LiteralDecl(code.str()));
+  }
+  if (!options.Hash().empty()) {
+    std::ostringstream code;
+    code << "std::string " << kGetInterfaceHash << "();\n";
     publics.emplace_back(new LiteralDecl(code.str()));
   }
 
@@ -929,6 +998,12 @@ unique_ptr<Document> BuildInterfaceHeader(const AidlTypenames& typenames,
   if (options.Version() > 0) {
     std::ostringstream code;
     code << "const int32_t VERSION = " << options.Version() << ";\n";
+
+    if_class->AddPublic(unique_ptr<Declaration>(new LiteralDecl(code.str())));
+  }
+  if (!options.Hash().empty()) {
+    std::ostringstream code;
+    code << "const std::string HASH = \"" << options.Hash() << "\";\n";
 
     if_class->AddPublic(unique_ptr<Declaration>(new LiteralDecl(code.str())));
   }
