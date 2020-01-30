@@ -84,26 +84,6 @@ namespace os {
 
 DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
 
-::android::IBinder* IPingResponderDefault::onAsBinder() {
-  return nullptr;
-}
-
-::android::binder::Status IPingResponderDefault::Ping(const ::android::String16&, ::android::String16* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::Utf8Ping(const ::std::string&, ::std::string* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
 }  // namespace os
 
 }  // namespace android
@@ -430,13 +410,22 @@ public:
 
 class IPingResponderDefault : public IPingResponder {
 public:
-  ::android::IBinder* onAsBinder() override;
-  ::android::binder::Status Ping(const ::android::String16& input, ::android::String16* _aidl_return) override;
-  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>& input, ::std::unique_ptr<::android::String16>* _aidl_return) override;
-  ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) override;
-  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) override;
-
-};
+  ::android::IBinder* onAsBinder() override {
+    return nullptr;
+  }
+  ::android::binder::Status Ping(const ::android::String16&, ::android::String16* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+};  // class IPingResponderDefault
 
 }  // namespace os
 
@@ -508,34 +497,6 @@ namespace android {
 namespace os {
 
 DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(PingResponder, "android.os.IPingResponder")
-
-::android::IBinder* IPingResponderDefault::onAsBinder() {
-  return nullptr;
-}
-
-::android::binder::Status IPingResponderDefault::Ping(const ::android::String16&, ::android::String16* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::Utf8Ping(const ::std::string&, ::std::string* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IPingResponderDefault::NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-int32_t IPingResponderDefault::getInterfaceVersion() {
-  return 0;
-}
-
-std::string IPingResponderDefault::getInterfaceHash() {
-  return "";
-}
 
 }  // namespace os
 
@@ -894,7 +855,7 @@ std::string BnPingResponder::getInterfaceHash() {
 )";
 
 const char kExpectedIHeaderOutputWithVersionAndHash[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 #define AIDL_GENERATED_ANDROID_OS_I_PING_RESPONDER_H_
 
 #include <binder/IBinder.h>
@@ -925,15 +886,28 @@ public:
 
 class IPingResponderDefault : public IPingResponder {
 public:
-  ::android::IBinder* onAsBinder() override;
-  ::android::binder::Status Ping(const ::android::String16& input, ::android::String16* _aidl_return) override;
-  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>& input, ::std::unique_ptr<::android::String16>* _aidl_return) override;
-  ::android::binder::Status Utf8Ping(const ::std::string& input, ::std::string* _aidl_return) override;
-  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>& input, ::std::unique_ptr<::std::string>* _aidl_return) override;
-  int32_t getInterfaceVersion() override;
-  std::string getInterfaceHash() override;
-
-};
+  ::android::IBinder* onAsBinder() override {
+    return nullptr;
+  }
+  ::android::binder::Status Ping(const ::android::String16&, ::android::String16* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  int32_t getInterfaceVersion() override {
+    return 0;
+  }
+  std::string getInterfaceHash() override {
+    return "";
+  }
+};  // class IPingResponderDefault
 
 }  // namespace os
 
