@@ -1308,17 +1308,34 @@ public:
 
 class IComplexTypeInterfaceDefault : public IComplexTypeInterface {
 public:
-  ::android::IBinder* onAsBinder() override;
-  ::android::binder::Status Send(const ::std::unique_ptr<::std::vector<int32_t>>& goes_in, ::std::vector<double>* goes_in_and_out, ::std::vector<bool>* goes_out, ::std::vector<int32_t>* _aidl_return) override;
-  ::android::binder::Status Piff(int32_t times) override;
-  ::android::binder::Status TakesABinder(const ::android::sp<::foo::IFooType>& f, ::android::sp<::foo::IFooType>* _aidl_return) override;
-  ::android::binder::Status NullableBinder(::android::sp<::foo::IFooType>* _aidl_return) override;
-  ::android::binder::Status StringListMethod(const ::std::vector<::android::String16>& input, ::std::vector<::android::String16>* output, ::std::vector<::android::String16>* _aidl_return) override;
-  ::android::binder::Status BinderListMethod(const ::std::vector<::android::sp<::android::IBinder>>& input, ::std::vector<::android::sp<::android::IBinder>>* output, ::std::vector<::android::sp<::android::IBinder>>* _aidl_return) override;
-  ::android::binder::Status TakesAFileDescriptor(::android::base::unique_fd f, ::android::base::unique_fd* _aidl_return) override;
-  ::android::binder::Status TakesAFileDescriptorArray(const ::std::vector<::android::base::unique_fd>& f, ::std::vector<::android::base::unique_fd>* _aidl_return) override;
-
-};
+  ::android::IBinder* onAsBinder() override {
+    return nullptr;
+  }
+  ::android::binder::Status Send(const ::std::unique_ptr<::std::vector<int32_t>>&, ::std::vector<double>*, ::std::vector<bool>*, ::std::vector<int32_t>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status Piff(int32_t) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status TakesABinder(const ::android::sp<::foo::IFooType>&, ::android::sp<::foo::IFooType>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status NullableBinder(::android::sp<::foo::IFooType>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status StringListMethod(const ::std::vector<::android::String16>&, ::std::vector<::android::String16>*, ::std::vector<::android::String16>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status BinderListMethod(const ::std::vector<::android::sp<::android::IBinder>>&, ::std::vector<::android::sp<::android::IBinder>>*, ::std::vector<::android::sp<::android::IBinder>>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status TakesAFileDescriptor(::android::base::unique_fd, ::android::base::unique_fd* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+  ::android::binder::Status TakesAFileDescriptorArray(const ::std::vector<::android::base::unique_fd>&, ::std::vector<::android::base::unique_fd>* ) override {
+    return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
+  }
+};  // class IComplexTypeInterfaceDefault
 
 }  // namespace os
 
@@ -1336,42 +1353,6 @@ namespace android {
 namespace os {
 
 DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(ComplexTypeInterface, "android.os.IComplexTypeInterface")
-
-::android::IBinder* IComplexTypeInterfaceDefault::onAsBinder() {
-  return nullptr;
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::Send(const ::std::unique_ptr<::std::vector<int32_t>>&, ::std::vector<double>*, ::std::vector<bool>*, ::std::vector<int32_t>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::Piff(int32_t) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::TakesABinder(const ::android::sp<::foo::IFooType>&, ::android::sp<::foo::IFooType>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::NullableBinder(::android::sp<::foo::IFooType>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::StringListMethod(const ::std::vector<::android::String16>&, ::std::vector<::android::String16>*, ::std::vector<::android::String16>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::BinderListMethod(const ::std::vector<::android::sp<::android::IBinder>>&, ::std::vector<::android::sp<::android::IBinder>>*, ::std::vector<::android::sp<::android::IBinder>>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::TakesAFileDescriptor(::android::base::unique_fd, ::android::base::unique_fd* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
-
-::android::binder::Status IComplexTypeInterfaceDefault::TakesAFileDescriptorArray(const ::std::vector<::android::base::unique_fd>&, ::std::vector<::android::base::unique_fd>* ) {
-  return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
-}
 
 }  // namespace os
 
