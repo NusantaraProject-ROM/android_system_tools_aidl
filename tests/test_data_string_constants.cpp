@@ -147,9 +147,10 @@ public:
 
 class IStringConstantsDefault : public IStringConstants {
 public:
-  ::android::IBinder* onAsBinder() override;
-  
-};
+  ::android::IBinder* onAsBinder() override {
+    return nullptr;
+  }
+};  // class IStringConstantsDefault
 
 }  // namespace os
 
@@ -171,10 +172,6 @@ DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(StringConstants, "android.os.ISt
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
   static const ::android::String16 value(::android::String16("foo"));
   return value;
-}
-
-::android::IBinder* IStringConstantsDefault::onAsBinder() {
-  return nullptr;
 }
 
 }  // namespace os
@@ -400,7 +397,7 @@ public interface IStringConstants extends android.os.IInterface
 )";
 
 const char kExpectedIHeaderOutputWithVersionAndHash[] =
-R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
+    R"(#ifndef AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 #define AIDL_GENERATED_ANDROID_OS_I_STRING_CONSTANTS_H_
 
 #include <binder/IBinder.h>
@@ -426,11 +423,16 @@ public:
 
 class IStringConstantsDefault : public IStringConstants {
 public:
-  ::android::IBinder* onAsBinder() override;
-  int32_t getInterfaceVersion() override;
-  std::string getInterfaceHash() override;
-
-};
+  ::android::IBinder* onAsBinder() override {
+    return nullptr;
+  }
+  int32_t getInterfaceVersion() override {
+    return 0;
+  }
+  std::string getInterfaceHash() override {
+    return "";
+  }
+};  // class IStringConstantsDefault
 
 }  // namespace os
 
@@ -452,18 +454,6 @@ DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(StringConstants, "android.os.ISt
 const ::android::String16& IStringConstants::EXAMPLE_CONSTANT() {
   static const ::android::String16 value(::android::String16("foo"));
   return value;
-}
-
-::android::IBinder* IStringConstantsDefault::onAsBinder() {
-  return nullptr;
-}
-
-int32_t IStringConstantsDefault::getInterfaceVersion() {
-  return 0;
-}
-
-std::string IStringConstantsDefault::getInterfaceHash() {
-  return "";
 }
 
 }  // namespace os
