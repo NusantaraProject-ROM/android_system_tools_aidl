@@ -413,16 +413,16 @@ public:
   ::android::IBinder* onAsBinder() override {
     return nullptr;
   }
-  ::android::binder::Status Ping(const ::android::String16&, ::android::String16* ) override {
+  ::android::binder::Status Ping(const ::android::String16&, ::android::String16*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) override {
+  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string* ) override {
+  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) override {
+  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
 };  // class IPingResponderDefault
@@ -889,16 +889,16 @@ public:
   ::android::IBinder* onAsBinder() override {
     return nullptr;
   }
-  ::android::binder::Status Ping(const ::android::String16&, ::android::String16* ) override {
+  ::android::binder::Status Ping(const ::android::String16&, ::android::String16*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>* ) override {
+  ::android::binder::Status NullablePing(const ::std::unique_ptr<::android::String16>&, ::std::unique_ptr<::android::String16>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string* ) override {
+  ::android::binder::Status Utf8Ping(const ::std::string&, ::std::string*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>* ) override {
+  ::android::binder::Status NullableUtf8Ping(const ::std::unique_ptr<::std::string>&, ::std::unique_ptr<::std::string>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
   int32_t getInterfaceVersion() override {
