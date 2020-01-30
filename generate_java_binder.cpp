@@ -1083,7 +1083,11 @@ std::unique_ptr<Class> generate_binder_interface_class(const AidlInterface* ifac
   // all the declared constants of the interface
   for (const auto& constant : iface->GetConstantDeclarations()) {
     const AidlConstantValue& value = constant->GetValue();
-
+    auto comment = constant->GetType().GetComments();
+    if (comment.length() != 0) {
+      auto code = StringPrintf("%s\n", comment.c_str());
+      interface->elements.push_back(std::make_shared<LiteralClassElement>(code));
+    }
     switch (value.GetType()) {
       case AidlConstantValue::Type::STRING: {
         generate_string_constant(interface.get(), constant->GetName(),
