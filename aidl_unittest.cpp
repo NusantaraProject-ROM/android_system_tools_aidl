@@ -833,24 +833,31 @@ TEST_F(AidlTest, ApiDump) {
       "foo/bar/IFoo.aidl",
       "package foo.bar;\n"
       "import foo.bar.Data;\n"
-      "// comment\n"
+      "// comment @hide\n"
       "interface IFoo {\n"
+      "    /* @hide */\n"
       "    int foo(out int[] a, String b, boolean c, inout List<String>  d);\n"
       "    int foo2(@utf8InCpp String x, inout List<String>  y);\n"
       "    IFoo foo3(IFoo foo);\n"
       "    Data getData();\n"
+      "    // @hide\n"
       "    const int A = 1;\n"
       "    const String STR = \"Hello\";\n"
       "}\n");
   io_delegate_.SetFileContents("foo/bar/Data.aidl",
                                "package foo.bar;\n"
                                "import foo.bar.IFoo;\n"
+                               "/* @hide*/\n"
                                "parcelable Data {\n"
+                               "   // @hide\n"
                                "   int x = 10;\n"
+                               "   // @hide\n"
                                "   int y;\n"
                                "   IFoo foo;\n"
                                "   List<IFoo> a;\n"
+                               "   /*@hide2*/\n"
                                "   List<foo.bar.IFoo> b;\n"
+                               "   // It should be @hide property\n"
                                "   @nullable String[] c;\n"
                                "}\n");
   io_delegate_.SetFileContents("api.aidl", "");
@@ -862,11 +869,14 @@ TEST_F(AidlTest, ApiDump) {
   string actual;
   EXPECT_TRUE(io_delegate_.GetWrittenContents("dump/foo/bar/IFoo.aidl", &actual));
   EXPECT_EQ(actual, R"(package foo.bar;
+/* @hide */
 interface IFoo {
+  /* @hide */
   int foo(out int[] a, String b, boolean c, inout List<String> d);
   int foo2(@utf8InCpp String x, inout List<String> y);
   foo.bar.IFoo foo3(foo.bar.IFoo foo);
   foo.bar.Data getData();
+  /* @hide */
   const int A = 1;
   const String STR = "Hello";
 }
@@ -874,12 +884,16 @@ interface IFoo {
 
   EXPECT_TRUE(io_delegate_.GetWrittenContents("dump/foo/bar/Data.aidl", &actual));
   EXPECT_EQ(actual, R"(package foo.bar;
+/* @hide */
 parcelable Data {
+  /* @hide */
   int x = 10;
+  /* @hide */
   int y;
   foo.bar.IFoo foo;
   List<foo.bar.IFoo> a;
   List<foo.bar.IFoo> b;
+  /* @hide */
   @nullable String[] c;
 }
 )");
