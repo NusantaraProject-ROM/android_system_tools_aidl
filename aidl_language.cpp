@@ -55,7 +55,7 @@ using std::unique_ptr;
 using std::vector;
 
 namespace {
-bool is_java_keyword(const char* str) {
+bool IsJavaKeyword(const char* str) {
   static const std::vector<std::string> kJavaKeywords{
       "abstract", "assert", "boolean",    "break",     "byte",       "case",      "catch",
       "char",     "class",  "const",      "continue",  "default",    "do",        "double",
@@ -67,6 +67,14 @@ bool is_java_keyword(const char* str) {
       "while",    "true",   "false",      "null",
   };
   return std::find(kJavaKeywords.begin(), kJavaKeywords.end(), str) != kJavaKeywords.end();
+}
+
+void AddHideComment(CodeWriter* writer) {
+  writer->Write("/* @hide */\n");
+}
+
+inline bool HasHideComment(const std::string& comment) {
+  return std::regex_search(comment, std::regex("@hide\\b"));
 }
 }  // namespace
 
@@ -338,6 +346,10 @@ AidlTypeSpecifier AidlTypeSpecifier::ArrayBase() const {
   AidlTypeSpecifier array_base = *this;
   array_base.is_array_ = false;
   return array_base;
+}
+
+bool AidlTypeSpecifier::IsHidden() const {
+  return HasHideComment(GetComments());
 }
 
 string AidlTypeSpecifier::ToString() const {
@@ -620,6 +632,9 @@ AidlMethod::AidlMethod(const AidlLocation& location, bool oneway, AidlTypeSpecif
   }
 }
 
+bool AidlMethod::IsHidden() const {
+  return HasHideComment(GetComments());
+}
 
 string AidlMethod::Signature() const {
   vector<string> arg_signatures;
@@ -649,6 +664,10 @@ AidlDefinedType::AidlDefinedType(const AidlLocation& location, const std::string
 
 std::string AidlDefinedType::GetPackage() const {
   return Join(package_, '.');
+}
+
+bool AidlDefinedType::IsHidden() const {
+  return HasHideComment(GetComments());
 }
 
 std::string AidlDefinedType::GetCanonicalName() const {
@@ -720,7 +739,7 @@ bool AidlParcelable::CheckValid(const AidlTypenames&) const {
   return true;
 }
 
-void AidlParcelable::Write(CodeWriter* writer) const {
+void AidlParcelable::Dump(CodeWriter* writer) const {
   writer->Write("parcelable %s ;\n", GetName().c_str());
 }
 
@@ -730,10 +749,16 @@ AidlStructuredParcelable::AidlStructuredParcelable(
     : AidlParcelable(location, name, package, comments, "" /*cpp_header*/),
       variables_(std::move(*variables)) {}
 
-void AidlStructuredParcelable::Write(CodeWriter* writer) const {
+void AidlStructuredParcelable::Dump(CodeWriter* writer) const {
+  if (this->IsHidden()) {
+    AddHideComment(writer);
+  }
   writer->Write("parcelable %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& field : GetFields()) {
+    if (field->GetType().IsHidden()) {
+      AddHideComment(writer);
+    }
     writer->Write("%s;\n", field->ToString().c_str());
   }
   writer->Dedent();
@@ -901,7 +926,7 @@ bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
   return success;
 }
 
-void AidlEnumDeclaration::Write(CodeWriter* writer) const {
+void AidlEnumDeclaration::Dump(CodeWriter* writer) const {
   writer->Write("%s\n", AidlAnnotatable::ToString().c_str());
   writer->Write("enum %s {\n", GetName().c_str());
   writer->Indent();
@@ -953,13 +978,22 @@ AidlInterface::AidlInterface(const AidlLocation& location, const std::string& na
   delete members;
 }
 
-void AidlInterface::Write(CodeWriter* writer) const {
+void AidlInterface::Dump(CodeWriter* writer) const {
+  if (this->IsHidden()) {
+    AddHideComment(writer);
+  }
   writer->Write("interface %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& method : GetMethods()) {
+    if (method->IsHidden()) {
+      AddHideComment(writer);
+    }
     writer->Write("%s;\n", method->ToString().c_str());
   }
   for (const auto& constdecl : GetConstantDeclarations()) {
+    if (constdecl->GetType().IsHidden()) {
+      AddHideComment(writer);
+    }
     writer->Write("%s;\n", constdecl->ToString().c_str());
   }
   writer->Dedent();
@@ -1013,7 +1047,7 @@ bool AidlInterface::CheckValid(const AidlTypenames& typenames) const {
       }
 
       // check that the name doesn't match a keyword
-      if (is_java_keyword(arg->GetName().c_str())) {
+      if (IsJavaKeyword(arg->GetName().c_str())) {
         AIDL_ERROR(arg) << "Argument name is a Java or aidl keyword";
         return false;
       }

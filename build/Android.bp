@@ -82,7 +82,11 @@ aidl_interface {
         "tests_1/some_package/Thing.aidl",
         "tests_1/some_package/sub_package/*.aidl", // testing glob w/o filegroup
     ],
-    versions: ["1"],
+    versions: [
+        "1",
+        "2",
+        "3",
+    ],
 }
 
 aidl_interface {
@@ -130,5 +134,8 @@ aidl_interface {
     imports: [
         "test-piece-2",
     ],
-    versions: ["1", "2"],
+    versions: [
+        "1",
+        "2",
+    ],
 }

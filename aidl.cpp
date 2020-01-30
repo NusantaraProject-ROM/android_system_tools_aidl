@@ -842,7 +842,7 @@ bool dump_api(const Options& options, const IoDelegate& io_delegate) {
         if (!type->GetPackage().empty()) {
           (*writer) << "package " << type->GetPackage() << ";\n";
         }
-        type->Write(writer.get());
+        type->Dump(writer.get());
       }
     } else {
       return false;
