@@ -1311,28 +1311,28 @@ public:
   ::android::IBinder* onAsBinder() override {
     return nullptr;
   }
-  ::android::binder::Status Send(const ::std::unique_ptr<::std::vector<int32_t>>&, ::std::vector<double>*, ::std::vector<bool>*, ::std::vector<int32_t>* ) override {
+  ::android::binder::Status Send(const ::std::unique_ptr<::std::vector<int32_t>>&, ::std::vector<double>*, ::std::vector<bool>*, ::std::vector<int32_t>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
   ::android::binder::Status Piff(int32_t) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status TakesABinder(const ::android::sp<::foo::IFooType>&, ::android::sp<::foo::IFooType>* ) override {
+  ::android::binder::Status TakesABinder(const ::android::sp<::foo::IFooType>&, ::android::sp<::foo::IFooType>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status NullableBinder(::android::sp<::foo::IFooType>* ) override {
+  ::android::binder::Status NullableBinder(::android::sp<::foo::IFooType>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status StringListMethod(const ::std::vector<::android::String16>&, ::std::vector<::android::String16>*, ::std::vector<::android::String16>* ) override {
+  ::android::binder::Status StringListMethod(const ::std::vector<::android::String16>&, ::std::vector<::android::String16>*, ::std::vector<::android::String16>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status BinderListMethod(const ::std::vector<::android::sp<::android::IBinder>>&, ::std::vector<::android::sp<::android::IBinder>>*, ::std::vector<::android::sp<::android::IBinder>>* ) override {
+  ::android::binder::Status BinderListMethod(const ::std::vector<::android::sp<::android::IBinder>>&, ::std::vector<::android::sp<::android::IBinder>>*, ::std::vector<::android::sp<::android::IBinder>>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status TakesAFileDescriptor(::android::base::unique_fd, ::android::base::unique_fd* ) override {
+  ::android::binder::Status TakesAFileDescriptor(::android::base::unique_fd, ::android::base::unique_fd*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status TakesAFileDescriptorArray(const ::std::vector<::android::base::unique_fd>&, ::std::vector<::android::base::unique_fd>* ) override {
+  ::android::binder::Status TakesAFileDescriptorArray(const ::std::vector<::android::base::unique_fd>&, ::std::vector<::android::base::unique_fd>*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
 };  // class IComplexTypeInterfaceDefault
