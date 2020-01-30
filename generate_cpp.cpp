@@ -142,8 +142,10 @@ ArgList BuildArgList(const AidlTypenames& typenames, const AidlMethod& method, b
   if (method.GetType().GetName() != "void") {
     string literal;
     if (for_declaration) {
-      literal = StringPrintf("%s* %s", CppNameOf(method.GetType(), typenames).c_str(),
-                             type_name_only ? "" : kReturnVarName);
+      literal = CppNameOf(method.GetType(), typenames) + "*";
+      if (!type_name_only) {
+        literal += " " + string(kReturnVarName);
+      }
     } else {
       literal = string{"&"} + kReturnVarName;
     }
