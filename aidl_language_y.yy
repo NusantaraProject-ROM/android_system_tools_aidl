@@ -490,6 +490,7 @@ constant_decl
  : CONST type identifier '=' const_expr ';' {
     $2->SetComments($1->GetComments());
     $$ = new AidlConstantDeclaration(loc(@3), $2, $3->GetText(), $5);
+    delete $1;
     delete $3;
    }
  ;
