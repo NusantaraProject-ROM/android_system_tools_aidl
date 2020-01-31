@@ -1,6 +1,8 @@
 cc_test {
     name: "aidl_lazy_test",
     srcs: ["main.cpp"],
+    test_suites: ["general-tests"],
+    require_root: true,
 
     shared_libs: [
         "libbase",
@@ -14,6 +16,7 @@ cc_binary {
     name: "aidl_lazy_test_server",
     srcs: ["server.cpp"],
     init_rc: ["aidl_lazy_test_server.rc"],
+    system_ext_specific: true,
 
     shared_libs: [
         "libbinder",
