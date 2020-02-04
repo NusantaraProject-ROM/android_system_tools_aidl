@@ -130,6 +130,9 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 			symbol_file: "libdl.map.txt",
 			first_version: "9",
 		}
+		aidl_interfaces_metadata {
+			name: "aidl_metadata_json",
+		}
 	`
 	fs := map[string][]byte{
 		"a.java":              nil,
@@ -172,6 +175,7 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 	ctx := android.NewTestArchContext()
 	cc.RegisterRequiredBuildComponentsForTest(ctx)
 	ctx.RegisterModuleType("aidl_interface", aidlInterfaceFactory)
+	ctx.RegisterModuleType("aidl_interfaces_metadata", aidlInterfacesMetadataSingletonFactory)
 	ctx.RegisterModuleType("android_app", java.AndroidAppFactory)
 	ctx.RegisterModuleType("java_defaults", func() android.Module {
 		return java.DefaultsFactory()

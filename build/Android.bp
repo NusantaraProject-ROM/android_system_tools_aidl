@@ -34,6 +34,11 @@ bootstrap_go_package {
     pluginFor: ["soong_build"],
 }
 
+aidl_interfaces_metadata {
+    name: "aidl_metadata_json",
+    visibility: ["//system/tools/aidl:__subpackages__"],
+}
+
 // These configurations are inherited by all aidl-gen modules
 
 cc_defaults {
