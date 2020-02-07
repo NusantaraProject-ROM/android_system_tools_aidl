@@ -309,7 +309,7 @@ AidlConstantValue* AidlConstantValue::String(const AidlLocation& location, const
 }
 
 AidlConstantValue* AidlConstantValue::ShallowIntegralCopy(const AidlConstantValue& other) {
-  // TODO(b/142894901): Perform full proper copy
+  // TODO(b/141313220) Perform a full copy instead of parsing+unparsing
   AidlTypeSpecifier type = AidlTypeSpecifier(AIDL_LOCATION_HERE, "long", false, nullptr, "");
   // TODO(b/142722772) CheckValid() should be called before ValueString()
   if (!other.CheckValid() || !other.evaluate(type)) {
