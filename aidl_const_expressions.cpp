@@ -755,7 +755,7 @@ bool AidlBinaryConstExpression::evaluate(const AidlTypeSpecifier& type) const {
     // instead of promoting rval, simply casting it to int64 should also be good.
     int64_t numBits = right_val_->cast<int64_t>();
     if (numBits < 0) {
-      // shifting with negative number of bits is undefined in C. In HIDL it
+      // shifting with negative number of bits is undefined in C. In AIDL it
       // is defined as shifting into the other direction.
       newOp = OPEQ("<<") ? ">>" : "<<";
       numBits = -numBits;
