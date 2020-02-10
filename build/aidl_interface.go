@@ -636,10 +636,12 @@ func aidlApiFactory() android.Module {
 type CommonBackendProperties struct {
 	// Whether to generate code in the corresponding backend.
 	// Default: true
-	Enabled *bool
+	Enabled        *bool
+	Apex_available []string
 }
 
 type CommonNativeBackendProperties struct {
+	CommonBackendProperties
 	// Whether to generate additional code for gathering information
 	// about the transactions.
 	// Default: false
@@ -701,13 +703,11 @@ type aidlInterfaceProperties struct {
 		// Backend of the compiler generating code for C++ clients using
 		// libbinder (unstable C++ interface)
 		Cpp struct {
-			CommonBackendProperties
 			CommonNativeBackendProperties
 		}
 		// Backend of the compiler generating code for C++ clients using
 		// libbinder_ndk (stable C interface to system's libbinder)
 		Ndk struct {
-			CommonBackendProperties
 			CommonNativeBackendProperties
 		}
 	}
@@ -1028,6 +1028,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Cpp_std:                   cpp_std,
 		Cflags:                    append(addCflags, "-Wextra", "-Wall", "-Werror"),
 		Stem:                      proptools.StringPtr(cppOutputGen),
+		Apex_available:            commonProperties.Apex_available,
 	}, &i.properties.VndkProperties, &commonProperties.VndkProperties)
 
 	return cppModuleGen
@@ -1066,13 +1067,14 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 	})
 
 	mctx.CreateModule(java.LibraryFactory, &javaProperties{
-		Name:          proptools.StringPtr(javaModuleGen),
-		Installable:   proptools.BoolPtr(true),
-		Defaults:      []string{"aidl-java-module-defaults"},
-		Sdk_version:   sdkVersion,
-		Platform_apis: i.properties.Backend.Java.Platform_apis,
-		Static_libs:   wrap("", i.properties.Imports, "-java"),
-		Srcs:          []string{":" + javaSourceGen},
+		Name:           proptools.StringPtr(javaModuleGen),
+		Installable:    proptools.BoolPtr(true),
+		Defaults:       []string{"aidl-java-module-defaults"},
+		Sdk_version:    sdkVersion,
+		Platform_apis:  i.properties.Backend.Java.Platform_apis,
+		Static_libs:    wrap("", i.properties.Imports, "-java"),
+		Srcs:           []string{":" + javaSourceGen},
+		Apex_available: i.properties.Backend.Java.Apex_available,
 	})
 
 	return javaModuleGen
