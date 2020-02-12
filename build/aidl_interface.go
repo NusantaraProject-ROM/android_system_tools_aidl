@@ -1010,9 +1010,21 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		panic("Unrecognized language: " + lang)
 	}
 
+	vendorAvailable := i.properties.Vendor_available
+	if lang == langCpp && "vintf" == proptools.String(i.properties.Stability) {
+		// Vendors cannot use the libbinder (cpp) backend of AIDL in a way that is stable.
+		// So, in order to prevent accidental usage of these library by vendor, forcibly
+		// disabling this version of the library.
+		//
+		// It may be the case in the future that we will want to enable this (if some generic
+		// helper should be used by both libbinder vendor things using /dev/vndbinder as well
+		// as those things using /dev/binder + libbinder_ndk to talk to stable interfaces).
+		vendorAvailable = proptools.BoolPtr(false)
+	}
+
 	mctx.CreateModule(cc.LibraryFactory, &ccProperties{
 		Name:                      proptools.StringPtr(cppModuleGen),
-		Vendor_available:          i.properties.Vendor_available,
+		Vendor_available:          vendorAvailable,
 		Host_supported:            host_supported,
 		Defaults:                  []string{"aidl-cpp-module-defaults"},
 		Generated_sources:         []string{cppSourceGen},
