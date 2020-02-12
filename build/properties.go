@@ -44,17 +44,19 @@ type ccProperties struct {
 	Cpp_std                   *string
 	Cflags                    []string
 	Stem                      *string
+	Apex_available            []string
 }
 
 type javaProperties struct {
-	Name          *string
-	Owner         *string
-	Defaults      []string
-	Installable   *bool
-	Sdk_version   *string
-	Platform_apis *bool
-	Srcs          []string
-	Static_libs   []string
+	Name           *string
+	Owner          *string
+	Defaults       []string
+	Installable    *bool
+	Sdk_version    *string
+	Platform_apis  *bool
+	Srcs           []string
+	Static_libs    []string
+	Apex_available []string
 }
 
 type phonyProperties struct {
