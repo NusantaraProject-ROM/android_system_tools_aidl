@@ -597,7 +597,7 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
   out << "return std::static_pointer_cast<" << clazz << ">(interface);\n";
   out.Dedent();
   out << "}\n";
-  out << "return (new " << bp_clazz << "(binder))->ref<" << clazz << ">();\n";
+  out << "return ::ndk::SharedRefBase::make<" << bp_clazz << ">(binder);\n";
   out.Dedent();
   out << "}\n\n";
 
