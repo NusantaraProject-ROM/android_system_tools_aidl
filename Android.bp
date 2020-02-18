@@ -44,6 +44,9 @@ cc_library_static {
     name: "libaidl-common",
     defaults: ["aidl_defaults"],
     host_supported: true,
+    cflags: [
+        "-Wno-bool-operation", // found in aidl_const_expressions.cpp:69
+    ],
 
     srcs: [
         "aidl.cpp",
