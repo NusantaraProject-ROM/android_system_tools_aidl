@@ -72,10 +72,10 @@ var (
 
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
-			`${aidlCmd} --dumpapi --structured ${imports} --out ${outDir} ${in} && ` +
+			`${aidlCmd} --dumpapi --structured ${imports} ${optionalFlags} --out ${outDir} ${in} && ` +
 			`(cd ${outDir} && find ./ -name "*.aidl" -print0 | LC_ALL=C sort -z | xargs -0 sha1sum && echo ${latestVersion}) | sha1sum > ${hashFile} `,
 		CommandDeps: []string{"${aidlCmd}"},
-	}, "imports", "outDir", "hashFile", "latestVersion")
+	}, "optionalFlags", "imports", "outDir", "hashFile", "latestVersion")
 
 	aidlMetadataRule = pctx.StaticRule("aidlMetadataRule", blueprint.RuleParams{
 		Command: `rm -f ${out} && { ` +
@@ -107,11 +107,11 @@ var (
 		}, "to", "name", "version", "bp", "apiDir", "apiPreamble")
 
 	aidlCheckApiRule = pctx.StaticRule("aidlCheckApiRule", blueprint.RuleParams{
-		Command: `(${aidlCmd} --checkapi ${old} ${new} && touch ${out}) || ` +
+		Command: `(${aidlCmd} ${optionalFlags} --checkapi ${old} ${new} && touch ${out}) || ` +
 			`(cat ${messageFile} && exit 1)`,
 		CommandDeps: []string{"${aidlCmd}"},
 		Description: "AIDL CHECK API: ${new} against ${old}",
-	}, "old", "new", "messageFile")
+	}, "optionalFlags", "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
 		Command: `(diff -N --line-format="" ${oldHashFile} ${newHashFile} && diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
@@ -405,11 +405,12 @@ func aidlGenFactory() android.Module {
 }
 
 type aidlApiProperties struct {
-	BaseName string
-	Srcs     []string `android:"path"`
-	AidlRoot string   // base directory for the input aidl file
-	Imports  []string
-	Versions []string
+	BaseName  string
+	Srcs      []string `android:"path"`
+	AidlRoot  string   // base directory for the input aidl file
+	Stability *string
+	Imports   []string
+	Versions  []string
 }
 
 type aidlApi struct {
@@ -473,11 +474,18 @@ func (m *aidlApi) createApiDumpFromSource(ctx android.ModuleContext) (apiDir and
 	if len(m.properties.Versions) >= 1 {
 		latestVersion = m.properties.Versions[len(m.properties.Versions)-1]
 	}
+
+	var optionalFlags []string
+	if m.properties.Stability != nil {
+		optionalFlags = append(optionalFlags, "--stability", *m.properties.Stability)
+	}
+
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:    aidlDumpApiRule,
 		Outputs: append(apiFiles, hashFile),
 		Inputs:  srcs,
 		Args: map[string]string{
+			"optionalFlags": strings.Join(optionalFlags, " "),
 			"imports":       strings.Join(wrap("-I", importPaths, ""), " "),
 			"outDir":        apiDir.String(),
 			"hashFile":      hashFile.String(),
@@ -519,6 +527,12 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 	newVersion := newApiDir.Base()
 	timestampFile := android.PathForModuleOut(ctx, "checkapi_"+newVersion+".timestamp")
 	messageFile := android.PathForSource(ctx, "system/tools/aidl/build/message_check_compatibility.txt")
+
+	var optionalFlags []string
+	if m.properties.Stability != nil {
+		optionalFlags = append(optionalFlags, "--stability", *m.properties.Stability)
+	}
+
 	var implicits android.Paths
 	implicits = append(implicits, oldApiFiles...)
 	implicits = append(implicits, newApiFiles...)
@@ -528,9 +542,10 @@ func (m *aidlApi) checkCompatibility(ctx android.ModuleContext, oldApiDir androi
 		Implicits: implicits,
 		Output:    timestampFile,
 		Args: map[string]string{
-			"old":         oldApiDir.String(),
-			"new":         newApiDir.String(),
-			"messageFile": messageFile.String(),
+			"optionalFlags": strings.Join(optionalFlags, " "),
+			"old":           oldApiDir.String(),
+			"new":           newApiDir.String(),
+			"messageFile":   messageFile.String(),
 		},
 	})
 	return timestampFile
@@ -1098,11 +1113,12 @@ func addApiModule(mctx android.LoadHookContext, i *aidlInterface) string {
 	mctx.CreateModule(aidlApiFactory, &nameProperties{
 		Name: proptools.StringPtr(apiModule),
 	}, &aidlApiProperties{
-		BaseName: i.ModuleBase.Name(),
-		Srcs:     srcs,
-		AidlRoot: aidlRoot,
-		Imports:  concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
-		Versions: i.properties.Versions,
+		BaseName:  i.ModuleBase.Name(),
+		Srcs:      srcs,
+		AidlRoot:  aidlRoot,
+		Stability: i.properties.Stability,
+		Imports:   concat(i.properties.Imports, []string{i.ModuleBase.Name()}),
+		Versions:  i.properties.Versions,
 	})
 	return apiModule
 }
