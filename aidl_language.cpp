@@ -683,6 +683,13 @@ std::string AidlDefinedType::GetCanonicalName() const {
   return GetPackage() + "." + GetName();
 }
 
+void AidlDefinedType::DumpHeader(CodeWriter* writer) const {
+  if (this->IsHidden()) {
+    AddHideComment(writer);
+  }
+  DumpAnnotations(writer);
+}
+
 AidlParcelable::AidlParcelable(const AidlLocation& location, AidlQualifiedName* name,
                                const std::vector<std::string>& package, const std::string& comments,
                                const std::string& cpp_header, std::vector<std::string>* type_params)
@@ -746,7 +753,7 @@ bool AidlParcelable::CheckValid(const AidlTypenames&) const {
 }
 
 void AidlParcelable::Dump(CodeWriter* writer) const {
-  DumpAnnotations(writer);
+  DumpHeader(writer);
   writer->Write("parcelable %s ;\n", GetName().c_str());
 }
 
@@ -757,10 +764,7 @@ AidlStructuredParcelable::AidlStructuredParcelable(
       variables_(std::move(*variables)) {}
 
 void AidlStructuredParcelable::Dump(CodeWriter* writer) const {
-  if (this->IsHidden()) {
-    AddHideComment(writer);
-  }
-  DumpAnnotations(writer);
+  DumpHeader(writer);
   writer->Write("parcelable %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& field : GetFields()) {
@@ -935,7 +939,7 @@ bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
 }
 
 void AidlEnumDeclaration::Dump(CodeWriter* writer) const {
-  DumpAnnotations(writer);
+  DumpHeader(writer);
   writer->Write("enum %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& enumerator : GetEnumerators()) {
@@ -987,10 +991,7 @@ AidlInterface::AidlInterface(const AidlLocation& location, const std::string& na
 }
 
 void AidlInterface::Dump(CodeWriter* writer) const {
-  if (this->IsHidden()) {
-    AddHideComment(writer);
-  }
-  DumpAnnotations(writer);
+  DumpHeader(writer);
   writer->Write("interface %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& method : GetMethods()) {
