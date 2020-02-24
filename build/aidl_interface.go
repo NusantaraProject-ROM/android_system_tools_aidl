@@ -82,11 +82,12 @@ var (
 			`echo '{' && ` +
 			`echo "\"name\": \"${name}\"," && ` +
 			`echo "\"stability\": \"${stability}\"," && ` +
-			`echo "\"types\": [${types}]" && ` +
+			`echo "\"types\": [${types}]," && ` +
+			`echo "\"hashes\": [${hashes}]" && ` +
 			`echo '}' ` +
 			`;} >> ${out}`,
 		Description: "AIDL metadata: ${out}",
-	}, "name", "stability", "types")
+	}, "name", "stability", "types", "hashes")
 
 	aidlDumpMappingsRule = pctx.StaticRule("aidlDumpMappingsRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
@@ -211,6 +212,9 @@ type aidlGenRule struct {
 	implicitInputs android.Paths
 	importFlags    string
 
+	// TODO(b/149952131): always have a hash file
+	hashFile android.Path
+
 	genOutDir     android.ModuleGenPath
 	genHeaderDir  android.ModuleGenPath
 	genHeaderDeps android.Paths
@@ -303,6 +307,8 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 			if hashFile.Valid() {
 				hash = "$$(read -r <" + hashFile.Path().String() + " hash extra; printf '%s' \"$$hash\")"
 				implicits = append(implicits, hashFile.Path())
+
+				g.hashFile = hashFile.Path()
 			}
 		}
 		optionalFlags = append(optionalFlags, "--hash "+hash)
@@ -395,6 +401,8 @@ func (g *aidlGenRule) GeneratedHeaderDirs() android.Paths {
 func (g *aidlGenRule) DepsMutator(ctx android.BottomUpMutatorContext) {
 	ctx.AddDependency(ctx.Module(), nil, wrap("", g.properties.Imports, aidlInterfaceSuffix)...)
 	ctx.AddDependency(ctx.Module(), nil, g.properties.BaseName+aidlApiSuffix)
+
+	ctx.AddReverseDependency(ctx.Module(), nil, aidlMetadataSingletonName)
 }
 
 func aidlGenFactory() android.Module {
@@ -1189,25 +1197,61 @@ func (m *aidlInterfacesMetadataSingleton) GenerateAndroidBuildActions(ctx androi
 		return
 	}
 
-	var metadataOutputs android.Paths
+	type ModuleInfo struct {
+		Stability     string
+		ComputedTypes []string
+		HashFiles     []string
+	}
+
+	// name -> ModuleInfo
+	moduleInfos := map[string]ModuleInfo{}
 	ctx.VisitDirectDeps(func(m android.Module) {
 		if !m.ExportedToMake() {
 			return
 		}
-		if t, ok := m.(*aidlInterface); ok {
-			metadataPath := android.PathForModuleOut(ctx, "metadata_"+m.Name())
-			ctx.Build(pctx, android.BuildParams{
-				Rule:   aidlMetadataRule,
-				Output: metadataPath,
-				Args: map[string]string{
-					"name":      t.Name(),
-					"stability": proptools.StringDefault(t.properties.Stability, ""),
-					"types":     strings.Join(wrap(`\"`, t.computedTypes, `\"`), ", "),
-				},
-			})
-			metadataOutputs = append(metadataOutputs, metadataPath)
+
+		switch t := m.(type) {
+		case *aidlInterface:
+			info := moduleInfos[t.ModuleBase.Name()]
+			info.Stability = proptools.StringDefault(t.properties.Stability, "")
+			info.ComputedTypes = t.computedTypes
+			moduleInfos[t.ModuleBase.Name()] = info
+		case *aidlGenRule:
+			info := moduleInfos[t.properties.BaseName]
+			if t.hashFile != nil {
+				info.HashFiles = append(info.HashFiles, t.hashFile.String())
+			}
+			moduleInfos[t.properties.BaseName] = info
+		default:
+			panic(fmt.Sprintf("Unrecognized module type: %v", t))
 		}
+
 	})
+
+	var metadataOutputs android.Paths
+	for name, info := range moduleInfos {
+		metadataPath := android.PathForModuleOut(ctx, "metadata_"+name)
+		metadataOutputs = append(metadataOutputs, metadataPath)
+
+		// There is one aidlGenRule per-version per-backend. If we had
+		// objects per version and sub-objects per backend, we could
+		// avoid needing to filter out duplicates.
+		info.HashFiles = android.FirstUniqueStrings(info.HashFiles)
+
+		ctx.Build(pctx, android.BuildParams{
+			Rule:   aidlMetadataRule,
+			Output: metadataPath,
+			Args: map[string]string{
+				"name":      name,
+				"stability": info.Stability,
+				"types":     strings.Join(wrap(`\"`, info.ComputedTypes, `\"`), ", "),
+				"hashes": strings.Join(
+					wrap(`\"$$(read -r < `,
+						info.HashFiles,
+						` hash extra; printf '%s' $$hash)\"`), ", "),
+			},
+		})
+	}
 
 	m.metadataPath = android.PathForModuleOut(ctx, "aidl_metadata.json").OutputPath
 

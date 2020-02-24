@@ -50,6 +50,11 @@ int main(int argc, char** argv) {
       std::cout << "std::string(\"" << intf.asString() << "\")," << std::endl;
     }
     std::cout << "}," << std::endl;
+    std::cout << "std::vector<std::string>{" << std::endl;
+    for (const Json::Value& intf : entry["hashes"]) {
+      std::cout << "std::string(\"" << intf.asString() << "\")," << std::endl;
+    }
+    std::cout << "}," << std::endl;
     std::cout << "}," << std::endl;
   }
   std::cout << "};" << std::endl;
