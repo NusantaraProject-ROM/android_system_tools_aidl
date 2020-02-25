@@ -245,6 +245,8 @@ class AidlAnnotatable : public AidlNode {
   bool IsSystemApi() const;
   bool IsStableApiParcelable(Options::Language lang) const;
 
+  void DumpAnnotations(CodeWriter* writer) const;
+
   const AidlAnnotation* UnsupportedAppUsage() const;
   const AidlTypeSpecifier* BackingType(const AidlTypenames& typenames) const;
   std::string ToString() const;

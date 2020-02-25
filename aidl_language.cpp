@@ -308,6 +308,12 @@ bool AidlAnnotatable::IsStableApiParcelable(Options::Language lang) const {
   return HasAnnotation(annotations_, kJavaStableParcelable) && lang == Options::Language::JAVA;
 }
 
+void AidlAnnotatable::DumpAnnotations(CodeWriter* writer) const {
+  if (annotations_.empty()) return;
+
+  writer->Write("%s\n", AidlAnnotatable::ToString().c_str());
+}
+
 bool AidlAnnotatable::CheckValidAnnotations() const {
   for (const auto& annotation : GetAnnotations()) {
     if (!annotation.CheckValid()) {
@@ -740,6 +746,7 @@ bool AidlParcelable::CheckValid(const AidlTypenames&) const {
 }
 
 void AidlParcelable::Dump(CodeWriter* writer) const {
+  DumpAnnotations(writer);
   writer->Write("parcelable %s ;\n", GetName().c_str());
 }
 
@@ -753,6 +760,7 @@ void AidlStructuredParcelable::Dump(CodeWriter* writer) const {
   if (this->IsHidden()) {
     AddHideComment(writer);
   }
+  DumpAnnotations(writer);
   writer->Write("parcelable %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& field : GetFields()) {
@@ -927,7 +935,7 @@ bool AidlEnumDeclaration::CheckValid(const AidlTypenames&) const {
 }
 
 void AidlEnumDeclaration::Dump(CodeWriter* writer) const {
-  writer->Write("%s\n", AidlAnnotatable::ToString().c_str());
+  DumpAnnotations(writer);
   writer->Write("enum %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& enumerator : GetEnumerators()) {
@@ -982,6 +990,7 @@ void AidlInterface::Dump(CodeWriter* writer) const {
   if (this->IsHidden()) {
     AddHideComment(writer);
   }
+  DumpAnnotations(writer);
   writer->Write("interface %s {\n", GetName().c_str());
   writer->Indent();
   for (const auto& method : GetMethods()) {
