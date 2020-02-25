@@ -242,7 +242,6 @@ class AidlAnnotatable : public AidlNode {
   bool IsNullable() const;
   bool IsUtf8InCpp() const;
   bool IsVintfStability() const;
-  bool IsSystemApi() const;
   bool IsStableApiParcelable(Options::Language lang) const;
 
   const AidlAnnotation* UnsupportedAppUsage() const;

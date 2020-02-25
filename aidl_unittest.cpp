@@ -74,16 +74,13 @@ const char kExpectedJavaParcelableOutputContests[] =
     R"(/*
  * This file is auto-generated.  DO NOT MODIFY.
  */
-@android.annotation.SystemApi
 public class Rect implements android.os.Parcelable
 {
   // Comment
 
-  @android.annotation.SystemApi
   public int x = 5;
 
-  @android.compat.annotation.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42L, overrideSourcePosition="Rect.aidl:7:1:10:14")
-  @android.annotation.SystemApi
+  @android.compat.annotation.UnsupportedAppUsage(expectedSignature = "dummy", implicitMember = "dummy", maxTargetSdk = 28, publicAlternatives = "dummy", trackingBug = 42L, overrideSourcePosition="Rect.aidl:4:1:7:14")
   public int y;
 
   public android.os.ParcelFileDescriptor fd;
@@ -497,12 +494,9 @@ TEST_F(AidlTest, WritePreprocessedFile) {
 TEST_F(AidlTest, JavaParcelableOutput) {
   io_delegate_.SetFileContents(
       "Rect.aidl",
-      "@SystemApi\n"
       "parcelable Rect {\n"
       "  // Comment\n"
-      "  @SystemApi\n"
       "  int x=5;\n"
-      "  @SystemApi\n"
       "  @UnsupportedAppUsage(maxTargetSdk = 28, trackingBug = 42, implicitMember = \"dummy\", "
       "expectedSignature = \"dummy\", publicAlternatives = \"d\" \n + \"u\" + \n \"m\" \n + \"m\" "
       "+ \"y\")\n"

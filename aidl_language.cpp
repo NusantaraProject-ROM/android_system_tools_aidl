@@ -128,7 +128,6 @@ static const string kNullable("nullable");
 static const string kUtf8InCpp("utf8InCpp");
 static const string kVintfStability("VintfStability");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
-static const string kSystemApi("SystemApi");
 static const string kJavaStableParcelable("JavaOnlyStableParcelable");
 static const string kBacking("Backing");
 
@@ -142,7 +141,6 @@ static const std::map<string, std::map<std::string, std::string>> kAnnotationPar
       {"maxTargetSdk", "int"},
       {"publicAlternatives", "String"},
       {"trackingBug", "long"}}},
-    {kSystemApi, {}},
     {kJavaStableParcelable, {}},
     {kBacking, {{"type", "String"}}}};
 
@@ -298,10 +296,6 @@ const AidlTypeSpecifier* AidlAnnotatable::BackingType(const AidlTypenames& typen
     }
   }
   return nullptr;
-}
-
-bool AidlAnnotatable::IsSystemApi() const {
-  return HasAnnotation(annotations_, kSystemApi);
 }
 
 bool AidlAnnotatable::IsStableApiParcelable(Options::Language lang) const {
