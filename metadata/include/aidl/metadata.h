@@ -31,6 +31,9 @@ struct AidlInterfaceMetadata {
   // list of types e.g. android.hardware.foo::IFoo
   std::vector<std::string> types;
 
+  // list of all hashes
+  std::vector<std::string> hashes;
+
   static std::vector<AidlInterfaceMetadata> all();
 };
 
