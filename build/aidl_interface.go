@@ -970,6 +970,22 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		return ""
 	}
 
+	// For an interface with no versions, this is the ToT interface.
+	// For an interface w/ versions, this is that latest version.
+	isLatest := !i.hasVersion() || version == i.latestVersion()
+
+	var overrideVndkProperties cc.VndkProperties
+	if !isLatest {
+		// We only want the VNDK to include the latest interface. For interfaces in
+		// development, they will be frozen, so we put their latest version in the
+		// VNDK. For interfaces which are already frozen, we put their latest version
+		// in the VNDK, and when that version is frozen, the version in the VNDK can
+		// be updated. Otherwise, we remove this library from the VNDK, to avoid adding
+		// multiple versions of the same library to the VNDK.
+		overrideVndkProperties.Vndk.Enabled = proptools.BoolPtr(false)
+		overrideVndkProperties.Vndk.Support_system_process = proptools.BoolPtr(false)
+	}
+
 	var commonProperties *CommonNativeBackendProperties
 	if lang == langCpp {
 		commonProperties = &i.properties.Backend.Cpp.CommonNativeBackendProperties
@@ -1056,7 +1072,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		Cflags:                    append(addCflags, "-Wextra", "-Wall", "-Werror"),
 		Stem:                      proptools.StringPtr(cppOutputGen),
 		Apex_available:            commonProperties.Apex_available,
-	}, &i.properties.VndkProperties, &commonProperties.VndkProperties)
+	}, &i.properties.VndkProperties, &commonProperties.VndkProperties, &overrideVndkProperties)
 
 	return cppModuleGen
 }
