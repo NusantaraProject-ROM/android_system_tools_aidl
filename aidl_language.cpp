@@ -129,6 +129,7 @@ static const string kUtf8InCpp("utf8InCpp");
 static const string kVintfStability("VintfStability");
 static const string kUnsupportedAppUsage("UnsupportedAppUsage");
 static const string kJavaStableParcelable("JavaOnlyStableParcelable");
+static const string kHide("Hide");
 static const string kBacking("Backing");
 
 static const std::map<string, std::map<std::string, std::string>> kAnnotationParameters{
@@ -142,6 +143,7 @@ static const std::map<string, std::map<std::string, std::string>> kAnnotationPar
       {"publicAlternatives", "String"},
       {"trackingBug", "long"}}},
     {kJavaStableParcelable, {}},
+    {kHide, {}},
     {kBacking, {{"type", "String"}}}};
 
 AidlAnnotation* AidlAnnotation::Parse(
@@ -300,6 +302,10 @@ const AidlTypeSpecifier* AidlAnnotatable::BackingType(const AidlTypenames& typen
 
 bool AidlAnnotatable::IsStableApiParcelable(Options::Language lang) const {
   return HasAnnotation(annotations_, kJavaStableParcelable) && lang == Options::Language::JAVA;
+}
+
+bool AidlAnnotatable::IsHide() const {
+  return HasAnnotation(annotations_, kHide);
 }
 
 void AidlAnnotatable::DumpAnnotations(CodeWriter* writer) const {

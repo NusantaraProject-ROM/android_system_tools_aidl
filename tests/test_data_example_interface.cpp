@@ -44,6 +44,7 @@ import android.test.CompoundParcelable;
 import android.bar.IAuxInterface;
 import android.test.IAuxInterface2;
 
+@Hide
 @UnsupportedAppUsage
 interface IExampleInterface {
     const int EXAMPLE_CONSTANT = 3;
@@ -52,6 +53,7 @@ interface IExampleInterface {
     String getAddress();
 
     /* Test long comment */
+    @Hide
     @UnsupportedAppUsage
     ExampleParcelable[] getParcelables();
 
@@ -120,7 +122,8 @@ const char kExpectedJavaOutput[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:9:1:9:21")
+@android.annotation.Hide
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -561,7 +564,8 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:17:1:17:25")
+  @android.annotation.Hide
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:19:1:19:25")
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 
@@ -580,7 +584,8 @@ const char kExpectedJavaOutputWithTransactionNames[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:9:1:9:21")
+@android.annotation.Hide
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -1073,7 +1078,8 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:17:1:17:25")
+  @android.annotation.Hide
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:19:1:19:25")
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 
@@ -1092,7 +1098,8 @@ const char kExpectedJavaOutputWithTrace[] =
  * This file is auto-generated.  DO NOT MODIFY.
  */
 package android.test;
-@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:9:1:9:21")
+@android.annotation.Hide
+@android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:10:1:10:21")
 public interface IExampleInterface extends android.os.IInterface
 {
   /** Default implementation for IExampleInterface. */
@@ -1613,7 +1620,8 @@ public interface IExampleInterface extends android.os.IInterface
   public int getState() throws android.os.RemoteException;
   public java.lang.String getAddress() throws android.os.RemoteException;
   /* Test long comment */
-  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:17:1:17:25")
+  @android.annotation.Hide
+  @android.compat.annotation.UnsupportedAppUsage(overrideSourcePosition="android/test/IExampleInterface.aidl:19:1:19:25")
   public android.foo.ExampleParcelable[] getParcelables() throws android.os.RemoteException;
   // Test short comment
 

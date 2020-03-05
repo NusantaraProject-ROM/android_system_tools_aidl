@@ -243,6 +243,7 @@ class AidlAnnotatable : public AidlNode {
   bool IsUtf8InCpp() const;
   bool IsVintfStability() const;
   bool IsStableApiParcelable(Options::Language lang) const;
+  bool IsHide() const;
 
   void DumpAnnotations(CodeWriter* writer) const;
 
