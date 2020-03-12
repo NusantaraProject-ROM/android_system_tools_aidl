@@ -102,6 +102,7 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 		"libbinder_ndk.map.txt":                                   nil,
 		"system/tools/aidl/build/api_preamble.txt":                nil,
 		"system/tools/aidl/build/message_check_compatibility.txt": nil,
+		"system/tools/aidl/build/message_check_equality.txt":      nil,
 	}
 
 	cc.GatherRequiredFilesForTest(fs)
