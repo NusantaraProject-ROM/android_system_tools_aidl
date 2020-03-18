@@ -77,7 +77,7 @@ var (
 	aidlDumpApiRule = pctx.StaticRule("aidlDumpApiRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && mkdir -p "${outDir}" && ` +
 			`${aidlCmd} --dumpapi --structured ${imports} ${optionalFlags} --out ${outDir} ${in} && ` +
-			`(cd ${outDir} && find ./ -name "*.aidl" -print0 | LC_ALL=C sort -z | xargs -0 sha1sum && echo ${latestVersion}) | sha1sum > ${hashFile} `,
+			`(cd ${outDir} && find ./ -name "*.aidl" -print0 | LC_ALL=C sort -z | xargs -0 sha1sum && echo ${latestVersion}) | sha1sum | cut -d " " -f 1 > ${hashFile} `,
 		CommandDeps: []string{"${aidlCmd}"},
 	}, "optionalFlags", "imports", "outDir", "hashFile", "latestVersion")
 
@@ -108,10 +108,16 @@ var (
 	}, "optionalFlags", "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
-		Command: `(diff -N --line-format="" ${oldHashFile} ${newHashFile} && diff -r -B -I '//.*' ${old} ${new} && touch ${out}) || ` +
-			`(cat ${messageFile} && exit 1)`,
+		Command: `if diff -r -B -I '//.*' '${old}'/* '${new}'/*; then touch '${out}'; else ` +
+			`cat '${messageFile}' && exit 1; fi`,
 		Description: "Check equality of ${new} and ${old}",
-	}, "old", "new", "messageFile", "oldHashFile", "newHashFile")
+	}, "old", "new", "messageFile")
+
+	aidlVerifyHashRule = pctx.StaticRule("aidlVerifyHashRule", blueprint.RuleParams{
+		Command: `if [ $$(cd '${apiDir}' && { find ./ -name "*.aidl" -print0 | LC_ALL=C sort -z | xargs -0 sha1sum && echo ${version}; } | sha1sum | cut -d " " -f 1) = $$(read -r <'${hashFile}' hash extra; printf %s $$hash) ]; then ` +
+			`touch ${out}; else cat '${messageFile}' && exit 1; fi`,
+		Description: "Verify ${apiDir} files have not been modified",
+	}, "apiDir", "version", "messageFile", "hashFile")
 
 	joinJsonObjectsToArrayRule = pctx.StaticRule("joinJsonObjectsToArrayRule", blueprint.RuleParams{
 		Rspfile:        "$out.rsp",
@@ -235,6 +241,9 @@ func (g *aidlGenRule) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 			// When compiling an AIDL interface, also make sure that each
 			// version of the interface is compatible with its previous version
 			for _, path := range api.checkApiTimestamps {
+				g.implicitInputs = append(g.implicitInputs, path)
+			}
+			for _, path := range api.checkHashTimestamps {
 				g.implicitInputs = append(g.implicitInputs, path)
 			}
 		}
@@ -424,6 +433,9 @@ type aidlApi struct {
 	// for triggering updating current API
 	updateApiTimestamp android.WritablePath
 
+	// for triggering check that files have not been modified
+	checkHashTimestamps android.WritablePaths
+
 	// for triggering freezing API as the new version
 	freezeApiTimestamp android.WritablePath
 }
@@ -512,24 +524,23 @@ func (m *aidlApi) makeApiDumpAsVersion(ctx android.ModuleContext, dump apiDump, 
 	timestampFile := android.PathForModuleOut(ctx, "updateapi_"+version+".timestamp")
 
 	modulePath := android.PathForModuleSrc(ctx).String()
-	apiPreamble := android.PathForSource(ctx, "system/tools/aidl/build/api_preamble.txt")
 
 	targetDir := filepath.Join(modulePath, m.apiDir(), version)
 	rb := android.NewRuleBuilder()
 	// Wipe the target directory and then copy the API dump into the directory
 	rb.Command().Text("mkdir -p " + targetDir)
 	rb.Command().Text("rm -rf " + targetDir + "/*")
-	rb.Command().Text("cp -rf " + dump.dir.String() + "/. " + targetDir).Implicits(dump.files)
 	if version != currentVersion {
+		rb.Command().Text("cp -rf " + dump.dir.String() + "/. " + targetDir).Implicits(dump.files)
 		// If this is making a new frozen (i.e. non-current) version of the interface,
-		// Place a preamble to prevent people from accidentally modifying the dumps.
-		// And also modify Android.bp file to add the new version to the 'versions' property.
-		rb.Command().Text("find " + targetDir + " -type f -name \"*.aidl\"").
-			Text("| xargs -n 1 bash -c 'cat ").Input(apiPreamble).Text(" $0 > $0.temp && mv $0.temp $0'")
+		// modify Android.bp file to add the new version to the 'versions' property.
 		rb.Command().BuiltTool(ctx, "bpmodify").
 			Text("-w -m " + m.properties.BaseName).
 			Text("-parameter versions -a " + version).
 			Text(android.PathForModuleSrc(ctx, "Android.bp").String())
+	} else {
+		// In this case (unfrozen interface), don't copy .hash
+		rb.Command().Text("cp -rf " + dump.dir.String() + "/* " + targetDir).Implicits(dump.files)
 	}
 	rb.Command().Text("touch").Output(timestampFile)
 
@@ -588,10 +599,6 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldDump apiDump, newD
 	implicits = append(implicits, oldDump.files...)
 	implicits = append(implicits, newDump.files...)
 	implicits = append(implicits, formattedMessageFile)
-	if oldDump.hashFile.Valid() {
-		implicits = append(implicits, oldDump.hashFile.Path())
-	}
-	implicits = append(implicits, newDump.hashFile.Path())
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:      aidlDiffApiRule,
 		Implicits: implicits,
@@ -600,8 +607,36 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldDump apiDump, newD
 			"old":         oldDump.dir.String(),
 			"new":         newDump.dir.String(),
 			"messageFile": formattedMessageFile.String(),
-			"oldHashFile": oldDump.hashFile.String(),
-			"newHashFile": newDump.hashFile.String(),
+		},
+	})
+	return timestampFile
+}
+
+func (m *aidlApi) checkIntegrity(ctx android.ModuleContext, dump apiDump) android.WritablePath {
+	version := dump.dir.Base()
+	timestampFile := android.PathForModuleOut(ctx, "checkhash_"+version+".timestamp")
+	messageFile := android.PathForSource(ctx, "system/tools/aidl/build/message_check_integrity.txt")
+
+	i, _ := strconv.Atoi(version)
+	if i == 1 {
+		version = "latest-version"
+	} else {
+		version = strconv.Itoa(i - 1)
+	}
+
+	var implicits android.Paths
+	implicits = append(implicits, dump.files...)
+	implicits = append(implicits, dump.hashFile.Path())
+	implicits = append(implicits, messageFile)
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:      aidlVerifyHashRule,
+		Implicits: implicits,
+		Output:    timestampFile,
+		Args: map[string]string{
+			"apiDir":      dump.dir.String(),
+			"version":     version,
+			"hashFile":    dump.hashFile.Path().String(),
+			"messageFile": messageFile.String(),
 		},
 	})
 	return timestampFile
@@ -657,6 +692,11 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		dumps = append(dumps, currentApiDump)
 	}
 	for i, _ := range dumps {
+		if dumps[i].hashFile.Valid() {
+			checkHashTimestamp := m.checkIntegrity(ctx, dumps[i])
+			m.checkHashTimestamps = append(m.checkHashTimestamps, checkHashTimestamp)
+		}
+
 		if i == 0 {
 			continue
 		}
@@ -1297,9 +1337,12 @@ func (m *aidlInterfacesMetadataSingleton) GenerateAndroidBuildActions(ctx androi
 		// avoid needing to filter out duplicates.
 		info.HashFiles = android.FirstUniqueStrings(info.HashFiles)
 
+		implicits := android.PathsForSource(ctx, info.HashFiles)
+
 		ctx.Build(pctx, android.BuildParams{
-			Rule:   aidlMetadataRule,
-			Output: metadataPath,
+			Rule:      aidlMetadataRule,
+			Implicits: implicits,
+			Output:    metadataPath,
 			Args: map[string]string{
 				"name":      name,
 				"stability": info.Stability,

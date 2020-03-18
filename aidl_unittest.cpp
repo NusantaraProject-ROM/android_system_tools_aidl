@@ -868,7 +868,7 @@ TEST_F(AidlTest, ApiDump) {
   ASSERT_TRUE(result);
   string actual;
   EXPECT_TRUE(io_delegate_.GetWrittenContents("dump/foo/bar/IFoo.aidl", &actual));
-  EXPECT_EQ(actual, R"(package foo.bar;
+  EXPECT_EQ(actual, string(kPreamble).append(R"(package foo.bar;
 /* @hide */
 interface IFoo {
   /* @hide */
@@ -880,10 +880,10 @@ interface IFoo {
   const int A = 1;
   const String STR = "Hello";
 }
-)");
+)"));
 
   EXPECT_TRUE(io_delegate_.GetWrittenContents("dump/foo/bar/Data.aidl", &actual));
-  EXPECT_EQ(actual, R"(package foo.bar;
+  EXPECT_EQ(actual, string(kPreamble).append(R"(package foo.bar;
 /* @hide */
 parcelable Data {
   /* @hide */
@@ -896,7 +896,7 @@ parcelable Data {
   /* @hide */
   @nullable String[] c;
 }
-)");
+)"));
 }
 
 TEST_F(AidlTest, ApiDumpWithManualIds) {
@@ -915,13 +915,13 @@ TEST_F(AidlTest, ApiDumpWithManualIds) {
   ASSERT_TRUE(result);
   string actual;
   EXPECT_TRUE(io_delegate_.GetWrittenContents("dump/foo/bar/IFoo.aidl", &actual));
-  EXPECT_EQ(actual, R"(package foo.bar;
+  EXPECT_EQ(actual, string(kPreamble).append(R"(package foo.bar;
 interface IFoo {
   int foo() = 1;
   int bar() = 2;
   int baz() = 10;
 }
-)");
+)"));
 }
 
 TEST_F(AidlTest, ApiDumpWithManualIdsOnlyOnSomeMethods) {
