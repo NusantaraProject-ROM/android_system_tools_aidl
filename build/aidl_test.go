@@ -96,13 +96,13 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 	fs := map[string][]byte{
 		"a.java":              nil,
 		"AndroidManifest.xml": nil,
-		"build/make/target/product/security/testkey":              nil,
-		"framework/aidl/a.aidl":                                   nil,
-		"IFoo.aidl":                                               nil,
-		"libbinder_ndk.map.txt":                                   nil,
-		"system/tools/aidl/build/api_preamble.txt":                nil,
+		"build/make/target/product/security/testkey": nil,
+		"framework/aidl/a.aidl":                      nil,
+		"IFoo.aidl":                                  nil,
+		"libbinder_ndk.map.txt":                      nil,
 		"system/tools/aidl/build/message_check_compatibility.txt": nil,
 		"system/tools/aidl/build/message_check_equality.txt":      nil,
+		"system/tools/aidl/build/message_check_integrity.txt":     nil,
 	}
 
 	cc.GatherRequiredFilesForTest(fs)
@@ -230,6 +230,7 @@ func TestCreatesModulesWithFrozenVersions(t *testing.T) {
 		}
 	`, withFiles(map[string][]byte{
 		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
 	}))
 
 	// For alias for the latest frozen version (=1)
@@ -291,7 +292,9 @@ func TestNativeOutputIsAlwaysVersioned(t *testing.T) {
 		}
 	`, withFiles(map[string][]byte{
 		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
 		"aidl_api/foo/2/foo.2.aidl": nil,
+		"aidl_api/foo/2/.hash":      nil,
 	}))
 
 	// alias for the latest frozen version (=2)
