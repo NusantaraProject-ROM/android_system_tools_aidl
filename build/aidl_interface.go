@@ -108,10 +108,10 @@ var (
 	}, "optionalFlags", "old", "new", "messageFile")
 
 	aidlDiffApiRule = pctx.StaticRule("aidlDiffApiRule", blueprint.RuleParams{
-		Command: `if diff -r -B -I '//.*' '${old}'/* '${new}'/*; then touch '${out}'; else ` +
+		Command: `if diff -r -B -I '//.*' -x '${hashFile}' '${old}' '${new}'; then touch '${out}'; else ` +
 			`cat '${messageFile}' && exit 1; fi`,
 		Description: "Check equality of ${new} and ${old}",
-	}, "old", "new", "messageFile")
+	}, "old", "new", "hashFile", "messageFile")
 
 	aidlVerifyHashRule = pctx.StaticRule("aidlVerifyHashRule", blueprint.RuleParams{
 		Command: `if [ $$(cd '${apiDir}' && { find ./ -name "*.aidl" -print0 | LC_ALL=C sort -z | xargs -0 sha1sum && echo ${version}; } | sha1sum | cut -d " " -f 1) = $$(read -r <'${hashFile}' hash extra; printf %s $$hash) ]; then ` +
@@ -606,6 +606,7 @@ func (m *aidlApi) checkEquality(ctx android.ModuleContext, oldDump apiDump, newD
 		Args: map[string]string{
 			"old":         oldDump.dir.String(),
 			"new":         newDump.dir.String(),
+			"hashFile":    newDump.hashFile.Path().Base(),
 			"messageFile": formattedMessageFile.String(),
 		},
 	})
