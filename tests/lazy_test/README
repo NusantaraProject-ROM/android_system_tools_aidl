@@ -1,3 +1,25 @@
+==================================================================================================
+aidl_lazy_test
+==================================================================================================
+This test can be run in one of two ways:
+
+--------------------------------------------
+Without arguments: aidl_lazy_test
+--------------------------------------------
+This will run tests on the test service (described below), the goal being to test the dynamic
+service infrastructure.
+
+--------------------------------------------
+With a service: aidl_lazy_test serviceName...
+--------------------------------------------
+This will run tests on the input service, verifying whether it successfully displays lazy behavior.
+If the service has multiple interfaces, each can be entered as a separate argument to be tested
+simultaneously.
+Infrastructure tests that rely on specific features of the dedicated test service will be skipped.
+
+==================================================================================================
+aidl_lazy_test_server
+==================================================================================================
 aidl_lazy_test_server is a simple test service.
 
 Because it represents the bare minimum requirements for implementing a service, it also serves as
@@ -20,13 +42,27 @@ This file is read by init, which later starts the service. The interface, onesho
 lines are only required for dynamic services.
 
 --------------------------------------------
+LazyTestService.h/.cpp
+--------------------------------------------
+The implementation of the service's functionality.
+
+--------------------------------------------
+ILazyTestService.aidl
+--------------------------------------------
+The AIDL interface for the service, this will generate code that clients can use to interact with
+the service via IPC.
+
+--------------------------------------------
 Android.bp
 --------------------------------------------
+An aidl_interface entry will need to be added for the .aidl file.
+
 A cc_binary entry will need to be added for the service with:
 name
-srcs - The source file(s), in this case just server.cpp
+srcs - The source file(s)
 init_rc - The .rc file
 shared_libs - Any shared libraries the source file depends on
+static_libs - The AIDL interface
 
 ============================================
 In system/sepolicy
