@@ -1433,7 +1433,7 @@ func allAidlInterfacesMakeVars(ctx android.MakeVarsContext) {
 	names := []string{}
 	ctx.VisitAllModules(func(module android.Module) {
 		if ai, ok := module.(*aidlInterface); ok {
-			names = append(names, ai.Name())
+			names = append(names, ai.BaseModuleName())
 		}
 	})
 	ctx.Strict("ALL_AIDL_INTERFACES", strings.Join(names, " "))
