@@ -691,6 +691,7 @@ class AidlDefinedType : public AidlAnnotatable {
   }
 
   virtual void Dump(CodeWriter* writer) const = 0;
+  void DumpHeader(CodeWriter* writer) const;
 
  private:
   std::string name_;
