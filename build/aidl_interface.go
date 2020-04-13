@@ -201,6 +201,7 @@ type aidlGenProperties struct {
 	GenLog    bool
 	Version   string
 	GenTrace  bool
+	Unstable  *bool
 }
 
 type aidlGenRule struct {
@@ -405,7 +406,9 @@ func (g *aidlGenRule) GeneratedHeaderDirs() android.Paths {
 
 func (g *aidlGenRule) DepsMutator(ctx android.BottomUpMutatorContext) {
 	ctx.AddDependency(ctx.Module(), nil, wrap("", g.properties.Imports, aidlInterfaceSuffix)...)
-	ctx.AddDependency(ctx.Module(), nil, g.properties.BaseName+aidlApiSuffix)
+	if !proptools.Bool(g.properties.Unstable) {
+		ctx.AddDependency(ctx.Module(), nil, g.properties.BaseName+aidlApiSuffix)
+	}
 
 	ctx.AddReverseDependency(ctx.Module(), nil, aidlMetadataSingletonName)
 }
@@ -664,20 +667,18 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		checked := m.checkEquality(ctx, currentApiDump, totApiDump)
 		m.checkApiTimestamps = append(m.checkApiTimestamps, checked)
 	} else {
-		// The "current" directory might not exist, in case when the interface is first created or
-		// the interface is not versioned.
-		// For the former case, instruct user to create one by executing `m <name>-update-api`.
-		// For the latter case, don't bother.
-		if len(m.properties.Versions) > 0 {
-			rb := android.NewRuleBuilder()
-			rb.Command().Text(fmt.Sprintf(`echo "API dump for the current version of AIDL intercace %s does not exist."`, ctx.ModuleName()))
-			rb.Command().Text(fmt.Sprintf(`echo "Run m %s-update-api"`, m.properties.BaseName))
-			// This file will never be created. Otherwise, the build will pass simply by running 'm; m'.
-			alwaysChecked := android.PathForModuleOut(ctx, "checkapi_current.timestamp")
-			rb.Command().Text("false").ImplicitOutput(alwaysChecked)
-			rb.Build(pctx, ctx, "check_current_aidl_api", "")
-			m.checkApiTimestamps = append(m.checkApiTimestamps, alwaysChecked)
-		}
+		// The "current" directory might not exist, in case when the interface is first created.
+		// Instruct user to create one by executing `m <name>-update-api`.
+		rb := android.NewRuleBuilder()
+		ifaceName := m.properties.BaseName
+		rb.Command().Text(fmt.Sprintf(`echo "API dump for the current version of AIDL interface %s does not exist."`, ifaceName))
+		rb.Command().Text(fmt.Sprintf(`echo Run "m %s-update-api", or add "unstable: true" to the build rule `+
+			`for the interface if it does not need to be versioned`, ifaceName))
+		// This file will never be created. Otherwise, the build will pass simply by running 'm; m'.
+		alwaysChecked := android.PathForModuleOut(ctx, "checkapi_current.timestamp")
+		rb.Command().Text("false").ImplicitOutput(alwaysChecked)
+		rb.Build(pctx, ctx, "check_current_aidl_api", "")
+		m.checkApiTimestamps = append(m.checkApiTimestamps, alwaysChecked)
 	}
 
 	// Also check that version X is backwards compatible with version X-1.
@@ -822,6 +823,10 @@ type aidlInterfaceProperties struct {
 			CommonNativeBackendProperties
 		}
 	}
+
+	// Marks that this interface does not need to be stable. When set to true, the build system
+	// doesn't create the API dump and require it to be updated. Default is false.
+	Unstable *bool
 }
 
 type aidlInterface struct {
@@ -1050,7 +1055,22 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 		}
 	}
 
-	addApiModule(mctx, i)
+	if proptools.Bool(i.properties.Unstable) {
+		if i.hasVersion() {
+			mctx.PropertyErrorf("versions", "cannot have versions for an unstable interface")
+		}
+		apiDirRoot := filepath.Join(aidlApiDir, i.ModuleBase.Name())
+		aidlDumps, _ := mctx.GlobWithDeps(filepath.Join(mctx.ModuleDir(), apiDirRoot, "**/*.aidl"), nil)
+		if len(aidlDumps) != 0 {
+			mctx.PropertyErrorf("unstable", "The interface is configured as unstable, "+
+				"but API dumps exist under %q. Unstable interface cannot have dumps.", apiDirRoot)
+		}
+		if i.properties.Stability != nil {
+			mctx.ModuleErrorf("unstable:true and stability:%q cannot happen at the same time", i.properties.Stability)
+		}
+	} else {
+		addApiModule(mctx, i)
+	}
 
 	// Reserve this module name for future use
 	mctx.CreateModule(phony.PhonyFactory, &phonyProperties{
@@ -1112,6 +1132,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		GenLog:    genLog,
 		Version:   version,
 		GenTrace:  genTrace,
+		Unstable:  i.properties.Unstable,
 	})
 
 	importExportDependencies := wrap("", i.properties.Imports, "-"+lang)
@@ -1216,6 +1237,7 @@ func addJavaLibrary(mctx android.LoadHookContext, i *aidlInterface, version stri
 		Lang:      langJava,
 		BaseName:  i.ModuleBase.Name(),
 		Version:   version,
+		Unstable:  i.properties.Unstable,
 	})
 
 	mctx.CreateModule(java.LibraryFactory, &javaProperties{
