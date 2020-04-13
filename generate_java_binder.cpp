@@ -118,7 +118,15 @@ StubClass::StubClass(const AidlInterface* interfaceType, const Options& options)
   // descriptor
   auto descriptor = std::make_shared<Field>(
       STATIC | FINAL | PRIVATE, std::make_shared<Variable>("java.lang.String", "DESCRIPTOR"));
-  descriptor->value = "\"" + interfaceType->GetCanonicalName() + "\"";
+  if (options.IsStructured()) {
+    // mangle the interface name at build time and demangle it at runtime, to avoid
+    // being renamed by jarjar. See b/153843174
+    std::string name = interfaceType->GetCanonicalName();
+    std::replace(name.begin(), name.end(), '.', '$');
+    descriptor->value = "\"" + name + "\".replace('$', '.')";
+  } else {
+    descriptor->value = "\"" + interfaceType->GetCanonicalName() + "\"";
+  }
   this->elements.push_back(descriptor);
 
   // ctor
