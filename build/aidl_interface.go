@@ -200,6 +200,7 @@ type aidlGenProperties struct {
 	BaseName  string
 	GenLog    bool
 	Version   string
+	GenTrace  bool
 }
 
 type aidlGenRule struct {
@@ -313,6 +314,9 @@ func (g *aidlGenRule) generateBuildActionsForSingleAidl(ctx android.ModuleContex
 			}
 		}
 		optionalFlags = append(optionalFlags, "--hash "+hash)
+	}
+	if g.properties.GenTrace {
+		optionalFlags = append(optionalFlags, "-t")
 	}
 	if g.properties.Stability != nil {
 		optionalFlags = append(optionalFlags, "--stability", *g.properties.Stability)
@@ -765,6 +769,9 @@ type aidlInterfaceProperties struct {
 	// Whether the library can be used on host
 	Host_supported *bool
 
+	// Whether tracing should be added to the interface.
+	Gen_trace *bool
+
 	// Top level directories for includes.
 	// TODO(b/128940869): remove it if aidl_interface can depend on framework.aidl
 	Include_dirs []string
@@ -1091,6 +1098,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 	}
 
 	genLog := proptools.Bool(commonProperties.Gen_log)
+	genTrace := proptools.Bool(i.properties.Gen_trace)
 
 	mctx.CreateModule(aidlGenFactory, &nameProperties{
 		Name: proptools.StringPtr(cppSourceGen),
@@ -1103,6 +1111,7 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		BaseName:  i.ModuleBase.Name(),
 		GenLog:    genLog,
 		Version:   version,
+		GenTrace:  genTrace,
 	})
 
 	importExportDependencies := wrap("", i.properties.Imports, "-"+lang)
@@ -1118,6 +1127,9 @@ func addCppLibrary(mctx android.LoadHookContext, i *aidlInterface, version strin
 		importExportDependencies = append(importExportDependencies, "libbinder", "libutils")
 		if genLog {
 			libJSONCppDependency = []string{"libjsoncpp"}
+		}
+		if genTrace {
+			importExportDependencies = append(importExportDependencies, "libcutils")
 		}
 		hostSupported = i.properties.Host_supported
 	} else if lang == langNdk {
