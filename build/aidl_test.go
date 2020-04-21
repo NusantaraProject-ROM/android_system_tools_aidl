@@ -82,6 +82,9 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 			name: "libutils",
 		}
 		cc_library {
+			name: "libcutils",
+		}
+		cc_library {
 			name: "libbinder_ndk",
 		}
 		ndk_library {
