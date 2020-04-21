@@ -71,6 +71,7 @@ filegroup {
 // contagious.
 aidl_interface {
     name: "test-variants",
+    unstable: true,
     local_include_dir: "tests_1",
     vendor_available: true,
     host_supported: true,
