@@ -271,9 +271,9 @@ unique_ptr<Declaration> DefineClientTransaction(const AidlTypenames& typenames,
   b->AddLiteral(StringPrintf("%s %s", kBinderStatusLiteral, kStatusVarName));
 
   if (options.GenTraces()) {
-    b->AddLiteral(
-        StringPrintf("ScopedTrace %s(ATRACE_TAG_AIDL, \"%s::%s::cppClient\")",
-        kTraceVarName, interface.GetName().c_str(), method.GetName().c_str()));
+    b->AddLiteral(StringPrintf("::android::ScopedTrace %s(ATRACE_TAG_AIDL, \"%s::%s::cppClient\")",
+                               kTraceVarName, interface.GetName().c_str(),
+                               method.GetName().c_str()));
   }
 
   if (options.GenLog()) {
