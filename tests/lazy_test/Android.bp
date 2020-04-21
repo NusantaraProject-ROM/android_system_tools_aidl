@@ -38,6 +38,7 @@ cc_binary {
 
 aidl_interface {
     name: "lazy_test_service_aidl",
+    unstable: true,
     srcs: [
         "ILazyTestService.aidl",
     ],
