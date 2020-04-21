@@ -34,12 +34,35 @@ using std::set;
 using std::string;
 using std::vector;
 
+static set<AidlAnnotation> get_strict_annotations(const AidlAnnotatable& node) {
+  // This must be symmetrical (if you can add something, you must be able to
+  // remove it). The reason is that we have no way of knowing which interface a
+  // server serves and which interface a client serves (e.g. a callback
+  // interface). Note that this is being overly lenient. It makes sense for
+  // newer code to start accepting nullable things. However, here, we don't know
+  // if the client of an interface or the server of an interface is newer.
+  //
+  // Here are two examples to demonstrate this:
+  // - a new implementation might change so that it no longer returns null
+  // values (remove @nullable)
+  // - a new implementation might start accepting null values (add @nullable)
+  static const set<std::string> kIgnoreAnnotations{
+      "nullable",
+  };
+  set<AidlAnnotation> annotations;
+  for (const AidlAnnotation& annotation : node.GetAnnotations()) {
+    if (kIgnoreAnnotations.find(annotation.GetName()) == kIgnoreAnnotations.end()) {
+      annotations.insert(annotation);
+    }
+  }
+  return annotations;
+}
+
 static bool have_compatible_annotations(const AidlAnnotatable& older,
                                         const AidlAnnotatable& newer) {
-  set<AidlAnnotation> olderAnnotations(older.GetAnnotations().begin(),
-                                       older.GetAnnotations().end());
-  set<AidlAnnotation> newerAnnotations(newer.GetAnnotations().begin(),
-                                       newer.GetAnnotations().end());
+  set<AidlAnnotation> olderAnnotations = get_strict_annotations(older);
+  set<AidlAnnotation> newerAnnotations = get_strict_annotations(newer);
+
   if (olderAnnotations != newerAnnotations) {
     const string from = older.ToString().empty() ? "(empty)" : older.ToString();
     const string to = newer.ToString().empty() ? "(empty)" : newer.ToString();
