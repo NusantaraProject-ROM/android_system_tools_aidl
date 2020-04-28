@@ -920,17 +920,15 @@ func (i *aidlInterface) checkStability(mctx android.LoadHookContext) {
 		return
 	}
 
+	if proptools.Bool(i.properties.Unstable) {
+		mctx.PropertyErrorf("stability", "must be empty when \"unstable\" is true")
+	}
+
 	// TODO(b/136027762): should we allow more types of stability (e.g. for APEX) or
 	// should we switch this flag to be something like "vintf { enabled: true }"
 	isVintf := "vintf" == proptools.String(i.properties.Stability)
 	if !isVintf {
 		mctx.PropertyErrorf("stability", "must be empty or \"vintf\"")
-	}
-
-	// TODO(b/152655544): might need to change the condition
-	sdkIsFinal := mctx.Config().DefaultAppTargetSdkInt() != android.FutureApiLevel
-	if sdkIsFinal && !i.hasVersion() && isVintf && i.Owner() == "" {
-		mctx.PropertyErrorf("versions", "must be set(need to be frozen) when stability is \"vintf\" and PLATFORM_VERSION_CODENAME is REL.")
 	}
 }
 func (i *aidlInterface) checkVersions(mctx android.LoadHookContext) {
@@ -1129,6 +1127,10 @@ func aidlInterfaceHook(mctx android.LoadHookContext, i *aidlInterface) {
 			mctx.ModuleErrorf("unstable:true and stability:%q cannot happen at the same time", i.properties.Stability)
 		}
 	} else {
+		sdkIsFinal := mctx.Config().DefaultAppTargetSdkInt() != android.FutureApiLevel
+		if sdkIsFinal && !i.hasVersion() && i.Owner() == "" {
+			mctx.PropertyErrorf("versions", "must be set (need to be frozen) when \"unstable\" is false and PLATFORM_VERSION_CODENAME is REL.")
+		}
 		addApiModule(mctx, i)
 	}
 
