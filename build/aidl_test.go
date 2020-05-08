@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/blueprint"
+	"github.com/google/blueprint/proptools"
 
 	"android/soong/android"
 	"android/soong/cc"
@@ -60,6 +61,13 @@ func withFiles(files map[string][]byte) testCustomizer {
 		for k, v := range files {
 			fs[k] = v
 		}
+	}
+}
+
+func setReleaseEnv() testCustomizer {
+	return func(_ map[string][]byte, config android.Config) {
+		config.TestProductVariables.Platform_sdk_codename = proptools.StringPtr("REL")
+		config.TestProductVariables.Platform_sdk_final = proptools.BoolPtr(true)
 	}
 }
 
@@ -120,6 +128,11 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 
 	config := android.TestArchConfig(buildDir, nil, bp, fs)
 
+	// To keep tests stable, fix Platform_sdk_codename and Platform_sdk_final
+	// Use setReleaseEnv() to test release version
+	config.TestProductVariables.Platform_sdk_codename = proptools.StringPtr("Q")
+	config.TestProductVariables.Platform_sdk_final = proptools.BoolPtr(false)
+
 	for _, c := range customizers {
 		// The fs now needs to be populated before creating the config, call customizers twice
 		// for now, earlier to get any fs changes, and now after the config was created to
@@ -143,7 +156,9 @@ func _testAidl(t *testing.T, bp string, customizers ...testCustomizer) (*android
 
 	ctx.PreArchMutators(android.RegisterDefaultsPreArchMutators)
 	ctx.PostDepsMutators(android.RegisterOverridePostDepsMutators)
-
+	ctx.PostDepsMutators(func(ctx android.RegisterMutatorsContext) {
+		ctx.BottomUp("checkUnstableModule", checkUnstableModuleMutator).Parallel()
+	})
 	ctx.Register(config)
 
 	return ctx, config
@@ -192,6 +207,153 @@ func assertModulesExists(t *testing.T, ctx *android.TestContext, names ...string
 		})
 		t.Errorf("expected modules(%v) not found. all modules: %v", missing, android.SortedStringKeys(allModuleNames))
 	}
+}
+
+// Vintf module must have versions in release version
+func TestVintfWithoutVersionInRelease(t *testing.T) {
+	vintfWithoutVersionBp := `
+	aidl_interface {
+		name: "foo",
+		stability: "vintf",
+		srcs: [
+			"IFoo.aidl",
+		],
+	}`
+	expectedError := `module "foo_interface": versions: must be set \(need to be frozen\) when "unstable" is false and PLATFORM_VERSION_CODENAME is REL`
+	testAidlError(t, expectedError, vintfWithoutVersionBp, setReleaseEnv())
+
+	ctx, _ := testAidl(t, vintfWithoutVersionBp)
+	assertModulesExists(t, ctx, "foo-java", "foo-cpp", "foo-ndk", "foo-ndk_platform")
+}
+
+// Check if using unstable version in release cause an error.
+func TestUnstableVersionUsageInRelease(t *testing.T) {
+	unstableVersionUsageInJavaBp := `
+	aidl_interface {
+		name: "foo",
+		versions: [
+			"1",
+		],
+		srcs: [
+			"IFoo.aidl",
+		],
+	}
+	java_library {
+		name: "bar",
+		libs: ["foo-unstable-java"],
+	}`
+
+	expectedError := `unstable-java is disallowed in release version because it is unstable.`
+	testAidlError(t, expectedError, unstableVersionUsageInJavaBp, setReleaseEnv(), withFiles(map[string][]byte{
+		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
+	}))
+
+	testAidl(t, unstableVersionUsageInJavaBp, withFiles(map[string][]byte{
+		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
+	}))
+
+	// A stable version can be used in release version
+	stableVersionUsageInJavaBp := `
+	aidl_interface {
+		name: "foo",
+		versions: [
+			"1",
+		],
+		srcs: [
+			"IFoo.aidl",
+		],
+	}
+	java_library {
+		name: "bar",
+		libs: ["foo-java"],
+	}`
+
+	testAidl(t, stableVersionUsageInJavaBp, setReleaseEnv(), withFiles(map[string][]byte{
+		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
+	}))
+
+	testAidl(t, stableVersionUsageInJavaBp, withFiles(map[string][]byte{
+		"aidl_api/foo/1/foo.1.aidl": nil,
+		"aidl_api/foo/1/.hash":      nil,
+	}))
+}
+
+// The module which has never been frozen and is not "unstable" is not allowed in release version.
+func TestNonVersionedModuleUsageInRelease(t *testing.T) {
+	nonVersionedModuleUsageInJavaBp := `
+	aidl_interface {
+		name: "foo",
+		srcs: [
+			"IFoo.aidl",
+		],
+	}
+
+	java_library {
+		name: "bar",
+		libs: ["foo-java"],
+	}`
+
+	expectedError := `"foo_interface": versions: must be set \(need to be frozen\) when "unstable" is false and PLATFORM_VERSION_CODENAME is REL.`
+	testAidlError(t, expectedError, nonVersionedModuleUsageInJavaBp, setReleaseEnv())
+	testAidl(t, nonVersionedModuleUsageInJavaBp)
+
+	nonVersionedUnstableModuleUsageInJavaBp := `
+	aidl_interface {
+		name: "foo",
+		srcs: [
+			"IFoo.aidl",
+		],
+		unstable: true,
+	}
+
+	java_library {
+		name: "bar",
+		libs: ["foo-java"],
+	}`
+
+	testAidl(t, nonVersionedUnstableModuleUsageInJavaBp, setReleaseEnv())
+	testAidl(t, nonVersionedUnstableModuleUsageInJavaBp)
+}
+
+func TestUnstableModules(t *testing.T) {
+	testAidlError(t, `module "foo_interface": stability: must be empty when "unstable" is true`, `
+		aidl_interface {
+			name: "foo",
+			stability: "vintf",
+			unstable: true,
+			srcs: [
+				"IFoo.aidl",
+			],
+		}
+	`)
+
+	testAidlError(t, `module "foo_interface": versions: cannot have versions for an unstable interface`, `
+		aidl_interface {
+			name: "foo",
+			versions: [
+				"1",
+			],
+			unstable: true,
+			srcs: [
+				"IFoo.aidl",
+			],
+		}
+	`)
+
+	ctx, _ := testAidl(t, `
+		aidl_interface {
+			name: "foo",
+			unstable: true,
+			srcs: [
+				"IFoo.aidl",
+			],
+		}
+	`)
+
+	assertModulesExists(t, ctx, "foo-java", "foo-cpp", "foo-ndk", "foo-ndk_platform")
 }
 
 func TestCreatesModulesWithNoVersions(t *testing.T) {
