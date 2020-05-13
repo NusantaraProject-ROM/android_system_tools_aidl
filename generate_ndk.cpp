@@ -623,7 +623,11 @@ void GenerateInterfaceSource(CodeWriter& out, const AidlTypenames& types,
   // defintion for static member setDefaultImpl
   out << "bool " << clazz << "::setDefaultImpl(std::shared_ptr<" << clazz << "> impl) {\n";
   out.Indent();
-  out << "if (!" << clazz << "::default_impl && impl) {\n";
+  out << "// Only one user of this interface can use this function\n";
+  out << "// at a time. This is a heuristic to detect if two different\n";
+  out << "// users in the same process use this function.\n";
+  out << "assert(!" << clazz << "::default_impl);\n";
+  out << "if (impl) {\n";
   out.Indent();
   out << clazz << "::default_impl = impl;\n";
   out << "return true;\n";
