@@ -882,7 +882,7 @@ static void generate_methods(const AidlInterface& iface, const AidlMethod& metho
            << "public synchronized String " << kGetInterfaceHash << "()"
            << " throws "
            << "android.os.RemoteException {\n"
-           << "  if (mCachedHash == \"-1\") {\n"
+           << "  if (\"-1\".equals(mCachedHash)) {\n"
            << "    android.os.Parcel data = android.os.Parcel.obtain();\n"
            << "    android.os.Parcel reply = android.os.Parcel.obtain();\n"
            << "    try {\n"
