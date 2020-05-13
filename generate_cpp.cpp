@@ -462,7 +462,7 @@ unique_ptr<Declaration> DefineClientMetaTransaction(const AidlTypenames& /* type
          << "      ::android::binder::Status _aidl_status;\n"
          << "      err = _aidl_status.readFromParcel(reply);\n"
          << "      if (err == ::android::OK && _aidl_status.isOk()) {\n"
-         << "        cached_hash_ = reply.readString8().c_str();\n"
+         << "        reply.readUtf8FromUtf16(&cached_hash_);\n"
          << "      }\n"
          << "    }\n"
          << "  }\n"
@@ -663,8 +663,8 @@ bool HandleServerMetaTransaction(const AidlTypenames&, const AidlInterface& inte
     std::ostringstream code;
     code << "_aidl_data.checkInterface(this);\n"
          << "_aidl_reply->writeNoException();\n"
-         << "_aidl_reply->writeString8(android::String8("
-         << ClassName(interface, ClassNames::INTERFACE) << "::HASH.c_str()))";
+         << "_aidl_reply->writeUtf8AsUtf16(" << ClassName(interface, ClassNames::INTERFACE)
+         << "::HASH)";
     b->AddLiteral(code.str());
     return true;
   }
