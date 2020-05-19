@@ -549,7 +549,13 @@ public interface IExampleInterface extends android.os.IInterface
     static final int TRANSACTION_takesAnInterface = (android.os.IBinder.FIRST_CALL_TRANSACTION + 7);
     static final int TRANSACTION_takesAParcelable = (android.os.IBinder.FIRST_CALL_TRANSACTION + 8);
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
@@ -1063,7 +1069,13 @@ public interface IExampleInterface extends android.os.IInterface
     static final int TRANSACTION_takesAnInterface = (android.os.IBinder.FIRST_CALL_TRANSACTION + 7);
     static final int TRANSACTION_takesAParcelable = (android.os.IBinder.FIRST_CALL_TRANSACTION + 8);
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
@@ -1605,7 +1617,13 @@ public interface IExampleInterface extends android.os.IInterface
     static final int TRANSACTION_takesAnInterface = (android.os.IBinder.FIRST_CALL_TRANSACTION + 7);
     static final int TRANSACTION_takesAParcelable = (android.os.IBinder.FIRST_CALL_TRANSACTION + 8);
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
@@ -2095,7 +2113,13 @@ public interface IExampleInterface extends android.os.IInterface
       return true;
     }
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
@@ -2661,7 +2685,13 @@ public interface IExampleInterface extends android.os.IInterface
     static final int TRANSACTION_getInterfaceVersion = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777214);
     static final int TRANSACTION_getInterfaceHash = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777213);
     public static boolean setDefaultImpl(android.test.IExampleInterface impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
