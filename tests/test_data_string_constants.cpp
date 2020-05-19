@@ -108,7 +108,13 @@ public interface IStringConstants extends android.os.IInterface
       public static android.os.IStringConstants sDefaultImpl;
     }
     public static boolean setDefaultImpl(android.os.IStringConstants impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
@@ -380,7 +386,13 @@ public interface IStringConstants extends android.os.IInterface
     static final int TRANSACTION_getInterfaceVersion = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777214);
     static final int TRANSACTION_getInterfaceHash = (android.os.IBinder.FIRST_CALL_TRANSACTION + 16777213);
     public static boolean setDefaultImpl(android.os.IStringConstants impl) {
-      if (Stub.Proxy.sDefaultImpl == null && impl != null) {
+      // Only one user of this interface can use this function
+      // at a time. This is a heuristic to detect if two different
+      // users in the same process use this function.
+      if (Stub.Proxy.sDefaultImpl != null) {
+        throw new IllegalStateException("setDefaultImpl() called twice");
+      }
+      if (impl != null) {
         Stub.Proxy.sDefaultImpl = impl;
         return true;
       }
