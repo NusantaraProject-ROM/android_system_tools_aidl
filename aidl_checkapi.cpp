@@ -182,15 +182,6 @@ static bool are_compatible_parcelables(const AidlStructuredParcelable& older,
     const auto& new_field = new_fields.at(i);
     compatible &= are_compatible_types(old_field->GetType(), new_field->GetType());
 
-    // Note: unlike method argument names, field name change is an incompatible
-    // change, otherwise, we can't detect
-    // parcelable Point {int x; int y;} -> parcelable Point {int y; int x;}
-    if (old_field->GetName() != new_field->GetName()) {
-      AIDL_ERROR(newer) << "Renamed field: " << old_field->GetName() << " to "
-                        << new_field->GetName() << ".";
-      compatible = false;
-    }
-
     const string old_value = old_field->ValueString(AidlConstantValueDecorator);
     const string new_value = new_field->ValueString(AidlConstantValueDecorator);
     if (old_value != new_value) {
@@ -198,6 +189,23 @@ static bool are_compatible_parcelables(const AidlStructuredParcelable& older,
       compatible = false;
     }
   }
+
+  // Reordering of fields is an incompatible change.
+  for (size_t i = 0; i < new_fields.size(); i++) {
+    const auto& new_field = new_fields.at(i);
+    auto found = std::find_if(old_fields.begin(), old_fields.end(), [&new_field](const auto& f) {
+      return new_field->GetName() == f->GetName();
+    });
+    if (found != old_fields.end()) {
+      size_t old_index = std::distance(old_fields.begin(), found);
+      if (old_index != i) {
+        AIDL_ERROR(new_field) << "Reordered " << new_field->GetName() << " from " << old_index
+                              << " to " << i << ".";
+        compatible = false;
+      }
+    }
+  }
+
   return compatible;
 }
 
