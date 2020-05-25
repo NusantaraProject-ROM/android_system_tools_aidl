@@ -1386,22 +1386,6 @@ TEST_F(AidlTestIncompatibleChanges, RenamedMethod) {
   EXPECT_FALSE(::android::aidl::check_api(options_, io_delegate_));
 }
 
-TEST_F(AidlTestIncompatibleChanges, RenamedField) {
-  io_delegate_.SetFileContents("old/p/Data.aidl",
-                               "package p;"
-                               "parcelable Data {"
-                               "  int foo;"
-                               "  int bar;"
-                               "}");
-  io_delegate_.SetFileContents("new/p/Data.aidl",
-                               "package p;"
-                               "parcelable Data {"
-                               "  int foo;"
-                               "  int bar2;"
-                               "}");
-  EXPECT_FALSE(::android::aidl::check_api(options_, io_delegate_));
-}
-
 TEST_F(AidlTestIncompatibleChanges, RenamedType) {
   io_delegate_.SetFileContents("old/p/IFoo.aidl",
                                "package p;"
