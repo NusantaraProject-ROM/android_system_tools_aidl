@@ -704,12 +704,19 @@ func (m *aidlApi) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	// "current" is checked against the latest version.
 	var dumps []apiDump
 	for _, ver := range m.properties.Versions {
-		apiDir := android.PathForModuleSrc(ctx, m.apiDir(), ver)
-		dumps = append(dumps, apiDump{
-			dir:      apiDir,
-			files:    ctx.Glob(filepath.Join(apiDir.String(), "**/*.aidl"), nil),
-			hashFile: android.ExistentPathForSource(ctx, ctx.ModuleDir(), m.apiDir(), ver, ".hash"),
-		})
+		apiDir := filepath.Join(ctx.ModuleDir(), m.apiDir(), ver)
+		apiDirPath := android.ExistentPathForSource(ctx, apiDir)
+		if apiDirPath.Valid() {
+			dumps = append(dumps, apiDump{
+				dir:      apiDirPath.Path(),
+				files:    ctx.Glob(filepath.Join(apiDirPath.String(), "**/*.aidl"), nil),
+				hashFile: android.ExistentPathForSource(ctx, ctx.ModuleDir(), m.apiDir(), ver, ".hash"),
+			})
+		} else if ctx.Config().AllowMissingDependencies() {
+			ctx.AddMissingDependencies([]string{apiDir})
+		} else {
+			ctx.ModuleErrorf("API version %s path %s does not exist", ver, apiDir)
+		}
 	}
 	if currentApiDir.Valid() {
 		dumps = append(dumps, currentApiDump)
