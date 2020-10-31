@@ -82,9 +82,9 @@ static bool IsValidName(const string& name) {
 }
 
 bool AidlTypenames::IsIgnorableImport(const string& import) const {
-  static set<string> ignore_import = {"android.os.IInterface",   "android.os.IBinder",
-                                      "android.os.Parcelable",   "android.os.Parcel",
-                                      "android.content.Context", "java.lang.String"};
+  static set<string> ignore_import = {
+      "android.os.IInterface",   "android.os.IBinder", "android.os.Parcelable", "android.os.Parcel",
+      "android.content.Context", "java.lang.String",   "java.lang.CharSequence"};
   // these known built-in types don't need to be imported
   const bool in_ignore_import = ignore_import.find(import) != ignore_import.end();
   // an already defined type doesn't need to be imported again unless it is from
